@@ -19,7 +19,12 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_SOURCE_D
 
 target_sources(${PROJECT_NAME} PRIVATE
 	multi-canvas.cpp
-	multi-canvas.hpp)
+	qt-display.cpp
+	config-dialog.cpp
+	multi-canvas.hpp
+	qt-display.hpp
+	display-helpers.hpp
+	config-dialog.hpp)
 
 if(BUILD_OUT_OF_TREE)
   find_package(libobs REQUIRED)
