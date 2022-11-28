@@ -3311,8 +3311,7 @@ void CanvasDock::ConfigButtonClicked()
 		configDialog = new MultiCanvasConfigDialog(
 			(QMainWindow *)obs_frontend_get_main_window());
 	auto result = configDialog->exec();
-	if(result == 1) {
-		
+	if (result == 1) {
 	}
 }
 

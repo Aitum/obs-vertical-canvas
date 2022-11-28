@@ -55,6 +55,8 @@ elseif(OS_MACOS)
 	set(MACOSX_PLUGIN_SHORT_VERSION_STRING "1")
 	configure_file(cmake/bundle/macos/installer-macos.pkgproj.in ${CMAKE_BINARY_DIR}/installer-macos.generated.pkgproj)
 	target_compile_options(${PROJECT_NAME} PRIVATE -Wall)
+elseif(OS_POSIX)
+	target_link_libraries(${PROJECT_NAME} Qt::GuiPrivate)
 endif()
 
 # lines if you want add Qt UI in your plugin

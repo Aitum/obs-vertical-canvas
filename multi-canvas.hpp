@@ -1,6 +1,7 @@
 #pragma once
 
 #include <mutex>
+#include <memory>
 #include <obs-frontend-api.h>
 #include <QDockWidget>
 #include <qpushbutton.h>
