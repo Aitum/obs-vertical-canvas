@@ -127,6 +127,8 @@ CanvasDock::CanvasDock(uint32_t width, uint32_t height, QWidget *parent)
 	  preview(new OBSQTDisplay(this)),
 	  eventFilter(BuildEventFilter())
 {
+	UNUSED_PARAMETER(width);
+	UNUSED_PARAMETER(height);
 	setFeatures(DockWidgetClosable | DockWidgetMovable |
 		    DockWidgetFloatable);
 	setWindowTitle("Multi Canvas");
@@ -1433,7 +1435,7 @@ bool CanvasDock::HandleMousePressEvent(QMouseEvent *event)
 	if (locked)
 		return false;
 
-	float pixelRatio = 1.0f;
+	//float pixelRatio = 1.0f;
 	//float x = pos.x() - main->previewX / pixelRatio;
 	//float y = pos.y() - main->previewY / pixelRatio;
 	Qt::KeyboardModifiers modifiers = QGuiApplication::keyboardModifiers();
@@ -1563,10 +1565,10 @@ bool CanvasDock::HandleMouseReleaseEvent(QMouseEvent *event)
 						OBS_ALIGN_LEFT | OBS_ALIGN_TOP);
 					obs_sceneitem_set_bounds_type(
 						sceneItem, OBS_BOUNDS_NONE);
-					const vec2 scale = {1.0f, 1.0f};
+					const vec2 scale = {{1.0f, 1.0f}};
 					obs_sceneitem_set_scale(sceneItem,
 								&scale);
-					const vec2 pos = {0.0f, 0.0f};
+					const vec2 pos = {{0.0f, 0.0f}};
 					obs_sceneitem_set_pos(sceneItem, &pos);
 					obs_sceneitem_crop crop = {0, 0, 0, 0};
 					obs_sceneitem_set_crop(sceneItem,
@@ -1762,9 +1764,9 @@ bool CanvasDock::HandleMouseMoveEvent(QMouseEvent *event)
 
 		if (!mouseMoved && hoveredPreviewItems.size() > 0) {
 			mousePos = pos;
-			float scale = GetDevicePixelRatio();
-			float x = qtPos.x(); // - main->previewX / scale;
-			float y = qtPos.y(); // - main->previewY / scale;
+			//float scale = GetDevicePixelRatio();
+			//float x = qtPos.x(); // - main->previewX / scale;
+			//float y = qtPos.y(); // - main->previewY / scale;
 			vec2_set(&startPos, pos.x, pos.y);
 			updateCursor = true;
 		}
@@ -1959,8 +1961,8 @@ vec2 CanvasDock::GetMouseEventPos(QMouseEvent *event)
 
 	GetScaleAndCenterPos(sourceCX, sourceCY, size.width(), size.height(), x,
 			     y, scale);
-	auto newCX = scale * float(sourceCX);
-	auto newCY = scale * float(sourceCY);
+	//auto newCX = scale * float(sourceCX);
+	//auto newCY = scale * float(sourceCY);
 	float pixelRatio = 1.0f; //main->GetDevicePixelRatio();
 
 	QPoint qtPos = event->pos();
@@ -3551,7 +3553,9 @@ void CanvasDock::record_ouput_stop(void *data, calldata_t *calldata)
 void CanvasDock::record_ouput_stopping(void *data, calldata_t *calldata)
 {
 	UNUSED_PARAMETER(calldata);
-	auto d = static_cast<CanvasDock *>(data);
+	UNUSED_PARAMETER(data);
+	//auto d = static_cast<CanvasDock *>(data);
+
 }
 
 void CanvasDock::StreamButtonClicked() {}
