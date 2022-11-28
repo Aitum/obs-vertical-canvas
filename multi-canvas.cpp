@@ -1565,10 +1565,14 @@ bool CanvasDock::HandleMouseReleaseEvent(QMouseEvent *event)
 						OBS_ALIGN_LEFT | OBS_ALIGN_TOP);
 					obs_sceneitem_set_bounds_type(
 						sceneItem, OBS_BOUNDS_NONE);
-					const vec2 scale = {{1.0f, 1.0f}};
+					vec2 scale;
+					scale.x = 1.0f;
+					scale.y = 1.0f;
 					obs_sceneitem_set_scale(sceneItem,
 								&scale);
-					const vec2 pos = {{0.0f, 0.0f}};
+					vec2 pos;
+					pos.x = 0.0f;
+					pos.y = 0.0f;
 					obs_sceneitem_set_pos(sceneItem, &pos);
 					obs_sceneitem_crop crop = {0, 0, 0, 0};
 					obs_sceneitem_set_crop(sceneItem,
@@ -3307,6 +3311,9 @@ void CanvasDock::ConfigButtonClicked()
 		configDialog = new MultiCanvasConfigDialog(
 			(QMainWindow *)obs_frontend_get_main_window());
 	auto result = configDialog->exec();
+	if(result == 1) {
+		
+	}
 }
 
 void CanvasDock::ReplayButtonClicked()
@@ -3555,7 +3562,6 @@ void CanvasDock::record_ouput_stopping(void *data, calldata_t *calldata)
 	UNUSED_PARAMETER(calldata);
 	UNUSED_PARAMETER(data);
 	//auto d = static_cast<CanvasDock *>(data);
-
 }
 
 void CanvasDock::StreamButtonClicked() {}
