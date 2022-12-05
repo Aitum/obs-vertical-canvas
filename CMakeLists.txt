@@ -21,10 +21,12 @@ target_sources(${PROJECT_NAME} PRIVATE
 	multi-canvas.cpp
 	qt-display.cpp
 	config-dialog.cpp
+	name-dialog.cpp
 	multi-canvas.hpp
 	qt-display.hpp
 	display-helpers.hpp
-	config-dialog.hpp)
+	config-dialog.hpp
+	name-dialog.hpp)
 
 if(BUILD_OUT_OF_TREE)
   find_package(libobs REQUIRED)

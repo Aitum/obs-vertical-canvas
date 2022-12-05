@@ -97,18 +97,27 @@ private:
 	matrix4 itemToScreen{};
 	matrix4 invGroupTransform{};
 	obs_scene_t *scene = nullptr;
-	obs_view_t * view = nullptr;
-	video_t * video = nullptr;
-	gs_texrender_t * texrender = nullptr;
-	gs_stagesurf_t * stagesurface = nullptr;
-	QPushButton * virtualCamButton;
-	QPushButton * recordButton;
-	QPushButton * streamButton;
-	MultiCanvasConfigDialog * configDialog = nullptr;
+	obs_view_t *view = nullptr;
+	video_t *video = nullptr;
+	gs_texrender_t *texrender = nullptr;
+	gs_stagesurf_t *stagesurface = nullptr;
+	QPushButton *virtualCamButton;
+	QPushButton *recordButton;
+	QPushButton *replayButton;
+	QPushButton *streamButton;
+	QComboBox *scenesCombo;
+	CanvasConfigDialog *configDialog = nullptr;
 
-	obs_output_t * virtualCamOutput = nullptr;
-	obs_output_t * recordOutput = nullptr;
-	obs_output_t * Output = nullptr;
+	obs_output_t *virtualCamOutput = nullptr;
+	obs_output_t *recordOutput = nullptr;
+	obs_output_t *replayOutput = nullptr;
+	obs_output_t *streamOutput = nullptr;
+
+	obs_service_t *stream_service = nullptr;
+	QString stream_key;
+	QString stream_server;
+	uint32_t canvas_width;
+	uint32_t canvas_height;
 
 	QColor GetSelectionColor() const;
 	QColor GetCropColor() const;
@@ -122,6 +131,8 @@ private:
 
 	OBSSourceAutoRelease spacerLabel[4];
 	int spacerPx[4] = {0};
+
+	bool startReplayBuffer = false;
 
 	inline bool IsFixedScaling() const { return fixedScaling; }
 
@@ -142,9 +153,9 @@ private:
 	OBSSceneItem GetItemAtPos(const vec2 &pos, bool selectBelow);
 
 	QMenu *CreateAddSourcePopupMenu();
-	void LoadSourceTypeMenu(QMenu * menu, const char * type);
+	void LoadSourceTypeMenu(QMenu *menu, const char *type);
 
-	obs_scene_item * GetSelectedItem();
+	obs_scene_item *GetSelectedItem();
 
 	bool SelectedAtPos(obs_scene_t *scene, const vec2 &pos);
 	void DrawOverflow(float scale);
@@ -177,12 +188,22 @@ private:
 	vec2 GetMouseEventPos(QMouseEvent *event);
 	float GetDevicePixelRatio();
 
+	void setSource(obs_weak_source_t *source);
+	void AddSourceToScene(obs_source_t *source);
+
 	bool StartVideo();
 
 	void StartVirtualCam();
 	void StopVirtualCam();
 	void StartRecord();
 	void StopRecord();
+	void StartReplayBuffer();
+	void StopReplayBuffer();
+	void StartStream();
+	void StopStream();
+	void DestroyVideo();
+
+	void SwitchScene(const QString & scene_name);
 
 	static bool DrawSelectedOverflow(obs_scene_t *scene,
 					 obs_sceneitem_t *item, void *param);
@@ -191,11 +212,22 @@ private:
 	static void DrawPreview(void *data, uint32_t cx, uint32_t cy);
 	static bool DrawSelectedItem(obs_scene_t *scene, obs_sceneitem_t *item,
 				     void *param);
-	static void virtual_cam_ouput_start(void * p, calldata_t * calldata);
-	static void virtual_cam_ouput_stop(void * p, calldata_t * calldata);
-	static void record_ouput_start(void * p, calldata_t * calldata);
-	static void record_ouput_stop(void * p, calldata_t * calldata);
-	static void record_ouput_stopping(void * p, calldata_t * calldata);
+	static bool add_sources_of_type_to_menu(void *param,
+						obs_source_t *source);
+
+	static void virtual_cam_output_start(void *p, calldata_t *calldata);
+	static void virtual_cam_output_stop(void *p, calldata_t *calldata);
+	static void record_output_start(void *p, calldata_t *calldata);
+	static void record_output_stop(void *p, calldata_t *calldata);
+	static void record_output_stopping(void *p, calldata_t *calldata);
+	static void replay_output_start(void *p, calldata_t *calldata);
+	static void replay_output_stop(void *p, calldata_t *calldata);
+	static void stream_output_start(void *p, calldata_t *calldata);
+	static void stream_output_stop(void *p, calldata_t *calldata);
+	static void source_rename(void * p, calldata_t * calldata);
+	static void source_remove(void * p, calldata_t * calldata);
+	static void source_save(void * p, calldata_t * calldata);
+
 private slots:
 	void AddSourceFromAction();
 	void VirtualCamButtonClicked();
@@ -205,14 +237,15 @@ private slots:
 	void ConfigButtonClicked();
 	void OnVirtualCamStart();
 	void OnVirtualCamStop();
+
 public:
-	CanvasDock(uint32_t width, uint32_t height, QWidget *parent = nullptr);
+	CanvasDock(obs_data_t *settings, QWidget *parent = nullptr);
 	~CanvasDock();
 
+	void ClearScenes();
+	void LoadScenes();
+	void FinishLoading();
 	void setAction(QAction *action);
-	void setSource(obs_weak_source_t *source);
 
-	void AddSourceToScene(obs_source_t* source);
+	obs_data_t *SaveSettings();
 };
-
-
