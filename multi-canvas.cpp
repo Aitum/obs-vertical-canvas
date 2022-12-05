@@ -3787,6 +3787,7 @@ void CanvasDock::StopReplayBuffer()
 void CanvasDock::replay_output_start(void *data, calldata_t *calldata)
 {
 	UNUSED_PARAMETER(calldata);
+	UNUSED_PARAMETER(data);
 	//auto d = static_cast<CanvasDock *>(data);
 }
 
