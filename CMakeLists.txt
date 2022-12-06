@@ -6,8 +6,8 @@ else()
   cmake_minimum_required(VERSION 3.18)
 endif()
 
-project(multi-canvas VERSION 0.0.1)
-set(PROJECT_FULL_NAME "Multi Canvas")
+project(vertical-canvas VERSION 0.0.1)
+set(PROJECT_FULL_NAME "Vertical Canvas")
 
 # Set new UUIDs when you start to create a new plugin.
 set(MACOS_PACKAGE_UUID "EAFC919A-0DBE-401D-BF08-0312294B060A")
@@ -18,11 +18,11 @@ add_library(${PROJECT_NAME} MODULE)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/version.h)
 
 target_sources(${PROJECT_NAME} PRIVATE
-	multi-canvas.cpp
+	vertical-canvas.cpp
 	qt-display.cpp
 	config-dialog.cpp
 	name-dialog.cpp
-	multi-canvas.hpp
+	vertical-canvas.hpp
 	qt-display.hpp
 	display-helpers.hpp
 	config-dialog.hpp

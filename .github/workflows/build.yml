@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  PLUGIN_NAME: multi-canvas
+  PLUGIN_NAME: vertical-canvas
   OBS_VERSION: 29.0.0-beta1
 jobs:
   macos:

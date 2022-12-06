@@ -1,5 +1,5 @@
 
-#include "multi-canvas.hpp"
+#include "vertical-canvas.hpp"
 
 #include <list>
 
@@ -27,7 +27,7 @@
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_AUTHOR("Aitum");
-OBS_MODULE_USE_DEFAULT_LOCALE("multi-canvas", "en-US")
+OBS_MODULE_USE_DEFAULT_LOCALE("vertical-canvas", "en-US")
 
 #define HANDLE_RADIUS 4.0f
 #define HANDLE_SEL_RADIUS (HANDLE_RADIUS * 1.5f)
@@ -3580,7 +3580,7 @@ void CanvasDock::StartRecord()
 	}
 	obs_output_t *output = obs_frontend_get_recording_output();
 	recordOutput = obs_output_create(obs_output_get_id(output),
-					 "multi_canvas_record", nullptr,
+					 "vertical_canvas_record", nullptr,
 					 nullptr);
 
 	obs_output_set_mixers(recordOutput, obs_output_get_mixers(output));
@@ -3590,7 +3590,7 @@ void CanvasDock::StartRecord()
 
 	obs_encoder_t *enc = obs_output_get_video_encoder(output);
 	obs_encoder_t *video_encoder = obs_video_encoder_create(
-		obs_encoder_get_id(enc), "multi_canvas_record_video_encoder",
+		obs_encoder_get_id(enc), "vertical_canvas_record_video_encoder",
 		nullptr, nullptr);
 	obs_data_t *d = obs_encoder_get_settings(video_encoder);
 	obs_encoder_update(video_encoder, d);
@@ -3729,7 +3729,7 @@ void CanvasDock::StartReplayBuffer()
 	}
 
 	replayOutput = obs_output_create(obs_output_get_id(replay_output),
-					 "multi_canvas_replay", nullptr,
+					 "vertical_canvas_replay", nullptr,
 					 nullptr);
 
 	obs_output_set_mixers(replayOutput,
@@ -3739,7 +3739,7 @@ void CanvasDock::StartReplayBuffer()
 	obs_data_release(settings);
 
 	obs_encoder_t *video_encoder = obs_video_encoder_create(
-		obs_encoder_get_id(enc), "multi_canvas_replay_video_encoder",
+		obs_encoder_get_id(enc), "vertical_canvas_replay_video_encoder",
 		nullptr, nullptr);
 	obs_data_t *d = obs_encoder_get_settings(video_encoder);
 	obs_encoder_update(video_encoder, d);
@@ -3885,7 +3885,7 @@ void CanvasDock::StartStream()
 
 	if (!stream_service)
 		stream_service = obs_service_create(
-			"rtmp_custom", "multi_canvas_stream_service", nullptr,
+			"rtmp_custom", "vertical_canvas_stream_service", nullptr,
 			nullptr);
 
 	auto s = obs_data_create();
@@ -3908,7 +3908,7 @@ void CanvasDock::StartStream()
 		}
 	}
 
-	streamOutput = obs_output_create(type, "multi_canvas_stream", nullptr,
+	streamOutput = obs_output_create(type, "vertical_canvas_stream", nullptr,
 					 nullptr);
 
 	obs_output_set_service(streamOutput, stream_service);
@@ -4008,7 +4008,7 @@ void CanvasDock::StartStream()
 					   audio_settings);
 
 	obs_encoder_t *video_encoder = obs_video_encoder_create(
-		enc_id, "multi_canvas_video_encoder", video_settings, nullptr);
+		enc_id, "vertical_canvas_video_encoder", video_settings, nullptr);
 
 	const enum video_format format = video_output_get_format(video);
 
@@ -4028,7 +4028,7 @@ void CanvasDock::StartStream()
 	obs_output_set_video_encoder(streamOutput, video_encoder);
 
 	obs_encoder_t *audio_encoder = obs_audio_encoder_create(
-		"ffmpeg_aac", "multi_canvas_audio_encoder", audio_settings, 0,
+		"ffmpeg_aac", "vertical_canvas_audio_encoder", audio_settings, 0,
 		nullptr);
 
 	obs_data_release(audio_settings);
