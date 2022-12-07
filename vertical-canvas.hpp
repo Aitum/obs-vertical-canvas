@@ -203,7 +203,7 @@ private:
 	void StopStream();
 	void DestroyVideo();
 
-	void SwitchScene(const QString & scene_name);
+	void SwitchScene(const QString &scene_name);
 
 	static bool DrawSelectedOverflow(obs_scene_t *scene,
 					 obs_sceneitem_t *item, void *param);
@@ -224,9 +224,9 @@ private:
 	static void replay_output_stop(void *p, calldata_t *calldata);
 	static void stream_output_start(void *p, calldata_t *calldata);
 	static void stream_output_stop(void *p, calldata_t *calldata);
-	static void source_rename(void * p, calldata_t * calldata);
-	static void source_remove(void * p, calldata_t * calldata);
-	static void source_save(void * p, calldata_t * calldata);
+	static void source_rename(void *p, calldata_t *calldata);
+	static void source_remove(void *p, calldata_t *calldata);
+	static void source_save(void *p, calldata_t *calldata);
 
 private slots:
 	void AddSourceFromAction();
@@ -237,6 +237,12 @@ private slots:
 	void ConfigButtonClicked();
 	void OnVirtualCamStart();
 	void OnVirtualCamStop();
+	void OnRecordStart();
+	void OnRecordStop();
+	void OnStreamStart();
+	void OnStreamStop();
+	void OnReplayBufferStart();
+	void OnReplayBufferStop();
 
 public:
 	CanvasDock(obs_data_t *settings, QWidget *parent = nullptr);

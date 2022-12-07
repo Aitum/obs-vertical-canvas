@@ -9,9 +9,10 @@
 class CanvasConfigDialog : public QDialog {
 	Q_OBJECT
 
+	QComboBox *resolution;
 	QCheckBox *replayBuffer;
 	QComboBox *server;
-	QLineEdit * key;
+	QLineEdit *key;
 
 	friend class CanvasDock;
 

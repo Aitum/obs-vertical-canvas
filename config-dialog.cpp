@@ -20,11 +20,11 @@ CanvasConfigDialog::CanvasConfigDialog(QMainWindow *parent) : QDialog(parent)
 		new QLabel(QString::fromUtf8(obs_module_text("Resolution")));
 	mainLayout->addWidget(label, row, 0, Qt::AlignRight);
 
-	QComboBox *combo = new QComboBox;
-	combo->setEditable(true);
-	combo->addItem("720x1280");
-	combo->addItem("1080x1920");
-	mainLayout->addWidget(combo, row, 1, Qt::AlignLeft);
+	resolution = new QComboBox;
+	resolution->setEditable(true);
+	resolution->addItem("720x1280");
+	resolution->addItem("1080x1920");
+	mainLayout->addWidget(resolution, row, 1, Qt::AlignLeft);
 
 	row++;
 
