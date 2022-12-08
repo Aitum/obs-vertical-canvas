@@ -97,6 +97,10 @@ void frontend_event(obs_frontend_event event, void *private_data)
 			it->LoadScenes();
 			it->FinishLoading();
 		}
+	} else if (event == OBS_FRONTEND_EVENT_SCENE_CHANGED) {
+		for (const auto &it : canvas_docks) {
+			it->MainSceneChanged();
+		}
 	}
 }
 
@@ -244,6 +248,53 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		obs_source_release(s);
 	});
 	sceneRow->addWidget(removeButton);
+
+	linkedButton = new LockedCheckBox;
+	connect(linkedButton, &QCheckBox::stateChanged, [this] {
+		auto scene = obs_frontend_get_current_scene();
+		if (!scene)
+			return;
+		auto ss = obs_source_get_settings(scene);
+		obs_source_release(scene);
+		auto c = obs_data_get_array(ss, "canvas");
+		auto count = obs_data_array_count(c);
+		obs_data_t *found = nullptr;
+		for (size_t i = 0; i < count; i++) {
+			auto item = obs_data_array_item(c, i);
+			if (!item)
+				continue;
+			if (obs_data_get_int(item, "width") == canvas_width &&
+			    obs_data_get_int(item, "height") == canvas_height) {
+				found = item;
+				if (!linkedButton->isChecked()) {
+					obs_data_array_erase(c, i);
+				}
+				break;
+			}
+			obs_data_release(item);
+		}
+		if (linkedButton->isChecked()) {
+			if (!found) {
+				if (!c) {
+					c = obs_data_array_create();
+					obs_data_set_array(ss, "canvas", c);
+				}
+				found = obs_data_create();
+				obs_data_set_int(found, "width", canvas_width);
+				obs_data_set_int(found, "height",
+						 canvas_height);
+				obs_data_array_push_back(c, found);
+			}
+			obs_data_set_string(
+				found, "scene",
+				scenesCombo->currentText().toUtf8().constData());
+		}
+		obs_data_release(ss);
+		obs_data_release(found);
+		obs_data_array_release(c);
+	});
+
+	sceneRow->addWidget(linkedButton);
 
 	mainLayout->addLayout(sceneRow);
 
@@ -3470,6 +3521,7 @@ void CanvasDock::ConfigButtonClicked()
 		!obs_output_active(streamOutput) &&
 		!obs_output_active(virtualCamOutput));
 	configDialog->replayBuffer->setChecked(obs_output_active(replayOutput));
+	configDialog->key->setEchoMode(QLineEdit::Password);
 	configDialog->key->setText(stream_key);
 	configDialog->server->setCurrentText(stream_server);
 	const auto result = configDialog->exec();
@@ -3632,9 +3684,11 @@ void CanvasDock::StartRecord()
 	obs_encoder_t *enc = obs_output_get_video_encoder(output);
 	obs_encoder_t *video_encoder =
 		obs_output_get_video_encoder(recordOutput);
-	if (!video_encoder)
+	if (!video_encoder || strcmp(obs_encoder_get_id(video_encoder),
+				     obs_encoder_get_id(enc)) != 0)
 		video_encoder = obs_output_get_video_encoder(replayOutput);
-	if (!video_encoder) {
+	if (!video_encoder || strcmp(obs_encoder_get_id(video_encoder),
+				     obs_encoder_get_id(enc)) != 0) {
 		video_encoder = obs_video_encoder_create(
 			obs_encoder_get_id(enc),
 			"vertical_canvas_record_video_encoder", nullptr,
@@ -3783,9 +3837,11 @@ void CanvasDock::StartReplayBuffer()
 
 	obs_encoder_t *video_encoder =
 		obs_output_get_video_encoder(replayOutput);
-	if (!video_encoder)
+	if (!video_encoder || strcmp(obs_encoder_get_id(video_encoder),
+				     obs_encoder_get_id(enc)) != 0)
 		video_encoder = obs_output_get_video_encoder(recordOutput);
-	if (!video_encoder) {
+	if (!video_encoder || strcmp(obs_encoder_get_id(video_encoder),
+				     obs_encoder_get_id(enc)) != 0) {
 		video_encoder = obs_video_encoder_create(
 			obs_encoder_get_id(enc),
 			"vertical_canvas_record_video_encoder", nullptr,
@@ -4278,3 +4334,46 @@ void CanvasDock::OnReplayBufferStop()
 {
 	replayButton->setVisible(false);
 }
+
+void CanvasDock::MainSceneChanged()
+{
+	auto scene = obs_frontend_get_current_scene();
+	if (!scene) {
+		linkedButton->setChecked(false);
+		return;
+	}
+
+	auto ss = obs_source_get_settings(scene);
+	obs_source_release(scene);
+	auto c = obs_data_get_array(ss, "canvas");
+	obs_data_release(ss);
+	if (!c) {
+		linkedButton->setChecked(false);
+		return;
+	}
+	const auto count = obs_data_array_count(c);
+	obs_data_t *found = nullptr;
+	for (size_t i = 0; i < count; i++) {
+		auto item = obs_data_array_item(c, i);
+		if (!item)
+			continue;
+		if (obs_data_get_int(item, "width") == canvas_width &&
+		    obs_data_get_int(item, "height") == canvas_height) {
+			found = item;
+			break;
+		}
+		obs_data_release(item);
+	}
+	if (found) {
+		scenesCombo->setCurrentText(QString::fromUtf8(obs_data_get_string(found, "scene")));
+		linkedButton->setChecked(true);
+	}else {
+		linkedButton->setChecked(false);
+	}
+	obs_data_release(found);
+	obs_data_array_release(c);
+}
+
+LockedCheckBox::LockedCheckBox() {}
+
+LockedCheckBox::LockedCheckBox(QWidget *parent) : QCheckBox(parent) {}

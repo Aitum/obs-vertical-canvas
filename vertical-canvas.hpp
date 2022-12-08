@@ -106,6 +106,7 @@ private:
 	QPushButton *replayButton;
 	QPushButton *streamButton;
 	QComboBox *scenesCombo;
+	QCheckBox *linkedButton;
 	CanvasConfigDialog *configDialog = nullptr;
 
 	obs_output_t *virtualCamOutput = nullptr;
@@ -251,7 +252,16 @@ public:
 	void ClearScenes();
 	void LoadScenes();
 	void FinishLoading();
+	void MainSceneChanged();
 	void setAction(QAction *action);
 
 	obs_data_t *SaveSettings();
+};
+
+class LockedCheckBox : public QCheckBox {
+	Q_OBJECT
+
+public:
+	LockedCheckBox();
+	explicit LockedCheckBox(QWidget *parent);
 };
