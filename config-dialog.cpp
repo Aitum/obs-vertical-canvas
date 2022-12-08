@@ -2,6 +2,7 @@
 
 #include <QCheckBox>
 #include <QComboBox>
+#include <QFormLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -13,32 +14,21 @@
 
 CanvasConfigDialog::CanvasConfigDialog(QMainWindow *parent) : QDialog(parent)
 {
-	int row = 0;
-	auto mainLayout = new QGridLayout;
-	mainLayout->setContentsMargins(0, 0, 0, 0);
-	QLabel *label =
-		new QLabel(QString::fromUtf8(obs_module_text("Resolution")));
-	mainLayout->addWidget(label, row, 0, Qt::AlignRight);
+
+	auto mainLayout = new QFormLayout;
+	mainLayout->setContentsMargins(9, 2, 9, 9);
+	mainLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+        mainLayout->setLabelAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
 
 	resolution = new QComboBox;
 	resolution->setEditable(true);
 	resolution->addItem("720x1280");
 	resolution->addItem("1080x1920");
-	mainLayout->addWidget(resolution, row, 1, Qt::AlignLeft);
-
-	row++;
-
-	//label = new QLabel(obs_module_text("ReplayBuffer"));
-	//mainLayout->addWidget(label, row, 0, Qt::AlignRight);
+	mainLayout->addRow(QString::fromUtf8(obs_module_text("Resolution")),resolution);
 
 	replayBuffer = new QCheckBox(
 		QString::fromUtf8(obs_module_text("ReplayBuffer")));
-	mainLayout->addWidget(replayBuffer, row, 1, Qt::AlignLeft);
-
-	row++;
-
-	label = new QLabel(QString::fromUtf8(obs_module_text("Server")));
-	mainLayout->addWidget(label, row, 0, Qt::AlignRight);
+	mainLayout->addWidget(replayBuffer);
 
 	server = new QComboBox;
 	server->setEditable(true);
@@ -47,13 +37,7 @@ CanvasConfigDialog::CanvasConfigDialog(QMainWindow *parent) : QDialog(parent)
 	server->addItem("rtmps://b.rtmps.youtube.com:443/live2?backup=1");
 	server->addItem("rtmp://a.rtmp.youtube.com/live2");
 	server->addItem("rtmp://b.rtmp.youtube.com/live2?backup=1");
-
-	mainLayout->addWidget(server, row, 1, Qt::AlignLeft);
-
-	row++;
-
-	label = new QLabel(QString::fromUtf8(obs_module_text("Key")));
-	mainLayout->addWidget(label, row, 0, Qt::AlignRight);
+	mainLayout->addRow(QString::fromUtf8(obs_module_text("Server")),server);
 
 	QLayout *subLayout = new QHBoxLayout();
 	key = new QLineEdit;
@@ -73,10 +57,7 @@ CanvasConfigDialog::CanvasConfigDialog(QMainWindow *parent) : QDialog(parent)
 	subLayout->addWidget(key);
 	subLayout->addWidget(show);
 
-	mainLayout->addLayout(subLayout, row, 1, Qt::AlignLeft);
-
-	mainLayout->setColumnStretch(0, 0);
-	mainLayout->setColumnStretch(1, 1);
+	mainLayout->addRow(QString::fromUtf8(obs_module_text("Key")), subLayout);
 
 	QWidget *widget = new QWidget;
 	widget->setLayout(mainLayout);
