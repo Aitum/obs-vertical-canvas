@@ -109,6 +109,14 @@ bool obs_module_load(void)
 	blog(LOG_INFO, "[Vertical Canvas] loaded version %s", PROJECT_VERSION);
 	obs_frontend_add_event_callback(frontend_event, nullptr);
 
+	const auto profile_config = obs_frontend_get_profile_config();
+	if (!config_get_bool(profile_config, "AdvOut", "RecRB") ||
+	    !config_get_bool(profile_config, "SimpleOutput", "RecRB")) {
+		config_set_bool(profile_config, "AdvOut", "RecRB", true);
+		config_set_bool(profile_config, "SimpleOutput", "RecRB", true);
+		config_save(profile_config);
+	}
+
 	std::string path = obs_module_config_path("config.json");
 	obs_data_t *config =
 		obs_data_create_from_json_file_safe(path.c_str(), "bak");
@@ -1518,6 +1526,8 @@ OBSEventFilter *CanvasDock::BuildEventFilter()
 	return new OBSEventFilter([this](QObject *obj, QEvent *event) {
 		UNUSED_PARAMETER(obj);
 
+		if(!scene)
+			return false;
 		switch (event->type()) {
 		case QEvent::MouseButtonPress:
 			return this->HandleMousePressEvent(
@@ -4268,6 +4278,13 @@ void CanvasDock::source_remove(void *data, calldata_t *calldata)
 {
 	const auto d = static_cast<CanvasDock *>(data);
 	const auto source = (obs_source_t *)calldata_ptr(calldata, "source");
+	if (obs_weak_source_references_source(d->source, source)) {
+		obs_weak_source_release(d->source);
+		d->source = nullptr;
+	}
+	if (source == obs_scene_get_source(d->scene)) {
+		d->scene = nullptr;
+	}
 	const auto name = QString::fromUtf8(obs_source_get_name(source));
 	if (name.isEmpty())
 		return;
