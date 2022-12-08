@@ -171,8 +171,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	canvas_width = (uint32_t)obs_data_get_int(settings, "width");
 	canvas_height = (uint32_t)obs_data_get_int(settings, "height");
 	if (!canvas_width || !canvas_height) {
-		canvas_width = 720;
-		canvas_height = 1280;
+		canvas_width = 1080;
+		canvas_height = 1920;
 	}
 	stream_server = QString::fromUtf8(
 		obs_data_get_string(settings, "stream_server"));
@@ -202,6 +202,55 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	connect(scenesCombo, &QComboBox::currentTextChanged,
 		[this]() { SwitchScene(scenesCombo->currentText()); });
 	sceneRow->addWidget(scenesCombo, 1);
+
+	linkedButton = new LockedCheckBox;
+	connect(linkedButton, &QCheckBox::stateChanged, [this] {
+		scenesCombo->setEnabled(!linkedButton->isChecked());
+		auto scene = obs_frontend_get_current_scene();
+		if (!scene)
+			return;
+		auto ss = obs_source_get_settings(scene);
+		obs_source_release(scene);
+		auto c = obs_data_get_array(ss, "canvas");
+		auto count = obs_data_array_count(c);
+		obs_data_t *found = nullptr;
+		for (size_t i = 0; i < count; i++) {
+			auto item = obs_data_array_item(c, i);
+			if (!item)
+				continue;
+			if (obs_data_get_int(item, "width") == canvas_width &&
+			    obs_data_get_int(item, "height") == canvas_height) {
+				found = item;
+				if (!linkedButton->isChecked()) {
+					obs_data_array_erase(c, i);
+				}
+				break;
+			}
+			obs_data_release(item);
+		}
+		if (linkedButton->isChecked()) {
+			if (!found) {
+				if (!c) {
+					c = obs_data_array_create();
+					obs_data_set_array(ss, "canvas", c);
+				}
+				found = obs_data_create();
+				obs_data_set_int(found, "width", canvas_width);
+				obs_data_set_int(found, "height",
+						 canvas_height);
+				obs_data_array_push_back(c, found);
+			}
+			obs_data_set_string(
+				found, "scene",
+				scenesCombo->currentText().toUtf8().constData());
+		}
+		obs_data_release(ss);
+		obs_data_release(found);
+		obs_data_array_release(c);
+	});
+
+	sceneRow->addWidget(linkedButton);
+
 	const auto addButton = new QPushButton;
 	addButton->setProperty("themeID", "addIconSmall");
 	connect(addButton, &QPushButton::clicked, [this] {
@@ -248,53 +297,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		obs_source_release(s);
 	});
 	sceneRow->addWidget(removeButton);
-
-	linkedButton = new LockedCheckBox;
-	connect(linkedButton, &QCheckBox::stateChanged, [this] {
-		auto scene = obs_frontend_get_current_scene();
-		if (!scene)
-			return;
-		auto ss = obs_source_get_settings(scene);
-		obs_source_release(scene);
-		auto c = obs_data_get_array(ss, "canvas");
-		auto count = obs_data_array_count(c);
-		obs_data_t *found = nullptr;
-		for (size_t i = 0; i < count; i++) {
-			auto item = obs_data_array_item(c, i);
-			if (!item)
-				continue;
-			if (obs_data_get_int(item, "width") == canvas_width &&
-			    obs_data_get_int(item, "height") == canvas_height) {
-				found = item;
-				if (!linkedButton->isChecked()) {
-					obs_data_array_erase(c, i);
-				}
-				break;
-			}
-			obs_data_release(item);
-		}
-		if (linkedButton->isChecked()) {
-			if (!found) {
-				if (!c) {
-					c = obs_data_array_create();
-					obs_data_set_array(ss, "canvas", c);
-				}
-				found = obs_data_create();
-				obs_data_set_int(found, "width", canvas_width);
-				obs_data_set_int(found, "height",
-						 canvas_height);
-				obs_data_array_push_back(c, found);
-			}
-			obs_data_set_string(
-				found, "scene",
-				scenesCombo->currentText().toUtf8().constData());
-		}
-		obs_data_release(ss);
-		obs_data_release(found);
-		obs_data_array_release(c);
-	});
-
-	sceneRow->addWidget(linkedButton);
 
 	mainLayout->addLayout(sceneRow);
 
@@ -4365,9 +4367,10 @@ void CanvasDock::MainSceneChanged()
 		obs_data_release(item);
 	}
 	if (found) {
-		scenesCombo->setCurrentText(QString::fromUtf8(obs_data_get_string(found, "scene")));
+		scenesCombo->setCurrentText(
+			QString::fromUtf8(obs_data_get_string(found, "scene")));
 		linkedButton->setChecked(true);
-	}else {
+	} else {
 		linkedButton->setChecked(false);
 	}
 	obs_data_release(found);
