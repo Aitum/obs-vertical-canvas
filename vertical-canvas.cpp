@@ -262,18 +262,39 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	const auto addButton = new QPushButton;
 	addButton->setProperty("themeID", "addIconSmall");
 	connect(addButton, &QPushButton::clicked, [this] {
-		std::string name;
-		if (NameDialog::AskForName(this, name)) {
+		std::string name = obs_module_text("VerticalCanvas");
+		obs_source_t *s = obs_get_source_by_name(name.c_str());
+		int i =0;
+		while(s) {
+			obs_source_release(s);
+			i++;
+			name = obs_module_text("VerticalCanvas");
+			name += " ";
+			name += std::to_string(i);
+			s = obs_get_source_by_name(name.c_str());
+		}
+		do {
+			obs_source_release(s);
+			if (!NameDialog::AskForName(this, name)) {
+				break;
+			}
+			s = obs_get_source_by_name(name.c_str());
+			if (s)
+				continue;
+
 			obs_data_t *settings = obs_data_create();
-			obs_data_set_bool(settings, "custom_size", true);
+			obs_data_set_bool(settings, "custom_size",
+			                  true);
 			obs_data_set_int(settings, "cx", canvas_width);
 			obs_data_set_int(settings, "cy", canvas_height);
-			obs_data_array_t *items = obs_data_array_create();
+			obs_data_array_t *items =
+				obs_data_array_create();
 			obs_data_set_array(settings, "items", items);
 			obs_data_array_release(items);
 
-			obs_source_t *new_scene = obs_source_create(
-				"scene", name.c_str(), settings, nullptr);
+			obs_source_t *new_scene =
+				obs_source_create("scene", name.c_str(),
+				                  settings, nullptr);
 			obs_source_load(new_scene);
 			scenesCombo->addItem(QString::fromUtf8(
 				obs_source_get_name(new_scene)));
@@ -281,7 +302,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 				obs_source_get_name(new_scene)));
 			obs_source_release(new_scene);
 			obs_data_release(settings);
-		}
+		} while (s);
 	});
 	sceneRow->addWidget(addButton);
 	const auto removeButton = new QPushButton;
