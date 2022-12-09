@@ -233,9 +233,10 @@ private:
 	static void source_remove(void *p, calldata_t *calldata);
 	static void source_save(void *p, calldata_t *calldata);
 	static bool start_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id,
-					   obs_hotkey_t *hotkey, bool pressed);
+					     obs_hotkey_t *hotkey,
+					     bool pressed);
 	static bool stop_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id,
-					  obs_hotkey_t *hotkey, bool pressed);
+					    obs_hotkey_t *hotkey, bool pressed);
 	static bool start_recording_hotkey(void *data, obs_hotkey_pair_id id,
 					   obs_hotkey_t *hotkey, bool pressed);
 	static bool stop_recording_hotkey(void *data, obs_hotkey_pair_id id,

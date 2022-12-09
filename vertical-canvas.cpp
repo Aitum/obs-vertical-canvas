@@ -4489,6 +4489,8 @@ void CanvasDock::MainSceneChanged()
 bool CanvasDock::start_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id,
 					  obs_hotkey_t *hotkey, bool pressed)
 {
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(hotkey);
 	if (!pressed)
 		return false;
 	const auto d = static_cast<CanvasDock *>(data);
@@ -4501,6 +4503,8 @@ bool CanvasDock::start_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id,
 bool CanvasDock::stop_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id,
 					 obs_hotkey_t *hotkey, bool pressed)
 {
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(hotkey);
 	if (!pressed)
 		return false;
 	const auto d = static_cast<CanvasDock *>(data);
@@ -4513,6 +4517,8 @@ bool CanvasDock::stop_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id,
 bool CanvasDock::start_recording_hotkey(void *data, obs_hotkey_pair_id id,
 					obs_hotkey_t *hotkey, bool pressed)
 {
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(hotkey);
 	if (!pressed)
 		return false;
 	const auto d = static_cast<CanvasDock *>(data);
@@ -4525,6 +4531,8 @@ bool CanvasDock::start_recording_hotkey(void *data, obs_hotkey_pair_id id,
 bool CanvasDock::stop_recording_hotkey(void *data, obs_hotkey_pair_id id,
 				       obs_hotkey_t *hotkey, bool pressed)
 {
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(hotkey);
 	if (!pressed)
 		return false;
 	const auto d = static_cast<CanvasDock *>(data);
@@ -4537,6 +4545,8 @@ bool CanvasDock::stop_recording_hotkey(void *data, obs_hotkey_pair_id id,
 bool CanvasDock::start_streaming_hotkey(void *data, obs_hotkey_pair_id id,
 					obs_hotkey_t *hotkey, bool pressed)
 {
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(hotkey);
 	if (!pressed)
 		return false;
 	const auto d = static_cast<CanvasDock *>(data);
@@ -4549,6 +4559,8 @@ bool CanvasDock::start_streaming_hotkey(void *data, obs_hotkey_pair_id id,
 bool CanvasDock::stop_streaming_hotkey(void *data, obs_hotkey_pair_id id,
 				       obs_hotkey_t *hotkey, bool pressed)
 {
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(hotkey);
 	if (!pressed)
 		return false;
 	const auto d = static_cast<CanvasDock *>(data);
