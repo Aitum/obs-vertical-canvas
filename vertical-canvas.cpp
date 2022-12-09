@@ -401,6 +401,65 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	signal_handler_connect(sh, "source_save", source_save, this);
 
 	startReplayBuffer = obs_data_get_bool(settings, "replay_buffer");
+
+	virtual_cam_hotkey = obs_hotkey_pair_register_frontend(
+		(name + "StartVirtualCam").toUtf8().constData(),
+		(title + " " +
+		 QString::fromUtf8(obs_module_text("StartVirtualCam")))
+			.toUtf8()
+			.constData(),
+		(name + "StopVirtualCam").toUtf8().constData(),
+		(title + " " +
+		 QString::fromUtf8(obs_module_text("StopVirtualCam")))
+			.toUtf8()
+			.constData(),
+		start_virtual_cam_hotkey, stop_virtual_cam_hotkey, this, this);
+
+	obs_data_array_t *start_hotkey =
+		obs_data_get_array(settings, "start_virtual_cam_hotkey");
+	obs_data_array_t *stop_hotkey =
+		obs_data_get_array(settings, "stop_virtual_cam_hotkey");
+	obs_hotkey_pair_load(virtual_cam_hotkey, start_hotkey, stop_hotkey);
+	obs_data_array_release(start_hotkey);
+	obs_data_array_release(stop_hotkey);
+
+	record_hotkey = obs_hotkey_pair_register_frontend(
+		(name + "StartRecording").toUtf8().constData(),
+		(title + " " +
+		 QString::fromUtf8(obs_module_text("StartRecording")))
+			.toUtf8()
+			.constData(),
+		(name + "StopRecording").toUtf8().constData(),
+		(title + " " +
+		 QString::fromUtf8(obs_module_text("StopRecording")))
+			.toUtf8()
+			.constData(),
+		start_recording_hotkey, stop_recording_hotkey, this, this);
+
+	start_hotkey = obs_data_get_array(settings, "start_record_hotkey");
+	stop_hotkey = obs_data_get_array(settings, "stop_record_hotkey");
+	obs_hotkey_pair_load(record_hotkey, start_hotkey, stop_hotkey);
+	obs_data_array_release(start_hotkey);
+	obs_data_array_release(stop_hotkey);
+
+	stream_hotkey = obs_hotkey_pair_register_frontend(
+		(name + "StartStreaming").toUtf8().constData(),
+		(title + " " +
+		 QString::fromUtf8(obs_module_text("StartStreaming")))
+			.toUtf8()
+			.constData(),
+		(name + "StopStreaming").toUtf8().constData(),
+		(title + " " +
+		 QString::fromUtf8(obs_module_text("StopStreaming")))
+			.toUtf8()
+			.constData(),
+		start_streaming_hotkey, stop_streaming_hotkey, this, this);
+
+	start_hotkey = obs_data_get_array(settings, "start_stream_hotkey");
+	stop_hotkey = obs_data_get_array(settings, "stop_stream_hotkey");
+	obs_hotkey_pair_load(stream_hotkey, start_hotkey, stop_hotkey);
+	obs_data_array_release(start_hotkey);
+	obs_data_array_release(stop_hotkey);
 }
 
 CanvasDock::~CanvasDock()
@@ -1526,7 +1585,7 @@ OBSEventFilter *CanvasDock::BuildEventFilter()
 	return new OBSEventFilter([this](QObject *obj, QEvent *event) {
 		UNUSED_PARAMETER(obj);
 
-		if(!scene)
+		if (!scene)
 			return false;
 		switch (event->type()) {
 		case QEvent::MouseButtonPress:
@@ -3457,6 +3516,10 @@ void CanvasDock::virtual_cam_output_stop(void *data, calldata_t *calldata)
 	UNUSED_PARAMETER(calldata);
 	auto d = static_cast<CanvasDock *>(data);
 	QMetaObject::invokeMethod(d, "OnVirtualCamStop");
+	signal_handler_t *signal =
+		obs_output_get_signal_handler(d->virtualCamOutput);
+	signal_handler_disconnect(signal, "start", virtual_cam_output_start, d);
+	signal_handler_disconnect(signal, "stop", virtual_cam_output_stop, d);
 	obs_output_release(d->virtualCamOutput);
 	d->virtualCamOutput = nullptr;
 	d->DestroyVideo();
@@ -3485,13 +3548,15 @@ void CanvasDock::StartVirtualCam()
 {
 	const auto output = obs_frontend_get_virtualcam_output();
 	if (obs_output_active(output)) {
+		if (!virtualCamOutput)
+			virtualCamButton->setChecked(false);
 		obs_output_release(output);
 		return;
 	}
 
 	virtualCamOutput = output;
 
-	bool started_video = StartVideo();
+	const bool started_video = StartVideo();
 	signal_handler_t *signal = obs_output_get_signal_handler(output);
 	signal_handler_disconnect(signal, "start", virtual_cam_output_start,
 				  this);
@@ -3502,7 +3567,7 @@ void CanvasDock::StartVirtualCam()
 
 	obs_output_set_media(output, video, obs_get_audio());
 
-	bool success = obs_output_start(output);
+	const bool success = obs_output_start(output);
 	if (!success && started_video) {
 		obs_view_remove(view);
 		obs_view_set_source(view, 0, nullptr);
@@ -3836,10 +3901,16 @@ void CanvasDock::StartReplayBuffer()
 		enc = obs_output_get_video_encoder(replay_output);
 	}
 
-	if (!replayOutput)
+	if (!replayOutput) {
+		const QString name =
+			QString::fromUtf8(obs_module_text("VerticalCanvas")) +
+			" (" + QString::number(canvas_width) + "x" +
+			QString::number(canvas_height) + ") " +
+			QString::fromUtf8(obs_module_text("Replay"));
 		replayOutput = obs_output_create(
 			obs_output_get_id(replay_output),
-			"vertical_canvas_replay", nullptr, nullptr);
+			name.toUtf8().constData(), nullptr, nullptr);
+	}
 
 	obs_output_set_mixers(replayOutput,
 			      obs_output_get_mixers(replay_output));
@@ -4207,6 +4278,27 @@ obs_data_t *CanvasDock::SaveSettings()
 			    stream_server.toUtf8().constData());
 	obs_data_set_string(data, "stream_key",
 			    stream_key.toUtf8().constData());
+	obs_data_array_t *start_hotkey = nullptr;
+	obs_data_array_t *stop_hotkey = nullptr;
+	obs_hotkey_pair_save(virtual_cam_hotkey, &start_hotkey, &stop_hotkey);
+	obs_data_set_array(data, "start_virtual_cam_hotkey", start_hotkey);
+	obs_data_set_array(data, "stop_virtual_cam_hotkey", stop_hotkey);
+	obs_data_array_release(start_hotkey);
+	obs_data_array_release(stop_hotkey);
+	start_hotkey = nullptr;
+	stop_hotkey = nullptr;
+	obs_hotkey_pair_save(record_hotkey, &start_hotkey, &stop_hotkey);
+	obs_data_set_array(data, "start_record_hotkey", start_hotkey);
+	obs_data_set_array(data, "stop_record_hotkey", stop_hotkey);
+	obs_data_array_release(start_hotkey);
+	obs_data_array_release(stop_hotkey);
+	start_hotkey = nullptr;
+	stop_hotkey = nullptr;
+	obs_hotkey_pair_save(stream_hotkey, &start_hotkey, &stop_hotkey);
+	obs_data_set_array(data, "start_stream_hotkey", start_hotkey);
+	obs_data_set_array(data, "stop_stream_hotkey", stop_hotkey);
+	obs_data_array_release(start_hotkey);
+	obs_data_array_release(stop_hotkey);
 	return data;
 }
 
@@ -4392,6 +4484,78 @@ void CanvasDock::MainSceneChanged()
 	}
 	obs_data_release(found);
 	obs_data_array_release(c);
+}
+
+bool CanvasDock::start_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id,
+					  obs_hotkey_t *hotkey, bool pressed)
+{
+	if (!pressed)
+		return false;
+	const auto d = static_cast<CanvasDock *>(data);
+	if (obs_output_active(d->virtualCamOutput))
+		return false;
+	QMetaObject::invokeMethod(d, "VirtualCamButtonClicked");
+	return true;
+}
+
+bool CanvasDock::stop_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id,
+					 obs_hotkey_t *hotkey, bool pressed)
+{
+	if (!pressed)
+		return false;
+	const auto d = static_cast<CanvasDock *>(data);
+	if (!obs_output_active(d->virtualCamOutput))
+		return false;
+	QMetaObject::invokeMethod(d, "VirtualCamButtonClicked");
+	return true;
+}
+
+bool CanvasDock::start_recording_hotkey(void *data, obs_hotkey_pair_id id,
+					obs_hotkey_t *hotkey, bool pressed)
+{
+	if (!pressed)
+		return false;
+	const auto d = static_cast<CanvasDock *>(data);
+	if (obs_output_active(d->recordOutput))
+		return false;
+	QMetaObject::invokeMethod(d, "RecordButtonClicked");
+	return true;
+}
+
+bool CanvasDock::stop_recording_hotkey(void *data, obs_hotkey_pair_id id,
+				       obs_hotkey_t *hotkey, bool pressed)
+{
+	if (!pressed)
+		return false;
+	const auto d = static_cast<CanvasDock *>(data);
+	if (!obs_output_active(d->recordOutput))
+		return false;
+	QMetaObject::invokeMethod(d, "RecordButtonClicked");
+	return true;
+}
+
+bool CanvasDock::start_streaming_hotkey(void *data, obs_hotkey_pair_id id,
+					obs_hotkey_t *hotkey, bool pressed)
+{
+	if (!pressed)
+		return false;
+	const auto d = static_cast<CanvasDock *>(data);
+	if (obs_output_active(d->streamOutput))
+		return false;
+	QMetaObject::invokeMethod(d, "StreamButtonClicked");
+	return true;
+}
+
+bool CanvasDock::stop_streaming_hotkey(void *data, obs_hotkey_pair_id id,
+				       obs_hotkey_t *hotkey, bool pressed)
+{
+	if (!pressed)
+		return false;
+	const auto d = static_cast<CanvasDock *>(data);
+	if (!obs_output_active(d->streamOutput))
+		return false;
+	QMetaObject::invokeMethod(d, "StreamButtonClicked");
+	return true;
 }
 
 LockedCheckBox::LockedCheckBox() {}
