@@ -264,8 +264,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	connect(addButton, &QPushButton::clicked, [this] {
 		std::string name = obs_module_text("VerticalCanvas");
 		obs_source_t *s = obs_get_source_by_name(name.c_str());
-		int i =0;
-		while(s) {
+		int i = 0;
+		while (s) {
 			obs_source_release(s);
 			i++;
 			name = obs_module_text("VerticalCanvas");
@@ -283,18 +283,15 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 				continue;
 
 			obs_data_t *settings = obs_data_create();
-			obs_data_set_bool(settings, "custom_size",
-			                  true);
+			obs_data_set_bool(settings, "custom_size", true);
 			obs_data_set_int(settings, "cx", canvas_width);
 			obs_data_set_int(settings, "cy", canvas_height);
-			obs_data_array_t *items =
-				obs_data_array_create();
+			obs_data_array_t *items = obs_data_array_create();
 			obs_data_set_array(settings, "items", items);
 			obs_data_array_release(items);
 
-			obs_source_t *new_scene =
-				obs_source_create("scene", name.c_str(),
-				                  settings, nullptr);
+			obs_source_t *new_scene = obs_source_create(
+				"scene", name.c_str(), settings, nullptr);
 			obs_source_load(new_scene);
 			scenesCombo->addItem(QString::fromUtf8(
 				obs_source_get_name(new_scene)));
@@ -3779,9 +3776,50 @@ void CanvasDock::StartRecord()
 	obs_output_update(recordOutput, settings);
 	obs_data_release(settings);
 
+	config_t *config = obs_frontend_get_profile_config();
+	const char *mode = config_get_string(config, "Output", "Mode");
+	const char *dir = nullptr;
+	const char *format = nullptr;
+	bool ffmpegOutput = false;
+	bool useStreamEncoder = false;
+	if (strcmp(mode, "Advanced") == 0) {
+		const char *recType =
+			config_get_string(config, "AdvOut", "RecType");
+		const char *recordEncoder =
+			config_get_string(config, "AdvOut", "RecEncoder");
+		useStreamEncoder = astrcmpi(recordEncoder, "none") == 0;
+
+		if (strcmp(recType, "FFmpeg") == 0) {
+			ffmpegOutput = true;
+			dir = config_get_string(config, "AdvOut", "FFFilePath");
+		} else {
+			dir = config_get_string(config, "AdvOut",
+						"RecFilePath");
+		}
+		bool ffmpegRecording =
+			ffmpegOutput &&
+			config_get_bool(config, "AdvOut", "FFOutputToFile");
+		format = config_get_string(config, "AdvOut",
+					   ffmpegRecording ? "FFExtension"
+							   : "RecFormat");
+	} else {
+		dir = config_get_string(config, "SimpleOutput", "FilePath");
+		format = config_get_string(config, "SimpleOutput", "RecFormat");
+		const char *quality =
+			config_get_string(config, "SimpleOutput", "RecQuality");
+		if (strcmp(quality, "Stream") == 0) {
+			useStreamEncoder = true;
+		} else if (strcmp(quality, "Lossless") == 0) {
+			ffmpegOutput = true;
+		}
+	}
+
 	obs_encoder_t *enc = obs_output_get_video_encoder(output);
 	obs_encoder_t *video_encoder =
 		obs_output_get_video_encoder(recordOutput);
+	if (!video_encoder && useStreamEncoder && streamOutput) {
+		video_encoder = obs_output_get_video_encoder(streamOutput);
+	}
 	if (!video_encoder || strcmp(obs_encoder_get_id(video_encoder),
 				     obs_encoder_get_id(enc)) != 0)
 		video_encoder = obs_output_get_video_encoder(replayOutput);
@@ -3792,6 +3830,18 @@ void CanvasDock::StartRecord()
 			"vertical_canvas_record_video_encoder", nullptr,
 			nullptr);
 	}
+
+	switch (video_output_get_format(video)) {
+	case VIDEO_FORMAT_I420:
+	case VIDEO_FORMAT_NV12:
+	case VIDEO_FORMAT_I010:
+	case VIDEO_FORMAT_P010:
+		break;
+	default:
+		obs_encoder_set_preferred_video_format(video_encoder,
+						       VIDEO_FORMAT_NV12);
+	}
+
 	obs_data_t *d = obs_encoder_get_settings(enc);
 	obs_encoder_update(video_encoder, d);
 	obs_data_release(d);
@@ -3818,37 +3868,6 @@ void CanvasDock::StartRecord()
 	signal_handler_connect(signal, "stopping", record_output_stopping,
 			       this);
 
-	config_t *config = obs_frontend_get_profile_config();
-	const char *mode = config_get_string(config, "Output", "Mode");
-	const char *dir = nullptr;
-	const char *format = nullptr;
-	bool ffmpegOutput = false;
-	if (strcmp(mode, "Advanced") == 0) {
-		const char *recType =
-			config_get_string(config, "AdvOut", "RecType");
-
-		if (strcmp(recType, "FFmpeg") == 0) {
-			ffmpegOutput = true;
-			dir = config_get_string(config, "AdvOut", "FFFilePath");
-		} else {
-			dir = config_get_string(config, "AdvOut",
-						"RecFilePath");
-		}
-		bool ffmpegRecording =
-			ffmpegOutput &&
-			config_get_bool(config, "AdvOut", "FFOutputToFile");
-		format = config_get_string(config, "AdvOut",
-					   ffmpegRecording ? "FFExtension"
-							   : "RecFormat");
-	} else {
-		dir = config_get_string(config, "SimpleOutput", "FilePath");
-		format = config_get_string(config, "SimpleOutput", "RecFormat");
-		const char *quality =
-			config_get_string(config, "SimpleOutput", "RecQuality");
-		if (strcmp(quality, "Lossless") == 0) {
-			ffmpegOutput = true;
-		}
-	}
 	const char *filenameFormat =
 		config_get_string(config, "Output", "FilenameFormatting");
 
@@ -3951,6 +3970,18 @@ void CanvasDock::StartReplayBuffer()
 			"vertical_canvas_record_video_encoder", nullptr,
 			nullptr);
 	}
+
+	switch (video_output_get_format(video)) {
+	case VIDEO_FORMAT_I420:
+	case VIDEO_FORMAT_NV12:
+	case VIDEO_FORMAT_I010:
+	case VIDEO_FORMAT_P010:
+		break;
+	default:
+		obs_encoder_set_preferred_video_format(video_encoder,
+						       VIDEO_FORMAT_NV12);
+	}
+
 	obs_data_t *d = obs_encoder_get_settings(video_encoder);
 	obs_encoder_update(video_encoder, d);
 	obs_data_release(d);
@@ -4044,40 +4075,32 @@ bool EncoderAvailable(const char *encoder)
 
 const char *get_simple_output_encoder(const char *encoder)
 {
-	if (strcmp(encoder, SIMPLE_ENCODER_X264) == 0) {
+	if (strcmp(encoder, SIMPLE_ENCODER_X264) == 0)
 		return "obs_x264";
-	} else if (strcmp(encoder, SIMPLE_ENCODER_X264_LOWCPU) == 0) {
+	if (strcmp(encoder, SIMPLE_ENCODER_X264_LOWCPU) == 0)
 		return "obs_x264";
-	} else if (strcmp(encoder, SIMPLE_ENCODER_QSV) == 0) {
+	if (strcmp(encoder, SIMPLE_ENCODER_QSV) == 0)
 		return "obs_qsv11_v2";
-	} else if (strcmp(encoder, SIMPLE_ENCODER_QSV_AV1) == 0) {
+	if (strcmp(encoder, SIMPLE_ENCODER_QSV_AV1) == 0)
 		return "obs_qsv11_av1";
-	} else if (strcmp(encoder, SIMPLE_ENCODER_AMD) == 0) {
+	if (strcmp(encoder, SIMPLE_ENCODER_AMD) == 0)
 		return "h264_texture_amf";
-#ifdef ENABLE_HEVC
-	} else if (strcmp(encoder, SIMPLE_ENCODER_AMD_HEVC) == 0) {
+	if (strcmp(encoder, SIMPLE_ENCODER_AMD_HEVC) == 0)
 		return "h265_texture_amf";
-#endif
-	} else if (strcmp(encoder, SIMPLE_ENCODER_AMD_AV1) == 0) {
+	if (strcmp(encoder, SIMPLE_ENCODER_AMD_AV1) == 0)
 		return "av1_texture_amf";
-	} else if (strcmp(encoder, SIMPLE_ENCODER_NVENC) == 0) {
+	if (strcmp(encoder, SIMPLE_ENCODER_NVENC) == 0)
 		return EncoderAvailable("jim_nvenc") ? "jim_nvenc"
 						     : "ffmpeg_nvenc";
-#ifdef ENABLE_HEVC
-	} else if (strcmp(encoder, SIMPLE_ENCODER_NVENC_HEVC) == 0) {
+	if (strcmp(encoder, SIMPLE_ENCODER_NVENC_HEVC) == 0)
 		return EncoderAvailable("jim_hevc_nvenc") ? "jim_hevc_nvenc"
 							  : "ffmpeg_hevc_nvenc";
-#endif
-	} else if (strcmp(encoder, SIMPLE_ENCODER_NVENC_AV1) == 0) {
+	if (strcmp(encoder, SIMPLE_ENCODER_NVENC_AV1) == 0)
 		return "jim_av1_nvenc";
-	} else if (strcmp(encoder, SIMPLE_ENCODER_APPLE_H264) == 0) {
+	if (strcmp(encoder, SIMPLE_ENCODER_APPLE_H264) == 0)
 		return "com.apple.videotoolbox.videoencoder.ave.avc";
-#ifdef ENABLE_HEVC
-	} else if (strcmp(encoder, SIMPLE_ENCODER_APPLE_HEVC) == 0) {
+	if (strcmp(encoder, SIMPLE_ENCODER_APPLE_HEVC) == 0)
 		return "com.apple.videotoolbox.videoencoder.ave.hevc";
-#endif
-	}
-
 	return "obs_x264";
 }
 
@@ -4136,7 +4159,7 @@ void CanvasDock::StartStream()
 
 	config_t *config = obs_frontend_get_profile_config();
 	const char *mode = config_get_string(config, "Output", "Mode");
-
+	bool useRecordEncoder = false;
 	const char *enc_id;
 	if (strcmp(mode, "Advanced") == 0) {
 
@@ -4146,6 +4169,9 @@ void CanvasDock::StartStream()
 		obs_service_apply_encoder_settings(
 			stream_service, video_settings, audio_settings);
 
+		const char *recordEncoder =
+			config_get_string(config, "AdvOut", "RecEncoder");
+		useRecordEncoder = astrcmpi(recordEncoder, "none") == 0;
 	} else {
 		video_settings = obs_data_create();
 		const int videoBitrate =
@@ -4168,18 +4194,13 @@ void CanvasDock::StartStream()
 		} else if (strcmp(enc_id, SIMPLE_ENCODER_AMD) == 0) {
 			presetType = "AMDPreset";
 
-#ifdef ENABLE_HEVC
 		} else if (strcmp(enc_id, SIMPLE_ENCODER_AMD_HEVC) == 0) {
 			presetType = "AMDPreset";
-#endif
 
 		} else if (strcmp(enc_id, SIMPLE_ENCODER_NVENC) == 0) {
 			presetType = "NVENCPreset2";
-
-#ifdef ENABLE_HEVC
 		} else if (strcmp(enc_id, SIMPLE_ENCODER_NVENC_HEVC) == 0) {
 			presetType = "NVENCPreset2";
-#endif
 
 		} else if (strcmp(enc_id, SIMPLE_ENCODER_AMD_AV1) == 0) {
 			presetType = "AMDAV1Preset";
@@ -4209,18 +4230,35 @@ void CanvasDock::StartStream()
 
 		obs_data_set_string(audio_settings, "rate_control", "CBR");
 		obs_data_set_int(audio_settings, "bitrate", audioBitrate);
+
+		const char *quality =
+			config_get_string(config, "SimpleOutput", "RecQuality");
+		if (strcmp(quality, "Stream") == 0) {
+			useRecordEncoder = true;
+		}
 	}
 
 	obs_service_apply_encoder_settings(stream_service, video_settings,
 					   audio_settings);
 
-	obs_encoder_t *video_encoder = obs_video_encoder_create(
-		enc_id, "vertical_canvas_video_encoder", video_settings,
-		nullptr);
+	obs_encoder_t *video_encoder =
+		obs_output_get_video_encoder(streamOutput);
+	if (!video_encoder && useRecordEncoder && recordOutput) {
+		video_encoder = obs_output_get_video_encoder(streamOutput);
+	}
+	if (!video_encoder && useRecordEncoder && replayOutput) {
+		video_encoder = obs_output_get_video_encoder(replayOutput);
+	}
+	if (!video_encoder ||
+	    strcmp(obs_encoder_get_id(video_encoder), enc_id) != 0) {
+		video_encoder = obs_video_encoder_create(
+			enc_id, "vertical_canvas_video_encoder", video_settings,
+			nullptr);
+	} else {
+		obs_encoder_update(video_encoder, video_settings);
+	}
 
-	const enum video_format format = video_output_get_format(video);
-
-	switch (format) {
+	switch (video_output_get_format(video)) {
 	case VIDEO_FORMAT_I420:
 	case VIDEO_FORMAT_NV12:
 	case VIDEO_FORMAT_I010:
