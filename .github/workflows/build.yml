@@ -55,7 +55,7 @@ jobs:
           print '::endgroup::'
 
           print '::group::Set up code signing'
-          if [[ '${{ secrets.APPLE_CSC_LINK }}' != '' ]] {
+          if [[ '${{ secrets.APPLE_OBS_CERT }}' != '' ]] {
             print 'haveCodesignIdent=true' >> $GITHUB_OUTPUT
           } else {
             print 'haveCodesignIdent=false' >> $GITHUB_OUTPUT
@@ -96,8 +96,8 @@ jobs:
         uses: apple-actions/import-codesign-certs@253ddeeac23f2bdad1646faac5c8c2832e800071
         with:
           keychain-password: ${{ github.run_id }}
-          p12-file-base64: ${{ secrets.APPLE_CSC_LINK }}
-          p12-password: ${{ secrets.APPLE_CSC_PASSWORD }}
+          p12-file-base64: ${{ secrets.APPLE_OBS_CERT }}
+          p12-password: ${{ secrets.APPLE_OBS_SECRET }}
 
       - name: Build Plugin
         uses: ./plugin/.github/actions/build-plugin
