@@ -3913,9 +3913,13 @@ void CanvasDock::record_output_start(void *data, calldata_t *calldata)
 
 void CanvasDock::record_output_stop(void *data, calldata_t *calldata)
 {
-	UNUSED_PARAMETER(calldata);
+	const char *last_error =
+		(const char *)calldata_ptr(calldata, "last_error");
+	QString arg_last_error = QString::fromUtf8(last_error);
+	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
-	QMetaObject::invokeMethod(d, "OnRecordStop");
+	QMetaObject::invokeMethod(d, "OnRecordStop", Q_ARG(int, code),
+				  Q_ARG(QString, arg_last_error));
 	d->DestroyVideo();
 }
 
@@ -4306,10 +4310,14 @@ void CanvasDock::stream_output_start(void *data, calldata_t *calldata)
 
 void CanvasDock::stream_output_stop(void *data, calldata_t *calldata)
 {
-	UNUSED_PARAMETER(calldata);
+	const char *last_error =
+		(const char *)calldata_ptr(calldata, "last_error");
+	QString arg_last_error = QString::fromUtf8(last_error);
+	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
 	d->DestroyVideo();
-	QMetaObject::invokeMethod(d, "OnStreamStop");
+	QMetaObject::invokeMethod(d, "OnStreamStop", Q_ARG(int, code),
+				  Q_ARG(QString, arg_last_error));
 }
 
 void CanvasDock::DestroyVideo()
@@ -4480,9 +4488,39 @@ void CanvasDock::OnRecordStart()
 	recordButton->setChecked(true);
 }
 
-void CanvasDock::OnRecordStop()
+void CanvasDock::OnRecordStop(int code, QString last_error)
 {
 	recordButton->setChecked(false);
+	if (code == OBS_OUTPUT_UNSUPPORTED && isVisible()) {
+		QMessageBox::critical(
+			this, QString::fromUtf8(obs_module_text("RecordFail")),
+			QString::fromUtf8(obs_module_text("RecordUnsupported")));
+
+	} else if (code == OBS_OUTPUT_ENCODE_ERROR && isVisible()) {
+		QString msg = last_error.isEmpty()
+				      ? QString::fromUtf8(
+						obs_module_text("RecordEncodeError"))
+				      : QString::fromUtf8(
+						obs_module_text("RecordLastError"))
+						.arg(last_error);
+		QMessageBox::warning(
+			this, QString::fromUtf8(obs_module_text("RecordError")),
+			msg);
+
+	} else if (code == OBS_OUTPUT_NO_SPACE && isVisible()) {
+		QMessageBox::warning(
+			this, QString::fromUtf8(obs_module_text("RecordNoSpace")),
+			QString::fromUtf8(obs_module_text("RecordNoSpaceMsg")));
+
+	} else if (code != OBS_OUTPUT_SUCCESS && isVisible()) {
+		QMessageBox::critical(
+			this, QString::fromUtf8(obs_module_text("RecordError")),
+			QString::fromUtf8(obs_module_text("RecordErrorMsg")) +
+				(!last_error.isEmpty()
+					 ? QString::fromUtf8("\n\n") +
+						   last_error
+					 : QString::fromUtf8("")));
+	}
 }
 
 void CanvasDock::OnStreamStart()
@@ -4490,9 +4528,65 @@ void CanvasDock::OnStreamStart()
 	streamButton->setChecked(true);
 }
 
-void CanvasDock::OnStreamStop()
+void CanvasDock::OnStreamStop(int code, QString last_error)
 {
 	streamButton->setChecked(false);
+	const char *errorDescription = "";
+
+	bool use_last_error = false;
+	bool encode_error = false;
+
+	switch (code) {
+	case OBS_OUTPUT_BAD_PATH:
+		errorDescription = obs_module_text("BadPath");
+		break;
+
+	case OBS_OUTPUT_CONNECT_FAILED:
+		use_last_error = true;
+		errorDescription = obs_module_text("ConnectFailed");
+		break;
+
+	case OBS_OUTPUT_INVALID_STREAM:
+		errorDescription = obs_module_text("InvalidStream");
+		break;
+
+	case OBS_OUTPUT_ENCODE_ERROR:
+		encode_error = true;
+		break;
+
+	default:
+	case OBS_OUTPUT_ERROR:
+		use_last_error = true;
+		errorDescription = obs_module_text("ConnectionError");
+		break;
+
+	case OBS_OUTPUT_DISCONNECTED:
+		/* doesn't happen if output is set to reconnect.  note that
+		 * reconnects are handled in the output, not in the UI */
+		use_last_error = true;
+		errorDescription = obs_module_text("Disconnected");
+	}
+
+	if (encode_error) {
+		QString msg = last_error.isEmpty()
+				      ? QString::fromUtf8(
+						obs_module_text("StreamEncodeErrorMsg"))
+				      : QString::fromUtf8(
+						obs_module_text("StreamLastError"))
+						.arg(last_error);
+		QMessageBox::information(
+			this, QString::fromUtf8(obs_module_text("StreamEncodeError")),
+			msg);
+
+	} else if (code != OBS_OUTPUT_SUCCESS && isVisible()) {
+		QMessageBox::information(
+			this, QString::fromUtf8(obs_module_text("ConnectFail")),
+			QString::fromUtf8(errorDescription) +
+				(use_last_error && !last_error.isEmpty()
+					 ? QString::fromUtf8("\n\n") +
+						   last_error
+					 : QString::fromUtf8("")));
+	}
 }
 
 void CanvasDock::OnReplayBufferStart()

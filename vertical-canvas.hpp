@@ -256,9 +256,9 @@ private slots:
 	void OnVirtualCamStart();
 	void OnVirtualCamStop();
 	void OnRecordStart();
-	void OnRecordStop();
+	void OnRecordStop(int code, QString last_error);
 	void OnStreamStart();
-	void OnStreamStop();
+	void OnStreamStop(int code, QString last_error);
 	void OnReplayBufferStart();
 	void OnReplayBufferStop();
 
