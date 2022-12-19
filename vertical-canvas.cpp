@@ -3350,6 +3350,21 @@ bool CanvasDock::DrawSelectionBox(float x1, float y1, float x2, float y2,
 
 	return true;
 }
+struct descendant_info {
+	bool exists;
+	obs_weak_source_t *target;
+	obs_source_t *target2;
+};
+
+static void check_descendant(obs_source_t *parent, obs_source_t *child,
+			     void *param)
+{
+	auto *info = (struct descendant_info *)param;
+	if (parent == info->target2 || child == info->target2 ||
+	    obs_weak_source_references_source(info->target, child) ||
+	    obs_weak_source_references_source(info->target, parent))
+		info->exists = true;
+}
 
 bool CanvasDock::add_sources_of_type_to_menu(void *param, obs_source_t *source)
 {
@@ -3360,9 +3375,13 @@ bool CanvasDock::add_sources_of_type_to_menu(void *param, obs_source_t *source)
 	auto idUtf8 = t.toUtf8();
 	const char *id = idUtf8.constData();
 	if (strcmp(obs_source_get_unversioned_id(source), id) == 0) {
-		menu->addAction(QString::fromUtf8(obs_source_get_name(source)),
-				cd,
-				[cd, source] { cd->AddSourceToScene(source); });
+		auto na = menu->addAction(
+			QString::fromUtf8(obs_source_get_name(source)), cd,
+			[cd, source] { cd->AddSourceToScene(source); });
+		struct descendant_info info = {false, cd->source,
+					       obs_scene_get_source(cd->scene)};
+		obs_source_enum_full_tree(source, check_descendant, &info);
+		na->setEnabled(!info.exists);
 	}
 	return true;
 }
