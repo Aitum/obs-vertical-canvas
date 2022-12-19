@@ -259,7 +259,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	sceneRow->addWidget(linkedButton);
 
-	const auto addButton = new QPushButton;
+	addButton = new QPushButton;
 	addButton->setProperty("themeID", "addIconSmall");
 	connect(addButton, &QPushButton::clicked, [this] {
 		std::string name = obs_module_text("VerticalCanvas");
@@ -302,7 +302,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		} while (s);
 	});
 	sceneRow->addWidget(addButton);
-	const auto removeButton = new QPushButton;
+	removeButton = new QPushButton;
 	removeButton->setProperty("themeID", "removeIconSmall");
 	connect(removeButton, &QPushButton::clicked, [this] {
 		auto s = obs_get_source_by_name(
@@ -369,6 +369,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	recordButton = new QPushButton;
 	recordButton->setObjectName(QStringLiteral("canvasRecord"));
+	recordButton->setIcon(recordInactiveIcon);
 	recordButton->setText(QString::fromUtf8(obs_module_text("Record")));
 	recordButton->setCheckable(true);
 	recordButton->setChecked(false);
@@ -378,6 +379,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	streamButton = new QPushButton;
 	streamButton->setObjectName(QStringLiteral("canvasStream"));
+	streamButton->setIcon(streamInactiveIcon);
 	streamButton->setText(QString::fromUtf8(obs_module_text("Stream")));
 	streamButton->setCheckable(true);
 	streamButton->setChecked(false);
@@ -1778,6 +1780,7 @@ bool CanvasDock::HandleMouseReleaseEvent(QMouseEvent *event)
 		action->setChecked(locked);
 
 		popup.addAction(
+			GetIconFromType(OBS_ICON_TYPE_IMAGE),
 			QString::fromUtf8(obs_module_text("Screenshot")), this,
 			[this] {
 				auto s = obs_weak_source_get_source(source);
@@ -1795,6 +1798,7 @@ bool CanvasDock::HandleMouseReleaseEvent(QMouseEvent *event)
 				obs_sceneitem_get_source(sceneItem);
 
 			popup.addAction(
+				removeButton->icon(),
 				QString::fromUtf8(obs_module_text("Remove")),
 				this, [sceneItem] {
 					QMessageBox mb(
@@ -3362,15 +3366,18 @@ bool CanvasDock::add_sources_of_type_to_menu(void *param, obs_source_t *source)
 void CanvasDock::LoadSourceTypeMenu(QMenu *menu, const char *type)
 {
 	menu->clear();
-	if (strcmp(type, "scene") != 0) {
+	if (strcmp(type, "scene") == 0) {
+		obs_enum_scenes(add_sources_of_type_to_menu, menu);
+	} else {
 		auto popupItem = menu->addAction(
 			QString::fromUtf8(obs_module_text("New")));
+		popupItem->setIcon(addButton->icon());
 		popupItem->setData(QString::fromUtf8(type));
 		connect(popupItem, SIGNAL(triggered(bool)), this,
 			SLOT(AddSourceFromAction()));
+		menu->addSeparator();
+		obs_enum_sources(add_sources_of_type_to_menu, menu);
 	}
-	menu->addSeparator();
-	obs_enum_sources(add_sources_of_type_to_menu, menu);
 }
 
 void CanvasDock::AddSourceToScene(obs_source_t *source)
@@ -3388,6 +3395,7 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 
 	QMenu *popup =
 		new QMenu(QString::fromUtf8(obs_module_text("Add")), this);
+	popup->setIcon(addButton->icon());
 	QMenu *deprecated = new QMenu(
 		QString::fromUtf8(obs_module_text("Deprecated")), popup);
 
@@ -3406,22 +3414,20 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 						const char *name) {
 		QString qname = QString::fromUtf8(name);
 		QAction *popupItem = new QAction(qname, this);
+		if (strcmp(type, "scene") == 0) {
+			popupItem->setIcon(GetSceneIcon());
+		} else if (strcmp(type, "group") == 0) {
+			popupItem->setIcon(GetGroupIcon());
+		} else {
+			popupItem->setIcon(GetIconFromType(
+				obs_source_get_icon_type(type)));
+		}
 		popupItem->setData(QString::fromUtf8(type));
 		QMenu *menu = new QMenu(this);
 		popupItem->setMenu(menu);
 		QObject::connect(menu, &QMenu::aboutToShow, [this, menu, type] {
 			LoadSourceTypeMenu(menu, type);
 		});
-
-		/*
-		QIcon icon;
-
-		if (strcmp(type, "scene") == 0)
-			icon = GetSceneIcon();
-		else
-			icon = GetSourceIcon(type);
-
-		popupItem->setIcon(icon);*/
 
 		QAction *after = getActionAfter(popup, qname);
 		popup->insertAction(after, popupItem);
@@ -3444,15 +3450,7 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 	}
 
 	addSource(popup, "scene", obs_module_text("Scene"));
-
-	popup->addSeparator();
-	QAction *addGroup =
-		new QAction(QString::fromUtf8(obs_module_text("Group")), this);
-	addGroup->setData(QString::fromUtf8("group"));
-	//addGroup->setIcon(GetGroupIcon());
-	connect(addGroup, SIGNAL(triggered(bool)), this,
-		SLOT(AddSourceFromAction()));
-	popup->addAction(addGroup);
+	addSource(popup, "group", obs_module_text("Group"));
 
 	if (!foundDeprecated) {
 		delete deprecated;
@@ -4486,30 +4484,35 @@ void CanvasDock::FinishLoading()
 void CanvasDock::OnRecordStart()
 {
 	recordButton->setChecked(true);
+	recordButton->setIcon(recordActiveIcon);
 }
 
 void CanvasDock::OnRecordStop(int code, QString last_error)
 {
 	recordButton->setChecked(false);
+	recordButton->setIcon(recordInactiveIcon);
 	if (code == OBS_OUTPUT_UNSUPPORTED && isVisible()) {
 		QMessageBox::critical(
 			this, QString::fromUtf8(obs_module_text("RecordFail")),
-			QString::fromUtf8(obs_module_text("RecordUnsupported")));
+			QString::fromUtf8(
+				obs_module_text("RecordUnsupported")));
 
 	} else if (code == OBS_OUTPUT_ENCODE_ERROR && isVisible()) {
-		QString msg = last_error.isEmpty()
-				      ? QString::fromUtf8(
-						obs_module_text("RecordEncodeError"))
-				      : QString::fromUtf8(
-						obs_module_text("RecordLastError"))
-						.arg(last_error);
+		QString msg =
+			last_error.isEmpty()
+				? QString::fromUtf8(
+					  obs_module_text("RecordEncodeError"))
+				: QString::fromUtf8(
+					  obs_module_text("RecordLastError"))
+					  .arg(last_error);
 		QMessageBox::warning(
 			this, QString::fromUtf8(obs_module_text("RecordError")),
 			msg);
 
 	} else if (code == OBS_OUTPUT_NO_SPACE && isVisible()) {
 		QMessageBox::warning(
-			this, QString::fromUtf8(obs_module_text("RecordNoSpace")),
+			this,
+			QString::fromUtf8(obs_module_text("RecordNoSpace")),
 			QString::fromUtf8(obs_module_text("RecordNoSpaceMsg")));
 
 	} else if (code != OBS_OUTPUT_SUCCESS && isVisible()) {
@@ -4526,11 +4529,13 @@ void CanvasDock::OnRecordStop(int code, QString last_error)
 void CanvasDock::OnStreamStart()
 {
 	streamButton->setChecked(true);
+	streamButton->setIcon(streamActiveIcon);
 }
 
 void CanvasDock::OnStreamStop(int code, QString last_error)
 {
 	streamButton->setChecked(false);
+	streamButton->setIcon(streamInactiveIcon);
 	const char *errorDescription = "";
 
 	bool use_last_error = false;
@@ -4568,14 +4573,16 @@ void CanvasDock::OnStreamStop(int code, QString last_error)
 	}
 
 	if (encode_error) {
-		QString msg = last_error.isEmpty()
-				      ? QString::fromUtf8(
-						obs_module_text("StreamEncodeErrorMsg"))
-				      : QString::fromUtf8(
-						obs_module_text("StreamLastError"))
-						.arg(last_error);
+		QString msg =
+			last_error.isEmpty()
+				? QString::fromUtf8(obs_module_text(
+					  "StreamEncodeErrorMsg"))
+				: QString::fromUtf8(
+					  obs_module_text("StreamLastError"))
+					  .arg(last_error);
 		QMessageBox::information(
-			this, QString::fromUtf8(obs_module_text("StreamEncodeError")),
+			this,
+			QString::fromUtf8(obs_module_text("StreamEncodeError")),
 			msg);
 
 	} else if (code != OBS_OUTPUT_SUCCESS && isVisible()) {
@@ -4721,6 +4728,61 @@ bool CanvasDock::stop_streaming_hotkey(void *data, obs_hotkey_pair_id id,
 		return false;
 	QMetaObject::invokeMethod(d, "StreamButtonClicked");
 	return true;
+}
+
+QIcon CanvasDock::GetIconFromType(enum obs_icon_type icon_type) const
+{
+	const auto main_window =
+		static_cast<QMainWindow *>(obs_frontend_get_main_window());
+
+	switch (icon_type) {
+	case OBS_ICON_TYPE_IMAGE:
+		return main_window->property("imageIcon").value<QIcon>();
+	case OBS_ICON_TYPE_COLOR:
+		return main_window->property("colorIcon").value<QIcon>();
+	case OBS_ICON_TYPE_SLIDESHOW:
+		return main_window->property("slideshowIcon").value<QIcon>();
+	case OBS_ICON_TYPE_AUDIO_INPUT:
+		return main_window->property("audioInputIcon").value<QIcon>();
+	case OBS_ICON_TYPE_AUDIO_OUTPUT:
+		return main_window->property("audioOutputIcon").value<QIcon>();
+	case OBS_ICON_TYPE_DESKTOP_CAPTURE:
+		return main_window->property("desktopCapIcon").value<QIcon>();
+	case OBS_ICON_TYPE_WINDOW_CAPTURE:
+		return main_window->property("windowCapIcon").value<QIcon>();
+	case OBS_ICON_TYPE_GAME_CAPTURE:
+		return main_window->property("gameCapIcon").value<QIcon>();
+	case OBS_ICON_TYPE_CAMERA:
+		return main_window->property("cameraIcon").value<QIcon>();
+	case OBS_ICON_TYPE_TEXT:
+		return main_window->property("textIcon").value<QIcon>();
+	case OBS_ICON_TYPE_MEDIA:
+		return main_window->property("mediaIcon").value<QIcon>();
+	case OBS_ICON_TYPE_BROWSER:
+		return main_window->property("browserIcon").value<QIcon>();
+	case OBS_ICON_TYPE_CUSTOM:
+		//TODO: Add ability for sources to define custom icons
+		return main_window->property("defaultIcon").value<QIcon>();
+	case OBS_ICON_TYPE_PROCESS_AUDIO_OUTPUT:
+		return main_window->property("audioProcessOutputIcon")
+			.value<QIcon>();
+	default:
+		return main_window->property("defaultIcon").value<QIcon>();
+	}
+}
+
+QIcon CanvasDock::GetSceneIcon() const
+{
+	const auto main_window =
+		static_cast<QMainWindow *>(obs_frontend_get_main_window());
+	return main_window->property("sceneIcon").value<QIcon>();
+}
+
+QIcon CanvasDock::GetGroupIcon() const
+{
+	const auto main_window =
+		static_cast<QMainWindow *>(obs_frontend_get_main_window());
+	return main_window->property("groupIcon").value<QIcon>();
 }
 
 LockedCheckBox::LockedCheckBox() {}

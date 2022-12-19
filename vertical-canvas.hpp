@@ -103,9 +103,15 @@ private:
 	gs_stagesurf_t *stagesurface = nullptr;
 	QPushButton *virtualCamButton;
 	QPushButton *recordButton;
+	QIcon recordActiveIcon = QIcon(":/res/images/recording-active.svg");
+	QIcon recordInactiveIcon = QIcon(":/res/images/recording-inactive.svg");
 	QPushButton *replayButton;
 	QPushButton *streamButton;
+	QIcon streamActiveIcon = QIcon(":/res/images/streaming-active.svg");
+	QIcon streamInactiveIcon = QIcon(":/res/images/streaming-inactive.svg");
 	QComboBox *scenesCombo;
+	QPushButton *addButton;
+	QPushButton * removeButton;
 	QCheckBox *linkedButton;
 	CanvasConfigDialog *configDialog = nullptr;
 
@@ -159,6 +165,9 @@ private:
 
 	QMenu *CreateAddSourcePopupMenu();
 	void LoadSourceTypeMenu(QMenu *menu, const char *type);
+	QIcon GetIconFromType(enum obs_icon_type icon_type) const;
+	QIcon GetGroupIcon() const;
+	QIcon GetSceneIcon() const;
 
 	obs_scene_item *GetSelectedItem();
 
