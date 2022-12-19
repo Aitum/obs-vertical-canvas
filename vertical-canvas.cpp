@@ -792,6 +792,7 @@ void CanvasDock::DrawPreview(void *data, uint32_t cx, uint32_t cy)
 					 window->mousePos.y * scale,
 					 window->rectFill);
 	}
+	gs_load_vertexbuffer(nullptr);
 
 	gs_technique_end_pass(tech);
 	gs_technique_end(tech);
@@ -1358,6 +1359,9 @@ static void DrawStripedLine(float x1, float y1, float x2, float y2,
 
 static void DrawRect(float thickness, vec2 scale)
 {
+	if (scale.x <= 0.0f || scale.y <= 0.0f || thickness <= 0.0f) {
+		return;
+	}
 	gs_render_start(true);
 
 	gs_vertex2f(0.0f, 0.0f);
