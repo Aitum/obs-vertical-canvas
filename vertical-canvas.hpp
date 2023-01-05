@@ -4,6 +4,7 @@
 #include <memory>
 #include <obs-frontend-api.h>
 #include <QDockWidget>
+#include <qlistwidget.h>
 #include <qpushbutton.h>
 #include <QVBoxLayout>
 
@@ -50,9 +51,26 @@ public:
 	EventFilterFunc filter;
 };
 
+class CanvasScenesDock : public QDockWidget {
+	Q_OBJECT
+	friend class CanvasDock;
+private:
+	QListWidget* sceneList;
+	CanvasDock *canvasDock;
+
+	void ChangeSceneIndex(bool relative, int offset, int invalidIdx);
+	void ShowScenesContextMenu(QListWidgetItem *item);
+	void SetGridMode(bool checked);
+	bool IsGridMode();
+public:
+	
+	CanvasScenesDock(CanvasDock* canvas_dock, QWidget *parent = nullptr);
+	~CanvasScenesDock();
+};
+
 class CanvasDock : public QDockWidget {
 	Q_OBJECT
-
+	friend class CanvasScenesDock;
 private:
 	QAction *action;
 	QVBoxLayout *mainLayout;
@@ -109,10 +127,10 @@ private:
 	QPushButton *streamButton;
 	QIcon streamActiveIcon = QIcon(":/res/images/streaming-active.svg");
 	QIcon streamInactiveIcon = QIcon(":/res/images/streaming-inactive.svg");
-	QComboBox *scenesCombo;
-	QPushButton *addButton;
-	QPushButton * removeButton;
-	QCheckBox *linkedButton;
+	QComboBox *scenesCombo = nullptr;
+	QCheckBox *linkedButton = nullptr;
+	CanvasScenesDock *scenesDock = nullptr;
+	QAction *scenesDockAction = nullptr;
 	CanvasConfigDialog *configDialog = nullptr;
 
 	obs_hotkey_pair_id stream_hotkey;
@@ -129,6 +147,8 @@ private:
 	QString stream_server;
 	uint32_t canvas_width;
 	uint32_t canvas_height;
+	bool hideScenes;
+	QString currentSceneName;
 
 	QColor GetSelectionColor() const;
 	QColor GetCropColor() const;
@@ -217,7 +237,12 @@ private:
 	void StopStream();
 	void DestroyVideo();
 
+	void CreateScenesRow();
 	void SwitchScene(const QString &scene_name);
+	void AddScene(QString duplicate = "");
+	void RemoveScene(const QString &sceneName);
+	void SetLinkedScene(obs_source_t *scene, const QString &linkedScene);
+	QListWidget * GetGlobalScenesList();
 
 	static bool DrawSelectedOverflow(obs_scene_t *scene,
 					 obs_sceneitem_t *item, void *param);

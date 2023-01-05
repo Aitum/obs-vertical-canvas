@@ -13,8 +13,11 @@
 #include <QMouseEvent>
 #include <QGuiApplication>
 #include <QLineEdit>
+#include <QListWidget>
 #include <QMenu>
 #include <QMessageBox>
+#include <QToolBar>
+#include <QWidgetAction>
 
 #include "config-dialog.hpp"
 #include "display-helpers.hpp"
@@ -167,6 +170,201 @@ MODULE_EXPORT const char *obs_module_name(void)
 	return obs_module_text("VerticalCanvas");
 }
 
+QListWidget *CanvasDock::GetGlobalScenesList()
+{
+	auto p = parentWidget();
+	if (!p)
+		return nullptr;
+	auto scenesDock =
+		p->findChild<QDockWidget *>(QStringLiteral("scenesDock"));
+	if (!scenesDock)
+		return nullptr;
+	return scenesDock->findChild<QListWidget *>(QStringLiteral("scenes"));
+}
+void CanvasDock::AddScene(QString duplicate)
+{
+	std::string name = duplicate.isEmpty()
+				   ? obs_module_text("VerticalCanvas")
+				   : duplicate.toUtf8().constData();
+	obs_source_t *s = obs_get_source_by_name(name.c_str());
+	int i = 0;
+	while (s) {
+		obs_source_release(s);
+		i++;
+		name = obs_module_text("VerticalCanvas");
+		name += " ";
+		name += std::to_string(i);
+		s = obs_get_source_by_name(name.c_str());
+	}
+	do {
+		obs_source_release(s);
+		if (!NameDialog::AskForName(this, name)) {
+			break;
+		}
+		s = obs_get_source_by_name(name.c_str());
+		if (s)
+			continue;
+
+		obs_source_t *new_scene = nullptr;
+		if (!duplicate.isEmpty()) {
+			auto origScene = obs_get_source_by_name(
+				duplicate.toUtf8().constData());
+			if (origScene) {
+				auto scene = obs_scene_from_source(origScene);
+				if (scene) {
+					new_scene = obs_scene_get_source(
+						obs_scene_duplicate(
+							scene, name.c_str(),
+							OBS_SCENE_DUP_REFS));
+				}
+				obs_source_release(origScene);
+				if (new_scene) {
+					obs_source_save(new_scene);
+					obs_data_t *settings =
+						obs_source_get_settings(
+							new_scene);
+					obs_data_set_bool(settings,
+							  "custom_size", true);
+					obs_data_set_int(settings, "cx",
+							 canvas_width);
+					obs_data_set_int(settings, "cy",
+							 canvas_height);
+					obs_source_load(new_scene);
+					obs_data_release(settings);
+				}
+			}
+		}
+		if (!new_scene) {
+			obs_data_t *settings = obs_data_create();
+			obs_data_set_bool(settings, "custom_size", true);
+			obs_data_set_int(settings, "cx", canvas_width);
+			obs_data_set_int(settings, "cy", canvas_height);
+			obs_data_array_t *items = obs_data_array_create();
+			obs_data_set_array(settings, "items", items);
+			obs_data_array_release(items);
+			new_scene = obs_source_create("scene", name.c_str(),
+						      settings, nullptr);
+			obs_data_release(settings);
+			obs_source_load(new_scene);
+		}
+		auto sn = QString::fromUtf8(obs_source_get_name(new_scene));
+		if (scenesCombo) {
+			scenesCombo->addItem(sn);
+			scenesCombo->setCurrentText(sn);
+		}
+		if (scenesDock) {
+			scenesDock->sceneList->addItem(sn);
+		}
+		obs_source_release(new_scene);
+
+		auto sl = GetGlobalScenesList();
+
+		if (hideScenes) {
+			for (int j = 0; j < sl->count(); j++) {
+				auto item = sl->item(j);
+				if (item->text() == sn) {
+					item->setHidden(true);
+				}
+			}
+		}
+	} while (s);
+}
+
+void CanvasDock::RemoveScene(const QString &sceneName)
+{
+	auto s = obs_get_source_by_name(sceneName.toUtf8().constData());
+	if (!s)
+		return;
+	if (!obs_source_is_scene(s)) {
+		obs_source_release(s);
+		return;
+	}
+
+	QMessageBox mb(QMessageBox::Question, obs_module_text("DeleteQuestion"),
+		       obs_module_text("AreYouSureQuestion"),
+		       QMessageBox::StandardButtons(QMessageBox::Yes |
+						    QMessageBox::No));
+	mb.setDefaultButton(QMessageBox::NoButton);
+	if (mb.exec() == QMessageBox::Yes) {
+		obs_source_remove(s);
+	}
+
+	obs_source_release(s);
+}
+
+void CanvasDock::SetLinkedScene(obs_source_t *scene, const QString &linkedScene)
+{
+	auto ss = obs_source_get_settings(scene);
+	auto c = obs_data_get_array(ss, "canvas");
+
+	auto count = obs_data_array_count(c);
+	obs_data_t *found = nullptr;
+	for (size_t i = 0; i < count; i++) {
+		auto item = obs_data_array_item(c, i);
+		if (!item)
+			continue;
+		if (obs_data_get_int(item, "width") == canvas_width &&
+		    obs_data_get_int(item, "height") == canvas_height) {
+			found = item;
+			if (linkedScene.isEmpty()) {
+				obs_data_array_erase(c, i);
+			}
+			break;
+		}
+		obs_data_release(item);
+	}
+	if (!linkedScene.isEmpty()) {
+		if (!found) {
+			if (!c) {
+				c = obs_data_array_create();
+				obs_data_set_array(ss, "canvas", c);
+			}
+			found = obs_data_create();
+			obs_data_set_int(found, "width", canvas_width);
+			obs_data_set_int(found, "height", canvas_height);
+			obs_data_array_push_back(c, found);
+		}
+		obs_data_set_string(found, "scene",
+				    linkedScene.toUtf8().constData());
+	}
+	obs_data_release(ss);
+	obs_data_release(found);
+	obs_data_array_release(c);
+}
+
+void CanvasDock::CreateScenesRow()
+{
+	const auto sceneRow = new QHBoxLayout(this);
+	scenesCombo = new QComboBox;
+	connect(scenesCombo, &QComboBox::currentTextChanged,
+		[this]() { SwitchScene(scenesCombo->currentText()); });
+	sceneRow->addWidget(scenesCombo, 1);
+
+	linkedButton = new LockedCheckBox;
+	connect(linkedButton, &QCheckBox::stateChanged, [this] {
+		auto scene = obs_frontend_get_current_scene();
+		if (!scene)
+			return;
+		SetLinkedScene(scene, linkedButton->isChecked()
+					      ? scenesCombo->currentText()
+					      : "");
+		obs_source_release(scene);
+	});
+
+	sceneRow->addWidget(linkedButton);
+
+	auto addButton = new QPushButton;
+	addButton->setProperty("themeID", "addIconSmall");
+	connect(addButton, &QPushButton::clicked, [this] { AddScene(); });
+	sceneRow->addWidget(addButton);
+	auto removeButton = new QPushButton;
+	removeButton->setProperty("themeID", "removeIconSmall");
+	connect(removeButton, &QPushButton::clicked,
+		[this] { RemoveScene(scenesCombo->currentText()); });
+	sceneRow->addWidget(removeButton);
+	mainLayout->insertLayout(0, sceneRow);
+}
+
 CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	: QDockWidget(parent),
 	  action(nullptr),
@@ -176,6 +374,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 {
 	setFeatures(DockWidgetClosable | DockWidgetMovable |
 		    DockWidgetFloatable);
+
+	hideScenes = !obs_data_get_bool(settings, "show_scenes");
 	canvas_width = (uint32_t)obs_data_get_int(settings, "width");
 	canvas_height = (uint32_t)obs_data_get_int(settings, "height");
 	if (!canvas_width || !canvas_height) {
@@ -203,128 +403,13 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	setWidget(dockWidgetContents);
 
-	const auto sceneRow = new QHBoxLayout(this);
-
-	scenesCombo = new QComboBox;
-	//auto comboIndexChanged = static_cast<void (QComboBox::*)(int)>(		);
-	connect(scenesCombo, &QComboBox::currentTextChanged,
-		[this]() { SwitchScene(scenesCombo->currentText()); });
-	sceneRow->addWidget(scenesCombo, 1);
-
-	linkedButton = new LockedCheckBox;
-	connect(linkedButton, &QCheckBox::stateChanged, [this] {
-		scenesCombo->setEnabled(!linkedButton->isChecked());
-		auto scene = obs_frontend_get_current_scene();
-		if (!scene)
-			return;
-		auto ss = obs_source_get_settings(scene);
-		obs_source_release(scene);
-		auto c = obs_data_get_array(ss, "canvas");
-		auto count = obs_data_array_count(c);
-		obs_data_t *found = nullptr;
-		for (size_t i = 0; i < count; i++) {
-			auto item = obs_data_array_item(c, i);
-			if (!item)
-				continue;
-			if (obs_data_get_int(item, "width") == canvas_width &&
-			    obs_data_get_int(item, "height") == canvas_height) {
-				found = item;
-				if (!linkedButton->isChecked()) {
-					obs_data_array_erase(c, i);
-				}
-				break;
-			}
-			obs_data_release(item);
-		}
-		if (linkedButton->isChecked()) {
-			if (!found) {
-				if (!c) {
-					c = obs_data_array_create();
-					obs_data_set_array(ss, "canvas", c);
-				}
-				found = obs_data_create();
-				obs_data_set_int(found, "width", canvas_width);
-				obs_data_set_int(found, "height",
-						 canvas_height);
-				obs_data_array_push_back(c, found);
-			}
-			obs_data_set_string(
-				found, "scene",
-				scenesCombo->currentText().toUtf8().constData());
-		}
-		obs_data_release(ss);
-		obs_data_release(found);
-		obs_data_array_release(c);
-	});
-
-	sceneRow->addWidget(linkedButton);
-
-	addButton = new QPushButton;
-	addButton->setProperty("themeID", "addIconSmall");
-	connect(addButton, &QPushButton::clicked, [this] {
-		std::string name = obs_module_text("VerticalCanvas");
-		obs_source_t *s = obs_get_source_by_name(name.c_str());
-		int i = 0;
-		while (s) {
-			obs_source_release(s);
-			i++;
-			name = obs_module_text("VerticalCanvas");
-			name += " ";
-			name += std::to_string(i);
-			s = obs_get_source_by_name(name.c_str());
-		}
-		do {
-			obs_source_release(s);
-			if (!NameDialog::AskForName(this, name)) {
-				break;
-			}
-			s = obs_get_source_by_name(name.c_str());
-			if (s)
-				continue;
-
-			obs_data_t *settings = obs_data_create();
-			obs_data_set_bool(settings, "custom_size", true);
-			obs_data_set_int(settings, "cx", canvas_width);
-			obs_data_set_int(settings, "cy", canvas_height);
-			obs_data_array_t *items = obs_data_array_create();
-			obs_data_set_array(settings, "items", items);
-			obs_data_array_release(items);
-
-			obs_source_t *new_scene = obs_source_create(
-				"scene", name.c_str(), settings, nullptr);
-			obs_source_load(new_scene);
-			scenesCombo->addItem(QString::fromUtf8(
-				obs_source_get_name(new_scene)));
-			scenesCombo->setCurrentText(QString::fromUtf8(
-				obs_source_get_name(new_scene)));
-			obs_source_release(new_scene);
-			obs_data_release(settings);
-		} while (s);
-	});
-	sceneRow->addWidget(addButton);
-	removeButton = new QPushButton;
-	removeButton->setProperty("themeID", "removeIconSmall");
-	connect(removeButton, &QPushButton::clicked, [this] {
-		auto s = obs_get_source_by_name(
-			scenesCombo->currentText().toUtf8().constData());
-		if (!s)
-			return;
-
-		QMessageBox mb(QMessageBox::Question,
-			       obs_module_text("DeleteQuestion"),
-			       obs_module_text("AreYouSureQuestion"),
-			       QMessageBox::StandardButtons(QMessageBox::Yes |
-							    QMessageBox::No));
-		mb.setDefaultButton(QMessageBox::NoButton);
-		if (mb.exec() == QMessageBox::Yes) {
-			obs_source_remove(s);
-		}
-
-		obs_source_release(s);
-	});
-	sceneRow->addWidget(removeButton);
-
-	mainLayout->addLayout(sceneRow);
+	if (obs_data_get_bool(settings, "scenes_row")) {
+		CreateScenesRow();
+	}
+	scenesDock = new CanvasScenesDock(this, parent);
+	scenesDock->SetGridMode(obs_data_get_bool(settings, "grid_mode"));
+	scenesDockAction =
+		static_cast<QAction *>(obs_frontend_add_dock(scenesDock));
 
 	preview->setObjectName(QStringLiteral("preview"));
 	preview->setMinimumSize(QSize(24, 24));
@@ -410,8 +495,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	obs_leave_graphics();
 
 	LoadScenes();
-	scenesCombo->setCurrentText(
-		obs_data_get_string(settings, "current_scene"));
+	SwitchScene(QString::fromUtf8(obs_data_get_string(settings, "current_scene")));
 
 	auto sh = obs_get_signal_handler();
 	signal_handler_connect(sh, "source_rename", source_rename, this);
@@ -480,6 +564,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	obs_hotkey_pair_load(stream_hotkey, start_hotkey, stop_hotkey);
 	obs_data_array_release(start_hotkey);
 	obs_data_array_release(stop_hotkey);
+	hide();
 }
 
 CanvasDock::~CanvasDock()
@@ -1802,7 +1887,7 @@ bool CanvasDock::HandleMouseReleaseEvent(QMouseEvent *event)
 				obs_sceneitem_get_source(sceneItem);
 
 			popup.addAction(
-				removeButton->icon(),
+				//removeButton->icon(),
 				QString::fromUtf8(obs_module_text("Remove")),
 				this, [sceneItem] {
 					QMessageBox mb(
@@ -3394,7 +3479,6 @@ void CanvasDock::LoadSourceTypeMenu(QMenu *menu, const char *type)
 	} else {
 		auto popupItem = menu->addAction(
 			QString::fromUtf8(obs_module_text("New")));
-		popupItem->setIcon(addButton->icon());
 		popupItem->setData(QString::fromUtf8(type));
 		connect(popupItem, SIGNAL(triggered(bool)), this,
 			SLOT(AddSourceFromAction()));
@@ -3418,7 +3502,6 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 
 	QMenu *popup =
 		new QMenu(QString::fromUtf8(obs_module_text("Add")), this);
-	popup->setIcon(addButton->icon());
 	QMenu *deprecated = new QMenu(
 		QString::fromUtf8(obs_module_text("Deprecated")), popup);
 
@@ -3629,6 +3712,7 @@ void CanvasDock::ConfigButtonClicked()
 	if (!configDialog)
 		configDialog = new CanvasConfigDialog(
 			(QMainWindow *)obs_frontend_get_main_window());
+	configDialog->hideScenes->setChecked(hideScenes);
 	configDialog->resolution->setCurrentText(
 		QString::number(canvas_width) + "x" +
 		QString::number(canvas_height));
@@ -3642,6 +3726,36 @@ void CanvasDock::ConfigButtonClicked()
 	configDialog->server->setCurrentText(stream_server);
 	const auto result = configDialog->exec();
 	if (result == 1) {
+		if (hideScenes != configDialog->hideScenes->isChecked()) {
+			hideScenes = configDialog->hideScenes->isChecked();
+			auto sl = GetGlobalScenesList();
+			for (int j = 0; j < sl->count(); j++) {
+				auto item = sl->item(j);
+				if (scenesCombo) {
+					for (int i = 0;
+					     i < scenesCombo->count(); i++) {
+						if (item->text() ==
+						    scenesCombo->itemText(i)) {
+							item->setHidden(
+								hideScenes);
+						}
+					}
+				}
+				if (scenesDock) {
+					for (int i = 0;
+					     i < scenesDock->sceneList->count();
+					     i++) {
+						if (item->text() ==
+						    scenesDock->sceneList
+							    ->item(i)
+							    ->text()) {
+							item->setHidden(
+								hideScenes);
+						}
+					}
+				}
+			}
+		}
 		const auto res = configDialog->resolution->currentText();
 		uint32_t width, height;
 		if (sscanf(res.toUtf8().constData(), "%dx%d", &width,
@@ -4356,10 +4470,15 @@ void CanvasDock::DestroyVideo()
 obs_data_t *CanvasDock::SaveSettings()
 {
 	auto data = obs_data_create();
-	auto cs = scenesCombo->currentText().toUtf8();
-	obs_data_set_string(data, "current_scene", cs.constData());
+	obs_data_set_bool(data, "show_scenes", !hideScenes);
+	if (!currentSceneName.isEmpty()) {
+		auto cs = currentSceneName.toUtf8();
+		obs_data_set_string(data, "current_scene", cs.constData());
+	}
 	obs_data_set_int(data, "width", canvas_width);
 	obs_data_set_int(data, "height", canvas_height);
+	if (scenesDock)
+		obs_data_set_bool(data, "grid_mode", scenesDock->IsGridMode());
 	obs_data_set_bool(data, "replay_buffer",
 			  obs_output_active(replayOutput));
 	obs_data_set_string(data, "stream_server",
@@ -4392,7 +4511,10 @@ obs_data_t *CanvasDock::SaveSettings()
 
 void CanvasDock::ClearScenes()
 {
-	scenesCombo->clear();
+	if (scenesCombo)
+		scenesCombo->clear();
+	if (scenesDock)
+		scenesDock->sceneList->clear();
 	obs_weak_source_release(source);
 	source = nullptr;
 	scene = nullptr;
@@ -4400,8 +4522,13 @@ void CanvasDock::ClearScenes()
 
 void CanvasDock::LoadScenes()
 {
-	const QString oldSelected = scenesCombo->currentText();
-	scenesCombo->clear();
+	auto sl = GetGlobalScenesList();
+	if (scenesCombo)
+		scenesCombo->clear();
+	
+	if (scenesDock)
+		scenesDock->sceneList->clear();
+	
 	struct obs_frontend_source_list scenes = {};
 	obs_frontend_get_scenes(&scenes);
 	for (size_t i = 0; i < scenes.sources.num; i++) {
@@ -4412,25 +4539,72 @@ void CanvasDock::LoadScenes()
 		    obs_data_get_int(settings, "cy") == canvas_height) {
 			QString name =
 				QString::fromUtf8(obs_source_get_name(src));
-			scenesCombo->addItem(name);
-			if ((oldSelected.isEmpty() &&
+			if (hideScenes) {
+				for (int j = 0; j < sl->count(); j++) {
+					auto item = sl->item(j);
+					if (item->text() == name) {
+						item->setHidden(true);
+					}
+				}
+			}
+			if (scenesCombo)
+				scenesCombo->addItem(name);
+			if (scenesDock)
+				scenesDock->sceneList->addItem(name);
+			if ((currentSceneName.isEmpty() &&
 			     obs_data_get_bool(settings, "canvas_active")) ||
-			    name == oldSelected) {
-				scenesCombo->setCurrentText(name);
+			    name == currentSceneName) {
+				if (scenesCombo)
+					scenesCombo->setCurrentText(name);
+				if (scenesDock) {
+					for (int i = 0;
+					     i < scenesDock->sceneList->count();
+					     i++) {
+						auto item =
+							scenesDock->sceneList
+								->item(i);
+						if (item->text() != name)
+							continue;
+						scenesDock->sceneList
+							->setCurrentItem(item);
+					}
+				}
 			}
 		}
 		obs_data_release(settings);
 	}
 	obs_frontend_source_list_free(&scenes);
+	if (scenesDock && scenesDock->sceneList->currentRow() < 0 && scenesDock->sceneList->count())
+		scenesDock->sceneList->setCurrentRow(0);
 }
 
 void CanvasDock::SwitchScene(const QString &scene_name)
 {
 	auto s = obs_get_source_by_name(scene_name.toUtf8().constData());
-	if (s != obs_scene_get_source(scene) && obs_source_is_scene(s)) {
-		obs_weak_source_release(source);
-		source = obs_source_get_weak_source(s);
-		scene = obs_scene_from_source(s);
+	if (s == obs_scene_get_source(scene) || !obs_source_is_scene(s)) {
+		obs_source_release(s);
+		return;
+	}
+	obs_weak_source_release(source);
+	source = obs_source_get_weak_source(s);
+	scene = obs_scene_from_source(s);
+	currentSceneName = scene_name;
+	if (scenesCombo && scenesCombo->currentText() != scene_name) {
+		scenesCombo->setCurrentText(scene_name);
+	}
+	if (scenesDock) {
+		QListWidgetItem *item = scenesDock->sceneList->currentItem();
+		if (!item || item->text() != scene_name) {
+			for (int i = 0; i < scenesDock->sceneList->count();
+			     i++) {
+				item = scenesDock->sceneList->item(i);
+				if (item->text() == scene_name) {
+					scenesDock->sceneList->setCurrentRow(i);
+					item->setSelected(true);
+					break;
+				}
+			}
+		}
 	}
 	obs_source_release(s);
 }
@@ -4442,15 +4616,26 @@ void CanvasDock::source_rename(void *data, calldata_t *calldata)
 		QString::fromUtf8(calldata_string(calldata, "prev_name"));
 	const auto new_name =
 		QString::fromUtf8(calldata_string(calldata, "new_name"));
-	for (int i = 0; i < d->scenesCombo->count(); i++) {
-		if (d->scenesCombo->itemText(i) != prev_name)
-			continue;
-		const bool selected = d->scenesCombo->currentText() ==
-				      prev_name;
-		d->scenesCombo->removeItem(i);
-		d->scenesCombo->addItem(new_name);
-		if (selected)
-			d->scenesCombo->setCurrentText(new_name);
+	if (d->scenesDock) {
+		for (int i = 0; i < d->scenesDock->sceneList->count(); i++) {
+			const auto item = d->scenesDock->sceneList->item(i);
+			if (item->text() != prev_name)
+				continue;
+			item->setText(new_name);
+		}
+	}
+	if (d->scenesCombo) {
+
+		for (int i = 0; i < d->scenesCombo->count(); i++) {
+			if (d->scenesCombo->itemText(i) != prev_name)
+				continue;
+			const bool selected = d->scenesCombo->currentText() ==
+					      prev_name;
+			d->scenesCombo->removeItem(i);
+			d->scenesCombo->addItem(new_name);
+			if (selected)
+				d->scenesCombo->setCurrentText(new_name);
+		}
 	}
 }
 
@@ -4468,14 +4653,30 @@ void CanvasDock::source_remove(void *data, calldata_t *calldata)
 	const auto name = QString::fromUtf8(obs_source_get_name(source));
 	if (name.isEmpty())
 		return;
-	for (int i = 0; i < d->scenesCombo->count(); i++) {
-		if (d->scenesCombo->itemText(i) != name)
-			continue;
-		d->scenesCombo->removeItem(i);
+	if (d->scenesDock) {
+		for (int i = 0; i < d->scenesDock->sceneList->count(); i++) {
+			auto item = d->scenesDock->sceneList->item(i);
+			if (item->text() != name)
+				continue;
+			d->scenesDock->sceneList->takeItem(i);
+		}
+		auto r = d->scenesDock->sceneList->currentRow();
+		auto c = d->scenesDock->sceneList->count();
+		if ((r < 0 && c > 0) || r >= c) {
+			d->scenesDock->sceneList->setCurrentRow(0);
+		}
 	}
-	if (d->scenesCombo->count())
-		return;
-	d->LoadScenes();
+	if (d->scenesCombo) {
+		for (int i = 0; i < d->scenesCombo->count(); i++) {
+			if (d->scenesCombo->itemText(i) != name)
+				continue;
+			d->scenesCombo->removeItem(i);
+		}
+		if (d->scenesCombo->currentIndex() < 0 &&
+		    d->scenesCombo->count()) {
+			d->scenesCombo->setCurrentIndex(0);
+		}
+	}
 }
 
 void CanvasDock::source_save(void *data, calldata_t *calldata)
@@ -4492,8 +4693,10 @@ void CanvasDock::source_save(void *data, calldata_t *calldata)
 	    obs_data_get_int(settings, "cy") == d->canvas_height) {
 		const QString name =
 			QString::fromUtf8(obs_source_get_name(source));
-		obs_data_set_bool(settings, "canvas_active",
-				  d->scenesCombo->currentText() == name);
+		if (d->scenesCombo)
+			obs_data_set_bool(settings, "canvas_active",
+					  d->scenesCombo->currentText() ==
+						  name);
 	}
 	obs_data_release(settings);
 }
@@ -4633,7 +4836,8 @@ void CanvasDock::MainSceneChanged()
 {
 	auto scene = obs_frontend_get_current_scene();
 	if (!scene) {
-		linkedButton->setChecked(false);
+		if (linkedButton)
+			linkedButton->setChecked(false);
 		return;
 	}
 
@@ -4642,7 +4846,8 @@ void CanvasDock::MainSceneChanged()
 	auto c = obs_data_get_array(ss, "canvas");
 	obs_data_release(ss);
 	if (!c) {
-		linkedButton->setChecked(false);
+		if (linkedButton)
+			linkedButton->setChecked(false);
 		return;
 	}
 	const auto count = obs_data_array_count(c);
@@ -4659,10 +4864,12 @@ void CanvasDock::MainSceneChanged()
 		obs_data_release(item);
 	}
 	if (found) {
-		scenesCombo->setCurrentText(
-			QString::fromUtf8(obs_data_get_string(found, "scene")));
-		linkedButton->setChecked(true);
-	} else {
+		auto sn =
+			QString::fromUtf8(obs_data_get_string(found, "scene"));
+		SwitchScene(sn);
+		if (linkedButton)
+			linkedButton->setChecked(true);
+	} else if (linkedButton) {
 		linkedButton->setChecked(false);
 	}
 	obs_data_release(found);
@@ -4811,3 +5018,346 @@ QIcon CanvasDock::GetGroupIcon() const
 LockedCheckBox::LockedCheckBox() {}
 
 LockedCheckBox::LockedCheckBox(QWidget *parent) : QCheckBox(parent) {}
+
+void CanvasScenesDock::SetGridMode(bool checked)
+{
+	if (checked) {
+		sceneList->setResizeMode(QListView::Adjust);
+		sceneList->setViewMode(QListView::IconMode);
+		sceneList->setUniformItemSizes(true);
+		sceneList->setStyleSheet("*{padding: 0; margin: 0;}");
+	} else {
+		sceneList->setViewMode(QListView::ListMode);
+		sceneList->setResizeMode(QListView::Fixed);
+		sceneList->setStyleSheet("");
+	}
+}
+
+bool CanvasScenesDock::IsGridMode()
+{
+	return sceneList->viewMode() == QListView::IconMode;
+}
+
+void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
+{
+	auto menu = new QMenu(this);
+	auto a =
+		menu->addAction(QString::fromUtf8(obs_module_text("GridMode")),
+				[this](bool checked) { SetGridMode(checked); });
+	a->setCheckable(true);
+	a->setChecked(IsGridMode());
+	menu->addAction(QString::fromUtf8(obs_module_text("Add")),
+			[this] { canvasDock->AddScene(); });
+	if (!item) {
+		menu->exec(QCursor::pos());
+		return;
+	}
+	menu->addSeparator();
+	menu->addAction(QString::fromUtf8(obs_module_text("Duplicate")),
+			[this] {
+				auto item = sceneList->currentItem();
+				if (!item)
+					return;
+				canvasDock->AddScene(item->text());
+			});
+	menu->addAction(QString::fromUtf8(obs_module_text("Remove")), [this] {
+		auto item = sceneList->currentItem();
+		if (!item)
+			return;
+		canvasDock->RemoveScene(item->text());
+	});
+	/*menu->addAction(QString::fromUtf8(obs_module_text("Rename")), [this] {
+		QListWidgetItem *item = sceneList->currentItem();
+		Qt::ItemFlags flags = item->flags();
+
+		item->setFlags(flags | Qt::ItemIsEditable);
+		sceneList->editItem(item);
+		item->setFlags(flags);
+	});*/
+	auto orderMenu =
+		menu->addMenu(QString::fromUtf8(obs_module_text("Order")));
+	orderMenu->addAction(QString::fromUtf8(obs_module_text("Up")),
+			     [this] { ChangeSceneIndex(true, -1, 0); });
+	orderMenu->addAction(
+		QString::fromUtf8(obs_module_text("Down")),
+		[this] { ChangeSceneIndex(true, 1, sceneList->count() - 1); });
+	orderMenu->addAction(QString::fromUtf8(obs_module_text("Top")),
+			     [this] { ChangeSceneIndex(false, 0, 0); });
+	orderMenu->addAction(
+		QString::fromUtf8(obs_module_text("Bottom")),
+		[this] { ChangeSceneIndex(false, 1, sceneList->count() - 1); });
+
+	menu->addAction(QString::fromUtf8(obs_module_text("Screenshot")),
+			[this] {
+				auto item = sceneList->currentItem();
+				if (!item)
+					return;
+				auto s = obs_get_source_by_name(
+					item->text().toUtf8().constData());
+				if (s) {
+					obs_frontend_take_source_screenshot(s);
+					obs_source_release(s);
+				}
+			});
+	menu->addAction(QString::fromUtf8(obs_module_text("Filters")), [this] {
+		auto item = sceneList->currentItem();
+		if (!item)
+			return;
+		auto s = obs_get_source_by_name(
+			item->text().toUtf8().constData());
+		if (s) {
+			obs_frontend_open_source_filters(s);
+			obs_source_release(s);
+		}
+	});
+
+	auto linkedScenesMenu = menu->addMenu(
+		QString::fromUtf8(obs_module_text("LinkedScenes")));
+	connect(linkedScenesMenu, &QMenu::aboutToShow, [linkedScenesMenu, this] {
+		linkedScenesMenu->clear();
+		struct obs_frontend_source_list scenes = {};
+		obs_frontend_get_scenes(&scenes);
+		for (size_t i = 0; i < scenes.sources.num; i++) {
+			obs_source_t *src = scenes.sources.array[i];
+			obs_data_t *settings = obs_source_get_settings(src);
+			if (!obs_data_get_bool(settings, "custom_size")) {
+				auto name = QString::fromUtf8(
+					obs_source_get_name(src));
+				auto *checkBox =
+					new QCheckBox(name, linkedScenesMenu);
+				connect(checkBox, &QCheckBox::stateChanged,
+					[this, src, checkBox] {
+						canvasDock->SetLinkedScene(
+							src,
+							checkBox->isChecked()
+								? sceneList
+									  ->currentItem()
+									  ->text()
+								: "");
+					});
+				auto *checkableAction =
+					new QWidgetAction(linkedScenesMenu);
+				checkableAction->setDefaultWidget(checkBox);
+				linkedScenesMenu->addAction(checkableAction);
+
+				auto c = obs_data_get_array(settings, "canvas");
+				if (c) {
+					const auto count =
+						obs_data_array_count(c);
+
+					for (size_t i = 0; i < count; i++) {
+						auto item = obs_data_array_item(
+							c, i);
+						if (!item)
+							continue;
+						if (obs_data_get_int(item,
+								     "width") ==
+							    canvasDock
+								    ->canvas_width &&
+						    obs_data_get_int(
+							    item, "height") ==
+							    canvasDock
+								    ->canvas_height) {
+							auto sn = QString::fromUtf8(
+								obs_data_get_string(
+									item,
+									"scene"));
+							if (sn ==
+							    sceneList
+								    ->currentItem()
+								    ->text()) {
+								checkBox->setChecked(
+									true);
+							}
+						}
+						obs_data_release(item);
+					}
+
+					obs_data_array_release(c);
+				}
+			}
+			obs_data_release(settings);
+		}
+		obs_frontend_source_list_free(&scenes);
+	});
+	if (canvasDock->hideScenes) {
+		menu->addAction(
+			QString::fromUtf8(obs_module_text("OnMainCanvas")),
+			[this] {
+				auto item = sceneList->currentItem();
+				if (!item)
+					return;
+				auto s = obs_get_source_by_name(
+					item->text().toUtf8().constData());
+				if (!s)
+					return;
+
+				if (obs_frontend_preview_program_mode_active())
+					obs_frontend_set_current_preview_scene(
+						s);
+				else
+					obs_frontend_set_current_scene(s);
+				obs_source_release(s);
+			});
+	}
+	menu->exec(QCursor::pos());
+}
+
+CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent)
+	: QDockWidget(parent), canvasDock(canvas_dock)
+{
+	const auto scenesName = canvasDock->objectName() + "Scenes";
+	setObjectName(scenesName);
+	const auto scenesTitle = QString::fromUtf8(obs_module_text("Scenes")) +
+				 " " + canvasDock->windowTitle();
+	setWindowTitle(scenesTitle);
+
+	auto mainLayout = new QVBoxLayout(this);
+	mainLayout->setContentsMargins(0, 0, 0, 0);
+	sceneList = new QListWidget();
+	sceneList->setSizePolicy(QSizePolicy::Preferred,
+				 QSizePolicy::Expanding);
+	sceneList->setFrameShape(QFrame::NoFrame);
+	sceneList->setFrameShadow(QFrame::Plain);
+	sceneList->addAction(QString::fromUtf8(obs_module_text("Remove")));
+	sceneList->setSelectionMode(QAbstractItemView::SingleSelection);
+	sceneList->setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(sceneList, &QListWidget::customContextMenuRequested,
+		[this](const QPoint &pos) {
+			ShowScenesContextMenu(sceneList->itemAt(pos));
+		});
+
+	connect(sceneList, &QListWidget::currentItemChanged, [this]() {
+		const auto item = sceneList->currentItem();
+		if (!item)
+			return;
+		canvasDock->SwitchScene(item->text());
+		if (!item->isSelected())
+			item->setSelected(true);
+	});
+	connect(sceneList, &QListWidget::itemSelectionChanged, [this] {
+		const auto item = sceneList->currentItem();
+		if (!item)
+			return;
+		if (!item->isSelected())
+			item->setSelected(true);
+	});
+	mainLayout->addWidget(sceneList, 1);
+
+	auto toolbar = new QToolBar();
+	toolbar->setObjectName(QStringLiteral("scenesToolbar"));
+	toolbar->setIconSize(QSize(16, 16));
+	toolbar->setFloatable(false);
+	auto a = toolbar->addAction(
+		QIcon(QString::fromUtf8(":/res/images/plus.svg")),
+		QString::fromUtf8(obs_module_text("Add")),
+		[this] { canvasDock->AddScene(); });
+	toolbar->widgetForAction(a)->setProperty(
+		"themeID", QVariant(QString::fromUtf8("addIconSmall")));
+
+	a = toolbar->addAction(QIcon(":/res/images/minus.svg"),
+			       QString::fromUtf8(obs_module_text("Remove")),
+			       [this] {
+				       auto item = sceneList->currentItem();
+				       if (!item)
+					       return;
+				       canvasDock->RemoveScene(item->text());
+			       });
+	toolbar->widgetForAction(a)->setProperty(
+		"themeID", QVariant(QString::fromUtf8("removeIconSmall")));
+	toolbar->addSeparator();
+	a = toolbar->addAction(
+		QIcon(":/res/images/filter.svg"),
+		QString::fromUtf8(obs_module_text("Filters")), [this] {
+			auto item = sceneList->currentItem();
+			if (!item)
+				return;
+			auto s = obs_get_source_by_name(
+				item->text().toUtf8().constData());
+			if (!s)
+				return;
+			obs_frontend_open_source_filters(s);
+			obs_source_release(s);
+		});
+	toolbar->widgetForAction(a)->setProperty(
+		"themeID", QVariant(QString::fromUtf8("filtersIcon")));
+	toolbar->addSeparator();
+	a = toolbar->addAction(QIcon(":/res/images/up.svg"),
+			       QString::fromUtf8(obs_module_text("Up")),
+			       [this] { ChangeSceneIndex(true, -1, 0); });
+	toolbar->widgetForAction(a)->setProperty(
+		"themeID", QVariant(QString::fromUtf8("upArrowIconSmall")));
+	a = toolbar->addAction(
+		QIcon(":/res/images/down.svg"),
+		QString::fromUtf8(obs_module_text("Down")),
+		[this] { ChangeSceneIndex(true, 1, sceneList->count() - 1); });
+	toolbar->widgetForAction(a)->setProperty(
+		"themeID", QVariant(QString::fromUtf8("downArrowIconSmall")));
+	mainLayout->addWidget(toolbar, 0);
+
+	auto *dockWidgetContents = new QWidget;
+	dockWidgetContents->setObjectName(QStringLiteral("contextContainer"));
+	dockWidgetContents->setContentsMargins(0, 0, 0, 0);
+	dockWidgetContents->setLayout(mainLayout);
+
+	setWidget(dockWidgetContents);
+	hide();
+}
+
+void CanvasScenesDock::ChangeSceneIndex(bool relative, int offset,
+					int invalidIdx)
+{
+	int idx = sceneList->currentRow();
+	if (idx < 0)
+		return;
+
+	auto canvasItem = sceneList->item(idx);
+	if (!canvasItem)
+		return;
+	auto sl = canvasDock->GetGlobalScenesList();
+	int row = -1;
+	bool hidden = false;
+	bool selected = false;
+	for (int i = 0; i < sl->count(); i++) {
+		auto item = sl->item(i);
+		if (item->text() == canvasItem->text()) {
+			row = i;
+			hidden = item->isHidden();
+			selected = item->isSelected();
+			break;
+		}
+	}
+	if (row < 0 || row >= sl->count())
+		return;
+
+	sl->blockSignals(true);
+	QListWidgetItem *item = sl->takeItem(row);
+	if (relative) {
+		sl->insertItem(row + offset, item);
+	} else if (offset == 0) {
+		sl->insertItem(offset, item);
+	} else {
+		sl->insertItem(sl->count(), item);
+	}
+	item->setHidden(hidden);
+	item->setSelected(selected);
+	sl->blockSignals(false);
+
+	if (idx == invalidIdx)
+		return;
+
+	sceneList->blockSignals(true);
+	item = sceneList->takeItem(idx);
+	if (relative) {
+		sceneList->insertItem(idx + offset, item);
+		sceneList->setCurrentRow(idx + offset);
+	} else if (offset == 0) {
+		sceneList->insertItem(offset, item);
+	} else {
+		sceneList->insertItem(sceneList->count(), item);
+	}
+	item->setSelected(true);
+	sceneList->blockSignals(false);
+}
+
+CanvasScenesDock::~CanvasScenesDock() {}

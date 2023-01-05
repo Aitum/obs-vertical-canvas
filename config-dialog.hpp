@@ -13,6 +13,7 @@ class CanvasConfigDialog : public QDialog {
 	QCheckBox *replayBuffer;
 	QComboBox *server;
 	QLineEdit *key;
+	QCheckBox * hideScenes;
 
 	friend class CanvasDock;
 

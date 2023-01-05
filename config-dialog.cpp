@@ -20,6 +20,10 @@ CanvasConfigDialog::CanvasConfigDialog(QMainWindow *parent) : QDialog(parent)
 	mainLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
         mainLayout->setLabelAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
 
+	hideScenes = new QCheckBox(
+		QString::fromUtf8(obs_module_text("HideScenes")));
+	mainLayout->addWidget(hideScenes);
+
 	resolution = new QComboBox;
 	resolution->setEditable(true);
 	resolution->addItem("720x1280");
