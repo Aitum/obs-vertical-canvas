@@ -34,6 +34,15 @@ enum class ItemHandle : uint32_t {
 	Rot = ITEM_ROT
 };
 
+enum replayMode {
+	REPLAY_MODE_NONE = 0,
+	REPLAY_MODE_START = 1,
+	REPLAY_MODE_RECORDING = 2,
+	REPLAY_MODE_STREAMING = 3,
+	REPLAY_MODE_VIRTUAL_CAMERA = 4,
+	REPLAY_MODE_ANY = 5,
+};
+
 typedef std::function<bool(QObject *, QEvent *)> EventFilterFunc;
 
 class OBSEventFilter : public QObject {
@@ -51,22 +60,6 @@ public:
 	EventFilterFunc filter;
 };
 
-class CanvasScenesDock : public QDockWidget {
-	Q_OBJECT
-	friend class CanvasDock;
-private:
-	QListWidget* sceneList;
-	CanvasDock *canvasDock;
-
-	void ChangeSceneIndex(bool relative, int offset, int invalidIdx);
-	void ShowScenesContextMenu(QListWidgetItem *item);
-	void SetGridMode(bool checked);
-	bool IsGridMode();
-public:
-	
-	CanvasScenesDock(CanvasDock* canvas_dock, QWidget *parent = nullptr);
-	~CanvasScenesDock();
-};
 
 class CanvasDock : public QDockWidget {
 	Q_OBJECT
@@ -163,7 +156,7 @@ private:
 	OBSSourceAutoRelease spacerLabel[4];
 	int spacerPx[4] = {0};
 
-	bool startReplayBuffer = false;
+	enum replayMode replay_mode = REPLAY_MODE_NONE;
 
 	inline bool IsFixedScaling() const { return fixedScaling; }
 

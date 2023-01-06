@@ -10,7 +10,7 @@ class CanvasConfigDialog : public QDialog {
 	Q_OBJECT
 
 	QComboBox *resolution;
-	QCheckBox *replayBuffer;
+	QComboBox *replayBuffer;
 	QComboBox *server;
 	QLineEdit *key;
 	QCheckBox * hideScenes;

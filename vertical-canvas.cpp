@@ -19,6 +19,7 @@
 #include <QToolBar>
 #include <QWidgetAction>
 
+#include "canvas-scenes-dock.hpp"
 #include "config-dialog.hpp"
 #include "display-helpers.hpp"
 #include "name-dialog.hpp"
@@ -434,23 +435,15 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	auto buttonRow = new QHBoxLayout(this);
 
-	virtualCamButton = new QPushButton;
-	virtualCamButton->setObjectName(QStringLiteral("canvasVirtualCam"));
-	virtualCamButton->setText(
-		QString::fromUtf8(obs_module_text("VirtualCam")));
-	virtualCamButton->setCheckable(true);
-	virtualCamButton->setChecked(false);
-	connect(virtualCamButton, SIGNAL(clicked()), this,
-		SLOT(VirtualCamButtonClicked()));
-	buttonRow->addWidget(virtualCamButton);
-
-	replayButton = new QPushButton;
-	replayButton->setObjectName(QStringLiteral("canvasReplay"));
-	replayButton->setText(QString::fromUtf8(obs_module_text("Replay")));
-	replayButton->setVisible(false);
-	connect(replayButton, SIGNAL(clicked()), this,
-		SLOT(ReplayButtonClicked()));
-	buttonRow->addWidget(replayButton);
+	streamButton = new QPushButton;
+	streamButton->setObjectName(QStringLiteral("canvasStream"));
+	streamButton->setIcon(streamInactiveIcon);
+	streamButton->setText(QString::fromUtf8(obs_module_text("Stream")));
+	streamButton->setCheckable(true);
+	streamButton->setChecked(false);
+	connect(streamButton, SIGNAL(clicked()), this,
+		SLOT(StreamButtonClicked()));
+	buttonRow->addWidget(streamButton);
 
 	recordButton = new QPushButton;
 	recordButton->setObjectName(QStringLiteral("canvasRecord"));
@@ -462,21 +455,32 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		SLOT(RecordButtonClicked()));
 	buttonRow->addWidget(recordButton);
 
-	streamButton = new QPushButton;
-	streamButton->setObjectName(QStringLiteral("canvasStream"));
-	streamButton->setIcon(streamInactiveIcon);
-	streamButton->setText(QString::fromUtf8(obs_module_text("Stream")));
-	streamButton->setCheckable(true);
-	streamButton->setChecked(false);
-	connect(streamButton, SIGNAL(clicked()), this,
-		SLOT(StreamButtonClicked()));
-	buttonRow->addWidget(streamButton);
+	replayButton = new QPushButton;
+	replayButton->setObjectName(QStringLiteral("canvasReplay"));
+	replayButton->setText(QString::fromUtf8(obs_module_text("Replay")));
+	replayButton->setVisible(false);
+	replayButton->setProperty("themeID", QStringLiteral("replayIconSmall"));
+	connect(replayButton, SIGNAL(clicked()), this,
+		SLOT(ReplayButtonClicked()));
+	buttonRow->addWidget(replayButton);
+
+	virtualCamButton = new QPushButton;
+	virtualCamButton->setObjectName(QStringLiteral("canvasVirtualCam"));
+	virtualCamButton->setText(
+		QString::fromUtf8(obs_module_text("VirtualCam")));
+	virtualCamButton->setCheckable(true);
+	virtualCamButton->setChecked(false);
+	connect(virtualCamButton, SIGNAL(clicked()), this,
+		SLOT(VirtualCamButtonClicked()));
+	buttonRow->addWidget(virtualCamButton);
 
 	auto *configButton = new QPushButton(this);
 	configButton->setProperty("themeID", "configIconSmall");
 	configButton->setFlat(true);
-	configButton->setMaximumWidth(30);
 	configButton->setAutoDefault(false);
+	QSizePolicy sp2;
+	sp2.setHeightForWidth(true);
+	configButton->setSizePolicy(sp2);
 	connect(configButton, SIGNAL(clicked()), this,
 		SLOT(ConfigButtonClicked()));
 	buttonRow->addWidget(configButton);
@@ -495,7 +499,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	obs_leave_graphics();
 
 	LoadScenes();
-	SwitchScene(QString::fromUtf8(obs_data_get_string(settings, "current_scene")));
+	SwitchScene(QString::fromUtf8(
+		obs_data_get_string(settings, "current_scene")));
 
 	auto sh = obs_get_signal_handler();
 	signal_handler_connect(sh, "source_rename", source_rename, this);
@@ -504,7 +509,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	//signal_handler_connect(sh, "source_load", source_load, this);
 	signal_handler_connect(sh, "source_save", source_save, this);
 
-	startReplayBuffer = obs_data_get_bool(settings, "replay_buffer");
+	replay_mode = (enum replayMode)obs_data_get_int(settings,
+							"replay_buffer_mode");
 
 	virtual_cam_hotkey = obs_hotkey_pair_register_frontend(
 		(name + "StartVirtualCam").toUtf8().constData(),
@@ -3630,6 +3636,9 @@ void CanvasDock::virtual_cam_output_start(void *data, calldata_t *calldata)
 {
 	UNUSED_PARAMETER(calldata);
 	auto d = static_cast<CanvasDock *>(data);
+	if (d->replay_mode == REPLAY_MODE_VIRTUAL_CAMERA ||
+	    d->replay_mode == REPLAY_MODE_ANY)
+		d->StartReplayBuffer();
 	QMetaObject::invokeMethod(d, "OnVirtualCamStart");
 }
 
@@ -3644,6 +3653,11 @@ void CanvasDock::virtual_cam_output_stop(void *data, calldata_t *calldata)
 	signal_handler_disconnect(signal, "stop", virtual_cam_output_stop, d);
 	obs_output_release(d->virtualCamOutput);
 	d->virtualCamOutput = nullptr;
+	if (d->replay_mode == REPLAY_MODE_VIRTUAL_CAMERA ||
+	    (d->replay_mode == REPLAY_MODE_ANY &&
+	     !obs_output_active(d->streamOutput) &&
+	     !obs_output_active(d->recordOutput)))
+		d->StopReplayBuffer();
 	d->DestroyVideo();
 }
 
@@ -3668,6 +3682,9 @@ void CanvasDock::VirtualCamButtonClicked()
 
 void CanvasDock::StartVirtualCam()
 {
+	if (replay_mode == REPLAY_MODE_VIRTUAL_CAMERA ||
+	    replay_mode == REPLAY_MODE_ANY)
+		StartReplayBuffer();
 	const auto output = obs_frontend_get_virtualcam_output();
 	if (obs_output_active(output)) {
 		if (!virtualCamOutput)
@@ -3720,7 +3737,7 @@ void CanvasDock::ConfigButtonClicked()
 		!obs_output_active(recordOutput) &&
 		!obs_output_active(streamOutput) &&
 		!obs_output_active(virtualCamOutput));
-	configDialog->replayBuffer->setChecked(obs_output_active(replayOutput));
+	configDialog->replayBuffer->setCurrentIndex(replay_mode);
 	configDialog->key->setEchoMode(QLineEdit::Password);
 	configDialog->key->setText(stream_key);
 	configDialog->server->setCurrentText(stream_server);
@@ -3786,12 +3803,51 @@ void CanvasDock::ConfigButtonClicked()
 
 			LoadScenes();
 		}
-		if (configDialog->replayBuffer->isChecked()) {
-			if (!obs_output_active(replayOutput))
-				StartReplayBuffer();
-		} else {
+		replay_mode =
+			(enum replayMode)
+				configDialog->replayBuffer->currentIndex();
+		if (replay_mode == REPLAY_MODE_NONE) {
 			if (obs_output_active(replayOutput))
 				StopReplayBuffer();
+		} else if (replay_mode == REPLAY_MODE_START) {
+			if (!obs_output_active(replayOutput))
+				StartReplayBuffer();
+		} else if (replay_mode == REPLAY_MODE_RECORDING) {
+			if (obs_output_active(replayOutput) &&
+			    !obs_output_active(recordOutput)) {
+				StopReplayBuffer();
+			} else if (!obs_output_active(replayOutput) &&
+				   obs_output_active(recordOutput)) {
+				StartReplayBuffer();
+			}
+		} else if (replay_mode == REPLAY_MODE_STREAMING) {
+			if (obs_output_active(replayOutput) &&
+			    !obs_output_active(streamOutput)) {
+				StopReplayBuffer();
+			} else if (!obs_output_active(replayOutput) &&
+				   obs_output_active(streamOutput)) {
+				StartReplayBuffer();
+			}
+		} else if (replay_mode == REPLAY_MODE_VIRTUAL_CAMERA) {
+			if (obs_output_active(replayOutput) &&
+			    !obs_output_active(virtualCamOutput)) {
+				StopReplayBuffer();
+			} else if (!obs_output_active(replayOutput) &&
+				   obs_output_active(virtualCamOutput)) {
+				StartReplayBuffer();
+			}
+		} else if (replay_mode == REPLAY_MODE_ANY) {
+			if (obs_output_active(replayOutput) &&
+			    !obs_output_active(virtualCamOutput) &&
+			    !obs_output_active(streamOutput) &&
+			    !obs_output_active(recordOutput)) {
+				StopReplayBuffer();
+			} else if (!obs_output_active(replayOutput) &&
+				   (obs_output_active(virtualCamOutput) ||
+				    obs_output_active(streamOutput) ||
+				    obs_output_active(recordOutput))) {
+				StartReplayBuffer();
+			}
 		}
 		const auto sk = configDialog->key->text();
 		const auto ss = configDialog->server->currentText();
@@ -3888,6 +3944,9 @@ void CanvasDock::RecordButtonClicked()
 
 void CanvasDock::StartRecord()
 {
+	if (replay_mode == REPLAY_MODE_RECORDING ||
+	    replay_mode == REPLAY_MODE_ANY)
+		StartReplayBuffer();
 	if (obs_output_active(recordOutput))
 		return;
 
@@ -4043,6 +4102,9 @@ void CanvasDock::record_output_start(void *data, calldata_t *calldata)
 {
 	UNUSED_PARAMETER(calldata);
 	auto d = static_cast<CanvasDock *>(data);
+	if (d->replay_mode == REPLAY_MODE_RECORDING ||
+	    d->replay_mode == REPLAY_MODE_ANY)
+		d->StartReplayBuffer();
 	QMetaObject::invokeMethod(d, "OnRecordStart");
 }
 
@@ -4055,14 +4117,23 @@ void CanvasDock::record_output_stop(void *data, calldata_t *calldata)
 	auto d = static_cast<CanvasDock *>(data);
 	QMetaObject::invokeMethod(d, "OnRecordStop", Q_ARG(int, code),
 				  Q_ARG(QString, arg_last_error));
+	if (d->replay_mode == REPLAY_MODE_RECORDING ||
+	    (d->replay_mode == REPLAY_MODE_ANY &&
+	     !obs_output_active(d->streamOutput) &&
+	     !obs_output_active(d->virtualCamOutput)))
+		d->StopReplayBuffer();
 	d->DestroyVideo();
 }
 
 void CanvasDock::record_output_stopping(void *data, calldata_t *calldata)
 {
 	UNUSED_PARAMETER(calldata);
-	UNUSED_PARAMETER(data);
-	//auto d = static_cast<CanvasDock *>(data);
+	auto d = static_cast<CanvasDock *>(data);
+	if (d->replay_mode == REPLAY_MODE_RECORDING ||
+	    (d->replay_mode == REPLAY_MODE_ANY &&
+	     !obs_output_active(d->streamOutput) &&
+	     !obs_output_active(d->virtualCamOutput)))
+		d->StopReplayBuffer();
 }
 
 void CanvasDock::StartReplayBuffer()
@@ -4078,6 +4149,10 @@ void CanvasDock::StartReplayBuffer()
 		obs_frontend_replay_buffer_start();
 		obs_frontend_replay_buffer_stop();
 		enc = obs_output_get_video_encoder(replay_output);
+	}
+	if (!enc) {
+		obs_output_release(replay_output);
+		return;
 	}
 
 	if (!replayOutput) {
@@ -4151,13 +4226,13 @@ void CanvasDock::StartReplayBuffer()
 		obs_view_set_source(view, 0, nullptr);
 		video = nullptr;
 	} else if (success) {
-		replayButton->setVisible(true);
+		QMetaObject::invokeMethod(this, "OnReplayBufferStart");
 	}
 }
 
 void CanvasDock::StopReplayBuffer()
 {
-	replayButton->setVisible(false);
+	QMetaObject::invokeMethod(this, "OnReplayBufferStop");
 	if (obs_output_active(replayOutput))
 		obs_output_stop(replayOutput);
 }
@@ -4245,6 +4320,9 @@ const char *get_simple_output_encoder(const char *encoder)
 
 void CanvasDock::StartStream()
 {
+	if (replay_mode == REPLAY_MODE_STREAMING ||
+	    replay_mode == REPLAY_MODE_ANY)
+		StartReplayBuffer();
 	if (obs_output_active(streamOutput))
 		return;
 
@@ -4434,12 +4512,17 @@ void CanvasDock::StopStream()
 	streamButton->setChecked(false);
 	if (obs_output_active(streamOutput))
 		obs_output_stop(streamOutput);
+	if (replay_mode == REPLAY_MODE_STREAMING)
+		StopReplayBuffer();
 }
 
 void CanvasDock::stream_output_start(void *data, calldata_t *calldata)
 {
 	UNUSED_PARAMETER(calldata);
 	auto d = static_cast<CanvasDock *>(data);
+	if (d->replay_mode == REPLAY_MODE_STREAMING ||
+	    d->replay_mode == REPLAY_MODE_ANY)
+		d->StartReplayBuffer();
 	QMetaObject::invokeMethod(d, "OnStreamStart");
 }
 
@@ -4450,6 +4533,11 @@ void CanvasDock::stream_output_stop(void *data, calldata_t *calldata)
 	QString arg_last_error = QString::fromUtf8(last_error);
 	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
+	if (d->replay_mode == REPLAY_MODE_STREAMING ||
+	    (d->replay_mode == REPLAY_MODE_ANY &&
+	     !obs_output_active(d->virtualCamOutput) &&
+	     !obs_output_active(d->recordOutput)))
+		d->StopReplayBuffer();
 	d->DestroyVideo();
 	QMetaObject::invokeMethod(d, "OnStreamStop", Q_ARG(int, code),
 				  Q_ARG(QString, arg_last_error));
@@ -4457,10 +4545,14 @@ void CanvasDock::stream_output_stop(void *data, calldata_t *calldata)
 
 void CanvasDock::DestroyVideo()
 {
-	if (video && !obs_output_active(virtualCamOutput) &&
-	    !obs_output_active(recordOutput) &&
-	    !obs_output_active(replayOutput) &&
-	    !obs_output_active(streamOutput)) {
+	if (!video)
+		return;
+	if (obs_output_active(virtualCamOutput) ||
+	    obs_output_active(recordOutput) || obs_output_active(streamOutput))
+		return;
+	if (replay_mode == REPLAY_MODE_ANY && obs_output_active(replayOutput)) {
+		StopReplayBuffer();
+	} else if (!obs_output_active(replayOutput)) {
 		obs_view_remove(view);
 		obs_view_set_source(view, 0, nullptr);
 		video = nullptr;
@@ -4479,8 +4571,7 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_int(data, "height", canvas_height);
 	if (scenesDock)
 		obs_data_set_bool(data, "grid_mode", scenesDock->IsGridMode());
-	obs_data_set_bool(data, "replay_buffer",
-			  obs_output_active(replayOutput));
+	obs_data_set_int(data, "replay_buffer_mode", replay_mode);
 	obs_data_set_string(data, "stream_server",
 			    stream_server.toUtf8().constData());
 	obs_data_set_string(data, "stream_key",
@@ -4525,10 +4616,10 @@ void CanvasDock::LoadScenes()
 	auto sl = GetGlobalScenesList();
 	if (scenesCombo)
 		scenesCombo->clear();
-	
+
 	if (scenesDock)
 		scenesDock->sceneList->clear();
-	
+
 	struct obs_frontend_source_list scenes = {};
 	obs_frontend_get_scenes(&scenes);
 	for (size_t i = 0; i < scenes.sources.num; i++) {
@@ -4574,7 +4665,8 @@ void CanvasDock::LoadScenes()
 		obs_data_release(settings);
 	}
 	obs_frontend_source_list_free(&scenes);
-	if (scenesDock && scenesDock->sceneList->currentRow() < 0 && scenesDock->sceneList->count())
+	if (scenesDock && scenesDock->sceneList->currentRow() < 0 &&
+	    scenesDock->sceneList->count())
 		scenesDock->sceneList->setCurrentRow(0);
 }
 
@@ -4703,7 +4795,7 @@ void CanvasDock::source_save(void *data, calldata_t *calldata)
 
 void CanvasDock::FinishLoading()
 {
-	if (startReplayBuffer)
+	if (replay_mode == REPLAY_MODE_START)
 		StartReplayBuffer();
 }
 
@@ -5018,346 +5110,3 @@ QIcon CanvasDock::GetGroupIcon() const
 LockedCheckBox::LockedCheckBox() {}
 
 LockedCheckBox::LockedCheckBox(QWidget *parent) : QCheckBox(parent) {}
-
-void CanvasScenesDock::SetGridMode(bool checked)
-{
-	if (checked) {
-		sceneList->setResizeMode(QListView::Adjust);
-		sceneList->setViewMode(QListView::IconMode);
-		sceneList->setUniformItemSizes(true);
-		sceneList->setStyleSheet("*{padding: 0; margin: 0;}");
-	} else {
-		sceneList->setViewMode(QListView::ListMode);
-		sceneList->setResizeMode(QListView::Fixed);
-		sceneList->setStyleSheet("");
-	}
-}
-
-bool CanvasScenesDock::IsGridMode()
-{
-	return sceneList->viewMode() == QListView::IconMode;
-}
-
-void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
-{
-	auto menu = new QMenu(this);
-	auto a =
-		menu->addAction(QString::fromUtf8(obs_module_text("GridMode")),
-				[this](bool checked) { SetGridMode(checked); });
-	a->setCheckable(true);
-	a->setChecked(IsGridMode());
-	menu->addAction(QString::fromUtf8(obs_module_text("Add")),
-			[this] { canvasDock->AddScene(); });
-	if (!item) {
-		menu->exec(QCursor::pos());
-		return;
-	}
-	menu->addSeparator();
-	menu->addAction(QString::fromUtf8(obs_module_text("Duplicate")),
-			[this] {
-				auto item = sceneList->currentItem();
-				if (!item)
-					return;
-				canvasDock->AddScene(item->text());
-			});
-	menu->addAction(QString::fromUtf8(obs_module_text("Remove")), [this] {
-		auto item = sceneList->currentItem();
-		if (!item)
-			return;
-		canvasDock->RemoveScene(item->text());
-	});
-	/*menu->addAction(QString::fromUtf8(obs_module_text("Rename")), [this] {
-		QListWidgetItem *item = sceneList->currentItem();
-		Qt::ItemFlags flags = item->flags();
-
-		item->setFlags(flags | Qt::ItemIsEditable);
-		sceneList->editItem(item);
-		item->setFlags(flags);
-	});*/
-	auto orderMenu =
-		menu->addMenu(QString::fromUtf8(obs_module_text("Order")));
-	orderMenu->addAction(QString::fromUtf8(obs_module_text("Up")),
-			     [this] { ChangeSceneIndex(true, -1, 0); });
-	orderMenu->addAction(
-		QString::fromUtf8(obs_module_text("Down")),
-		[this] { ChangeSceneIndex(true, 1, sceneList->count() - 1); });
-	orderMenu->addAction(QString::fromUtf8(obs_module_text("Top")),
-			     [this] { ChangeSceneIndex(false, 0, 0); });
-	orderMenu->addAction(
-		QString::fromUtf8(obs_module_text("Bottom")),
-		[this] { ChangeSceneIndex(false, 1, sceneList->count() - 1); });
-
-	menu->addAction(QString::fromUtf8(obs_module_text("Screenshot")),
-			[this] {
-				auto item = sceneList->currentItem();
-				if (!item)
-					return;
-				auto s = obs_get_source_by_name(
-					item->text().toUtf8().constData());
-				if (s) {
-					obs_frontend_take_source_screenshot(s);
-					obs_source_release(s);
-				}
-			});
-	menu->addAction(QString::fromUtf8(obs_module_text("Filters")), [this] {
-		auto item = sceneList->currentItem();
-		if (!item)
-			return;
-		auto s = obs_get_source_by_name(
-			item->text().toUtf8().constData());
-		if (s) {
-			obs_frontend_open_source_filters(s);
-			obs_source_release(s);
-		}
-	});
-
-	auto linkedScenesMenu = menu->addMenu(
-		QString::fromUtf8(obs_module_text("LinkedScenes")));
-	connect(linkedScenesMenu, &QMenu::aboutToShow, [linkedScenesMenu, this] {
-		linkedScenesMenu->clear();
-		struct obs_frontend_source_list scenes = {};
-		obs_frontend_get_scenes(&scenes);
-		for (size_t i = 0; i < scenes.sources.num; i++) {
-			obs_source_t *src = scenes.sources.array[i];
-			obs_data_t *settings = obs_source_get_settings(src);
-			if (!obs_data_get_bool(settings, "custom_size")) {
-				auto name = QString::fromUtf8(
-					obs_source_get_name(src));
-				auto *checkBox =
-					new QCheckBox(name, linkedScenesMenu);
-				connect(checkBox, &QCheckBox::stateChanged,
-					[this, src, checkBox] {
-						canvasDock->SetLinkedScene(
-							src,
-							checkBox->isChecked()
-								? sceneList
-									  ->currentItem()
-									  ->text()
-								: "");
-					});
-				auto *checkableAction =
-					new QWidgetAction(linkedScenesMenu);
-				checkableAction->setDefaultWidget(checkBox);
-				linkedScenesMenu->addAction(checkableAction);
-
-				auto c = obs_data_get_array(settings, "canvas");
-				if (c) {
-					const auto count =
-						obs_data_array_count(c);
-
-					for (size_t i = 0; i < count; i++) {
-						auto item = obs_data_array_item(
-							c, i);
-						if (!item)
-							continue;
-						if (obs_data_get_int(item,
-								     "width") ==
-							    canvasDock
-								    ->canvas_width &&
-						    obs_data_get_int(
-							    item, "height") ==
-							    canvasDock
-								    ->canvas_height) {
-							auto sn = QString::fromUtf8(
-								obs_data_get_string(
-									item,
-									"scene"));
-							if (sn ==
-							    sceneList
-								    ->currentItem()
-								    ->text()) {
-								checkBox->setChecked(
-									true);
-							}
-						}
-						obs_data_release(item);
-					}
-
-					obs_data_array_release(c);
-				}
-			}
-			obs_data_release(settings);
-		}
-		obs_frontend_source_list_free(&scenes);
-	});
-	if (canvasDock->hideScenes) {
-		menu->addAction(
-			QString::fromUtf8(obs_module_text("OnMainCanvas")),
-			[this] {
-				auto item = sceneList->currentItem();
-				if (!item)
-					return;
-				auto s = obs_get_source_by_name(
-					item->text().toUtf8().constData());
-				if (!s)
-					return;
-
-				if (obs_frontend_preview_program_mode_active())
-					obs_frontend_set_current_preview_scene(
-						s);
-				else
-					obs_frontend_set_current_scene(s);
-				obs_source_release(s);
-			});
-	}
-	menu->exec(QCursor::pos());
-}
-
-CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent)
-	: QDockWidget(parent), canvasDock(canvas_dock)
-{
-	const auto scenesName = canvasDock->objectName() + "Scenes";
-	setObjectName(scenesName);
-	const auto scenesTitle = QString::fromUtf8(obs_module_text("Scenes")) +
-				 " " + canvasDock->windowTitle();
-	setWindowTitle(scenesTitle);
-
-	auto mainLayout = new QVBoxLayout(this);
-	mainLayout->setContentsMargins(0, 0, 0, 0);
-	sceneList = new QListWidget();
-	sceneList->setSizePolicy(QSizePolicy::Preferred,
-				 QSizePolicy::Expanding);
-	sceneList->setFrameShape(QFrame::NoFrame);
-	sceneList->setFrameShadow(QFrame::Plain);
-	sceneList->addAction(QString::fromUtf8(obs_module_text("Remove")));
-	sceneList->setSelectionMode(QAbstractItemView::SingleSelection);
-	sceneList->setContextMenuPolicy(Qt::CustomContextMenu);
-	connect(sceneList, &QListWidget::customContextMenuRequested,
-		[this](const QPoint &pos) {
-			ShowScenesContextMenu(sceneList->itemAt(pos));
-		});
-
-	connect(sceneList, &QListWidget::currentItemChanged, [this]() {
-		const auto item = sceneList->currentItem();
-		if (!item)
-			return;
-		canvasDock->SwitchScene(item->text());
-		if (!item->isSelected())
-			item->setSelected(true);
-	});
-	connect(sceneList, &QListWidget::itemSelectionChanged, [this] {
-		const auto item = sceneList->currentItem();
-		if (!item)
-			return;
-		if (!item->isSelected())
-			item->setSelected(true);
-	});
-	mainLayout->addWidget(sceneList, 1);
-
-	auto toolbar = new QToolBar();
-	toolbar->setObjectName(QStringLiteral("scenesToolbar"));
-	toolbar->setIconSize(QSize(16, 16));
-	toolbar->setFloatable(false);
-	auto a = toolbar->addAction(
-		QIcon(QString::fromUtf8(":/res/images/plus.svg")),
-		QString::fromUtf8(obs_module_text("Add")),
-		[this] { canvasDock->AddScene(); });
-	toolbar->widgetForAction(a)->setProperty(
-		"themeID", QVariant(QString::fromUtf8("addIconSmall")));
-
-	a = toolbar->addAction(QIcon(":/res/images/minus.svg"),
-			       QString::fromUtf8(obs_module_text("Remove")),
-			       [this] {
-				       auto item = sceneList->currentItem();
-				       if (!item)
-					       return;
-				       canvasDock->RemoveScene(item->text());
-			       });
-	toolbar->widgetForAction(a)->setProperty(
-		"themeID", QVariant(QString::fromUtf8("removeIconSmall")));
-	toolbar->addSeparator();
-	a = toolbar->addAction(
-		QIcon(":/res/images/filter.svg"),
-		QString::fromUtf8(obs_module_text("Filters")), [this] {
-			auto item = sceneList->currentItem();
-			if (!item)
-				return;
-			auto s = obs_get_source_by_name(
-				item->text().toUtf8().constData());
-			if (!s)
-				return;
-			obs_frontend_open_source_filters(s);
-			obs_source_release(s);
-		});
-	toolbar->widgetForAction(a)->setProperty(
-		"themeID", QVariant(QString::fromUtf8("filtersIcon")));
-	toolbar->addSeparator();
-	a = toolbar->addAction(QIcon(":/res/images/up.svg"),
-			       QString::fromUtf8(obs_module_text("Up")),
-			       [this] { ChangeSceneIndex(true, -1, 0); });
-	toolbar->widgetForAction(a)->setProperty(
-		"themeID", QVariant(QString::fromUtf8("upArrowIconSmall")));
-	a = toolbar->addAction(
-		QIcon(":/res/images/down.svg"),
-		QString::fromUtf8(obs_module_text("Down")),
-		[this] { ChangeSceneIndex(true, 1, sceneList->count() - 1); });
-	toolbar->widgetForAction(a)->setProperty(
-		"themeID", QVariant(QString::fromUtf8("downArrowIconSmall")));
-	mainLayout->addWidget(toolbar, 0);
-
-	auto *dockWidgetContents = new QWidget;
-	dockWidgetContents->setObjectName(QStringLiteral("contextContainer"));
-	dockWidgetContents->setContentsMargins(0, 0, 0, 0);
-	dockWidgetContents->setLayout(mainLayout);
-
-	setWidget(dockWidgetContents);
-	hide();
-}
-
-void CanvasScenesDock::ChangeSceneIndex(bool relative, int offset,
-					int invalidIdx)
-{
-	int idx = sceneList->currentRow();
-	if (idx < 0)
-		return;
-
-	auto canvasItem = sceneList->item(idx);
-	if (!canvasItem)
-		return;
-	auto sl = canvasDock->GetGlobalScenesList();
-	int row = -1;
-	bool hidden = false;
-	bool selected = false;
-	for (int i = 0; i < sl->count(); i++) {
-		auto item = sl->item(i);
-		if (item->text() == canvasItem->text()) {
-			row = i;
-			hidden = item->isHidden();
-			selected = item->isSelected();
-			break;
-		}
-	}
-	if (row < 0 || row >= sl->count())
-		return;
-
-	sl->blockSignals(true);
-	QListWidgetItem *item = sl->takeItem(row);
-	if (relative) {
-		sl->insertItem(row + offset, item);
-	} else if (offset == 0) {
-		sl->insertItem(offset, item);
-	} else {
-		sl->insertItem(sl->count(), item);
-	}
-	item->setHidden(hidden);
-	item->setSelected(selected);
-	sl->blockSignals(false);
-
-	if (idx == invalidIdx)
-		return;
-
-	sceneList->blockSignals(true);
-	item = sceneList->takeItem(idx);
-	if (relative) {
-		sceneList->insertItem(idx + offset, item);
-		sceneList->setCurrentRow(idx + offset);
-	} else if (offset == 0) {
-		sceneList->insertItem(offset, item);
-	} else {
-		sceneList->insertItem(sceneList->count(), item);
-	}
-	item->setSelected(true);
-	sceneList->blockSignals(false);
-}
-
-CanvasScenesDock::~CanvasScenesDock() {}

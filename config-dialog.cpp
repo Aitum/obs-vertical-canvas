@@ -30,9 +30,14 @@ CanvasConfigDialog::CanvasConfigDialog(QMainWindow *parent) : QDialog(parent)
 	resolution->addItem("1080x1920");
 	mainLayout->addRow(QString::fromUtf8(obs_module_text("Resolution")),resolution);
 
-	replayBuffer = new QCheckBox(
-		QString::fromUtf8(obs_module_text("ReplayBuffer")));
-	mainLayout->addWidget(replayBuffer);
+	replayBuffer = new QComboBox;
+	replayBuffer->addItem(QString::fromUtf8(obs_module_text("ReplayBufferNone")));
+	replayBuffer->addItem(QString::fromUtf8(obs_module_text("ReplayBufferStart")));
+	replayBuffer->addItem(QString::fromUtf8(obs_module_text("ReplayBufferRecording")));
+	replayBuffer->addItem(QString::fromUtf8(obs_module_text("ReplayBufferStreaming")));
+	replayBuffer->addItem(QString::fromUtf8(obs_module_text("ReplayBufferVirtualCamera")));
+	replayBuffer->addItem(QString::fromUtf8(obs_module_text("ReplayBufferAny")));
+	mainLayout->addRow(QString::fromUtf8(obs_module_text("ReplayBuffer")), replayBuffer);
 
 	server = new QComboBox;
 	server->setEditable(true);
