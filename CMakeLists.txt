@@ -19,12 +19,12 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_SOURCE_D
 
 target_sources(${PROJECT_NAME} PRIVATE
 	vertical-canvas.cpp
-	canvas-scenes-dock.cpp
+	scenes-dock.cpp
 	qt-display.cpp
 	config-dialog.cpp
 	name-dialog.cpp
 	vertical-canvas.hpp
-	canvas-scenes-dock.hpp
+	scenes-dock.hpp
 	qt-display.hpp
 	display-helpers.hpp
 	config-dialog.hpp

@@ -1,6 +1,6 @@
 
 
-#include "canvas-scenes-dock.hpp"
+#include "scenes-dock.hpp"
 
 #include <QMenu>
 #include <QToolBar>

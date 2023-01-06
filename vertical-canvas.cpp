@@ -19,7 +19,7 @@
 #include <QToolBar>
 #include <QWidgetAction>
 
-#include "canvas-scenes-dock.hpp"
+#include "scenes-dock.hpp"
 #include "config-dialog.hpp"
 #include "display-helpers.hpp"
 #include "name-dialog.hpp"
