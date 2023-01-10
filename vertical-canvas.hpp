@@ -142,6 +142,7 @@ private:
 	uint32_t canvas_height;
 	bool hideScenes;
 	QString currentSceneName;
+	bool first_time = false;
 
 	QColor GetSelectionColor() const;
 	QColor GetCropColor() const;
@@ -298,6 +299,7 @@ public:
 	void FinishLoading();
 	void MainSceneChanged();
 	void setAction(QAction *action);
+	CanvasScenesDock* GetScenesDock();
 
 	obs_data_t *SaveSettings();
 };

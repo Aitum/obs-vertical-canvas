@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="/aitum">
+    <file>logo.png</file>
+  </qresource>
+</RCC>

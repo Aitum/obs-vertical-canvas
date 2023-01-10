@@ -18,26 +18,35 @@ CanvasConfigDialog::CanvasConfigDialog(QMainWindow *parent) : QDialog(parent)
 	auto mainLayout = new QFormLayout;
 	mainLayout->setContentsMargins(9, 2, 9, 9);
 	mainLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-        mainLayout->setLabelAlignment(Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter);
-
-	hideScenes = new QCheckBox(
-		QString::fromUtf8(obs_module_text("HideScenes")));
-	mainLayout->addWidget(hideScenes);
+	mainLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignTrailing |
+				      Qt::AlignVCenter);
 
 	resolution = new QComboBox;
 	resolution->setEditable(true);
 	resolution->addItem("720x1280");
 	resolution->addItem("1080x1920");
-	mainLayout->addRow(QString::fromUtf8(obs_module_text("Resolution")),resolution);
+	mainLayout->addRow(QString::fromUtf8(obs_module_text("Resolution")),
+			   resolution);
+
+	hideScenes =
+		new QCheckBox(QString::fromUtf8(obs_module_text("HideScenes")));
+	mainLayout->addWidget(hideScenes);
 
 	replayBuffer = new QComboBox;
-	replayBuffer->addItem(QString::fromUtf8(obs_module_text("ReplayBufferNone")));
-	replayBuffer->addItem(QString::fromUtf8(obs_module_text("ReplayBufferStart")));
-	replayBuffer->addItem(QString::fromUtf8(obs_module_text("ReplayBufferRecording")));
-	replayBuffer->addItem(QString::fromUtf8(obs_module_text("ReplayBufferStreaming")));
-	replayBuffer->addItem(QString::fromUtf8(obs_module_text("ReplayBufferVirtualCamera")));
-	replayBuffer->addItem(QString::fromUtf8(obs_module_text("ReplayBufferAny")));
-	mainLayout->addRow(QString::fromUtf8(obs_module_text("ReplayBuffer")), replayBuffer);
+	replayBuffer->addItem(
+		QString::fromUtf8(obs_module_text("ReplayBufferNone")));
+	replayBuffer->addItem(
+		QString::fromUtf8(obs_module_text("ReplayBufferStart")));
+	replayBuffer->addItem(
+		QString::fromUtf8(obs_module_text("ReplayBufferRecording")));
+	replayBuffer->addItem(
+		QString::fromUtf8(obs_module_text("ReplayBufferStreaming")));
+	replayBuffer->addItem(QString::fromUtf8(
+		obs_module_text("ReplayBufferVirtualCamera")));
+	replayBuffer->addItem(
+		QString::fromUtf8(obs_module_text("ReplayBufferAny")));
+	mainLayout->addRow(QString::fromUtf8(obs_module_text("ReplayBuffer")),
+			   replayBuffer);
 
 	server = new QComboBox;
 	server->setEditable(true);
@@ -46,7 +55,8 @@ CanvasConfigDialog::CanvasConfigDialog(QMainWindow *parent) : QDialog(parent)
 	server->addItem("rtmps://b.rtmps.youtube.com:443/live2?backup=1");
 	server->addItem("rtmp://a.rtmp.youtube.com/live2");
 	server->addItem("rtmp://b.rtmp.youtube.com/live2?backup=1");
-	mainLayout->addRow(QString::fromUtf8(obs_module_text("Server")),server);
+	mainLayout->addRow(QString::fromUtf8(obs_module_text("Server")),
+			   server);
 
 	QLayout *subLayout = new QHBoxLayout();
 	key = new QLineEdit;
@@ -66,7 +76,8 @@ CanvasConfigDialog::CanvasConfigDialog(QMainWindow *parent) : QDialog(parent)
 	subLayout->addWidget(key);
 	subLayout->addWidget(show);
 
-	mainLayout->addRow(QString::fromUtf8(obs_module_text("Key")), subLayout);
+	mainLayout->addRow(QString::fromUtf8(obs_module_text("Key")),
+			   subLayout);
 
 	QWidget *widget = new QWidget;
 	widget->setLayout(mainLayout);

@@ -134,9 +134,7 @@ bool obs_module_load(void)
 		canvas = obs_data_array_create();
 	const auto count = obs_data_array_count(canvas);
 	if (!count) {
-		auto s = obs_data_create();
-		const auto dock = new CanvasDock(s, main_window);
-		obs_data_release(s);
+		const auto dock = new CanvasDock(nullptr, main_window);
 		auto *a = static_cast<QAction *>(obs_frontend_add_dock(dock));
 		dock->setAction(a);
 		canvas_docks.push_back(dock);
@@ -169,6 +167,11 @@ MODULE_EXPORT const char *obs_module_description(void)
 MODULE_EXPORT const char *obs_module_name(void)
 {
 	return obs_module_text("VerticalCanvas");
+}
+
+CanvasScenesDock *CanvasDock::GetScenesDock()
+{
+	return scenesDock;
 }
 
 QListWidget *CanvasDock::GetGlobalScenesList()
@@ -249,13 +252,12 @@ void CanvasDock::AddScene(QString duplicate)
 			obs_source_load(new_scene);
 		}
 		auto sn = QString::fromUtf8(obs_source_get_name(new_scene));
-		if (scenesCombo) {
+		if (scenesCombo)
 			scenesCombo->addItem(sn);
-			scenesCombo->setCurrentText(sn);
-		}
-		if (scenesDock) {
+		if (scenesDock)
 			scenesDock->sceneList->addItem(sn);
-		}
+
+		SwitchScene(sn);
 		obs_source_release(new_scene);
 
 		auto sl = GetGlobalScenesList();
@@ -376,6 +378,11 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	setFeatures(DockWidgetClosable | DockWidgetMovable |
 		    DockWidgetFloatable);
 
+	if (!settings) {
+		settings = obs_data_create();
+		first_time = true;
+	}
+
 	hideScenes = !obs_data_get_bool(settings, "show_scenes");
 	canvas_width = (uint32_t)obs_data_get_int(settings, "width");
 	canvas_height = (uint32_t)obs_data_get_int(settings, "height");
@@ -389,9 +396,13 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		QString::fromUtf8(obs_data_get_string(settings, "stream_key"));
 
 	QString title = QString::fromUtf8(obs_module_text("VerticalCanvas"));
-	title += " (" + QString::number(canvas_width) + "x" +
-		 QString::number(canvas_height) + ")";
 	setWindowTitle(title);
+	setStyleSheet(
+		QString::fromUtf8("CanvasDock::title {"
+				  "background-image: url(:/aitum/logo.png);"
+				  "background-repeat: no-repeat;"
+				  "padding-left: 100px;"
+				  "}"));
 
 	const QString name = "CanvasDock" + QString::number(canvas_width) +
 			     "x" + QString::number(canvas_height);
@@ -570,6 +581,9 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	obs_hotkey_pair_load(stream_hotkey, start_hotkey, stop_hotkey);
 	obs_data_array_release(start_hotkey);
 	obs_data_array_release(stop_hotkey);
+	if (first_time) {
+		obs_data_release(settings);
+	}
 	hide();
 }
 
@@ -655,8 +669,9 @@ void CanvasDock::DrawOverflow(float scale)
 	GS_DEBUG_MARKER_BEGIN(GS_DEBUG_COLOR_DEFAULT, "DrawOverflow");
 
 	if (!overflow) {
-		overflow = gs_texture_create_from_file(
-			obs_module_file("images/overflow.png"));
+		const auto file = obs_module_file("images/overflow.png");
+		overflow = gs_texture_create_from_file(file);
+		bfree(file);
 	}
 
 	if (scene) {
@@ -3792,14 +3807,15 @@ void CanvasDock::ConfigButtonClicked()
 
 			QString title = QString::fromUtf8(
 				obs_module_text("VerticalCanvas"));
-			title += " (" + QString::number(canvas_width) + "x" +
-				 QString::number(canvas_height) + ")";
 			setWindowTitle(title);
 
 			const QString name =
 				"CanvasDock" + QString::number(canvas_width) +
 				"x" + QString::number(canvas_height);
 			setObjectName(name);
+
+			if (scenesDock)
+				scenesDock->setObjectName(name + "Scenes");
 
 			LoadScenes();
 		}
@@ -4797,6 +4813,37 @@ void CanvasDock::FinishLoading()
 {
 	if (replay_mode == REPLAY_MODE_START)
 		StartReplayBuffer();
+	if (first_time) {
+		if (!action->isChecked())
+			action->trigger();
+		auto main = ((QMainWindow *)parentWidget());
+
+		main->addDockWidget(Qt::RightDockWidgetArea, this);
+		setFloating(false);
+
+		if (!scenesDockAction->isChecked())
+			scenesDockAction->trigger();
+		auto sd = main->findChild<QDockWidget *>(
+			QStringLiteral("scenesDock"));
+		if (sd) {
+			auto area = main->dockWidgetArea(sd);
+			if (area == Qt::NoDockWidgetArea) {
+				main->addDockWidget(Qt::RightDockWidgetArea,
+						    scenesDock);
+				main->splitDockWidget(this, scenesDock,
+						      Qt::Horizontal);
+			} else {
+				main->addDockWidget(area, scenesDock);
+				main->splitDockWidget(sd, scenesDock,
+						      Qt::Vertical);
+			}
+		} else {
+			main->addDockWidget(Qt::RightDockWidgetArea,
+					    scenesDock);
+			main->splitDockWidget(this, scenesDock, Qt::Horizontal);
+		}
+		scenesDock->setFloating(false);
+	}
 }
 
 void CanvasDock::OnRecordStart()

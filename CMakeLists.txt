@@ -17,12 +17,15 @@ add_library(${PROJECT_NAME} MODULE)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/version.h)
 
+set(CMAKE_AUTORCC ON)
+
 target_sources(${PROJECT_NAME} PRIVATE
 	vertical-canvas.cpp
 	scenes-dock.cpp
 	qt-display.cpp
 	config-dialog.cpp
 	name-dialog.cpp
+	resources.qrc
 	vertical-canvas.hpp
 	scenes-dock.hpp
 	qt-display.hpp
