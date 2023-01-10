@@ -11,6 +11,7 @@
 #include <QTextEdit>
 
 #include "obs-module.h"
+#include "version.h"
 
 CanvasConfigDialog::CanvasConfigDialog(QMainWindow *parent) : QDialog(parent)
 {
@@ -78,6 +79,9 @@ CanvasConfigDialog::CanvasConfigDialog(QMainWindow *parent) : QDialog(parent)
 
 	mainLayout->addRow(QString::fromUtf8(obs_module_text("Key")),
 			   subLayout);
+
+	mainLayout->addRow(QString::fromUtf8(obs_module_text("Version")),
+			   new QLabel(QString::fromUtf8(PROJECT_VERSION)));
 
 	QWidget *widget = new QWidget;
 	widget->setLayout(mainLayout);

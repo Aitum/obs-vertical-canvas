@@ -12,6 +12,7 @@
 #include <graphics/matrix4.h>
 
 #include "config-dialog.hpp"
+#include "scenes-dock.hpp"
 #include "obs.hpp"
 #include "qt-display.hpp"
 
