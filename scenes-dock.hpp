@@ -4,6 +4,8 @@
 #include <QListWidget>
 #include <QWidget>
 
+class CanvasDock;
+
 class CanvasScenesDock : public QDockWidget {
 	Q_OBJECT
 	friend class CanvasDock;
