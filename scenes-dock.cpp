@@ -209,7 +209,6 @@ CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent)
 				 QSizePolicy::Expanding);
 	sceneList->setFrameShape(QFrame::NoFrame);
 	sceneList->setFrameShadow(QFrame::Plain);
-	sceneList->addAction(QString::fromUtf8(obs_module_text("Remove")));
 	sceneList->setSelectionMode(QAbstractItemView::SingleSelection);
 	sceneList->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(sceneList, &QListWidget::customContextMenuRequested,
