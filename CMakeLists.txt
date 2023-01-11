@@ -6,7 +6,7 @@ else()
   cmake_minimum_required(VERSION 3.18)
 endif()
 
-project(vertical-canvas VERSION 0.0.2)
+project(vertical-canvas VERSION 0.0.3)
 set(PROJECT_FULL_NAME "Vertical Canvas")
 
 # Set new UUIDs when you start to create a new plugin.
