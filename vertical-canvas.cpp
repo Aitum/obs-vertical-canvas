@@ -23,6 +23,7 @@
 #include "config-dialog.hpp"
 #include "display-helpers.hpp"
 #include "name-dialog.hpp"
+#include "obs-websocket-api.h"
 #include "media-io/video-frame.h"
 #include "util/config-file.h"
 #include "util/dstr.h"
@@ -108,6 +109,56 @@ void frontend_event(obs_frontend_event event, void *private_data)
 	}
 }
 
+obs_websocket_vendor vendor = nullptr;
+
+void vendor_request_switch_scene(obs_data_t *request_data,
+				 obs_data_t *response_data, void *)
+{
+	const char *scene_name = obs_data_get_string(request_data, "scene");
+	if (!scene_name || !strlen(scene_name)) {
+		obs_data_set_string(response_data, "error", "'scene' not set");
+		obs_data_set_bool(response_data, "success", false);
+		return;
+	}
+	const auto scene_source = obs_get_source_by_name(scene_name);
+	if (!scene_source) {
+		obs_data_set_string(response_data, "error",
+				    "'scene' not found");
+		obs_data_set_bool(response_data, "success", false);
+		return;
+	}
+	const auto scene = obs_scene_from_source(scene_source);
+	if (!scene) {
+		obs_source_release(scene_source);
+		obs_data_set_string(response_data, "error",
+				    "'scene' not a scene");
+		obs_data_set_bool(response_data, "success", false);
+		return;
+	}
+	const auto settings = obs_source_get_settings(scene_source);
+	obs_source_release(scene_source);
+	if (!settings || !obs_data_get_bool(settings, "custom_size")) {
+		obs_data_release(settings);
+		obs_data_set_string(response_data, "error",
+				    "'scene' not a vertical canvas scene");
+		obs_data_set_bool(response_data, "success", false);
+		return;
+	}
+	const auto width = obs_data_get_int(settings, "cx");
+	const auto height = obs_data_get_int(settings, "cy");
+	obs_data_release(settings);
+	for (const auto &it : canvas_docks) {
+		if (it->GetCanvasWidth() != width ||
+		    it->GetCanvasHeight() != height)
+			continue;
+		QMetaObject::invokeMethod(it, "SwitchScene",
+					  Q_ARG(QString,
+						QString::fromUtf8(scene_name)));
+	}
+
+	obs_data_set_bool(response_data, "success", true);
+}
+
 bool obs_module_load(void)
 {
 	blog(LOG_INFO, "[Vertical Canvas] loaded version %s", PROJECT_VERSION);
@@ -151,11 +202,21 @@ bool obs_module_load(void)
 	}
 	obs_data_array_release(canvas);
 	obs_data_release(config);
+
+	vendor = obs_websocket_register_vendor("vertical-canvas");
+	if (!vendor)
+		return true;
+	obs_websocket_vendor_register_request(
+		vendor, "switch_scene", vendor_request_switch_scene, nullptr);
+
 	return true;
 }
 
 void obs_module_unload(void)
 {
+	if (vendor) {
+		obs_websocket_vendor_unregister_request(vendor, "switch_scene");
+	}
 	obs_frontend_remove_event_callback(frontend_event, nullptr);
 }
 
@@ -185,6 +246,7 @@ QListWidget *CanvasDock::GetGlobalScenesList()
 		return nullptr;
 	return scenesDock->findChild<QListWidget *>(QStringLiteral("scenes"));
 }
+
 void CanvasDock::AddScene(QString duplicate)
 {
 	std::string name = duplicate.isEmpty()

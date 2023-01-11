@@ -61,10 +61,10 @@ public:
 	EventFilterFunc filter;
 };
 
-
 class CanvasDock : public QDockWidget {
 	Q_OBJECT
 	friend class CanvasScenesDock;
+
 private:
 	QAction *action;
 	QVBoxLayout *mainLayout;
@@ -233,11 +233,10 @@ private:
 	void DestroyVideo();
 
 	void CreateScenesRow();
-	void SwitchScene(const QString &scene_name);
 	void AddScene(QString duplicate = "");
 	void RemoveScene(const QString &sceneName);
 	void SetLinkedScene(obs_source_t *scene, const QString &linkedScene);
-	QListWidget * GetGlobalScenesList();
+	QListWidget *GetGlobalScenesList();
 
 	static bool DrawSelectedOverflow(obs_scene_t *scene,
 					 obs_sceneitem_t *item, void *param);
@@ -290,7 +289,7 @@ private slots:
 	void OnStreamStop(int code, QString last_error);
 	void OnReplayBufferStart();
 	void OnReplayBufferStop();
-
+	void SwitchScene(const QString &scene_name);
 public:
 	CanvasDock(obs_data_t *settings, QWidget *parent = nullptr);
 	~CanvasDock();
@@ -300,7 +299,9 @@ public:
 	void FinishLoading();
 	void MainSceneChanged();
 	void setAction(QAction *action);
-	CanvasScenesDock* GetScenesDock();
+	CanvasScenesDock *GetScenesDock();
+	inline uint32_t GetCanvasWidth() const { return canvas_width; }
+	inline uint32_t GetCanvasHeight() const { return canvas_height; }
 
 	obs_data_t *SaveSettings();
 };

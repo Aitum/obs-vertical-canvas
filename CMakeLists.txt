@@ -31,7 +31,8 @@ target_sources(${PROJECT_NAME} PRIVATE
 	qt-display.hpp
 	display-helpers.hpp
 	config-dialog.hpp
-	name-dialog.hpp)
+	name-dialog.hpp
+	obs-websocket-api.h)
 
 if(BUILD_OUT_OF_TREE)
   find_package(libobs REQUIRED)
