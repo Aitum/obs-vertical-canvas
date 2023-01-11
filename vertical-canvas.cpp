@@ -4320,10 +4320,10 @@ static inline int GetProfilePath(char *path, size_t size, const char *file)
 	return snprintf(path, size, "%s/%s/%s", profiles_path, profile, file);
 }
 
-static OBSData GetDataFromJsonFile(const char *jsonFile)
+static obs_data_t *GetDataFromJsonFile(const char *jsonFile)
 {
 	char fullPath[512];
-	OBSDataAutoRelease data = nullptr;
+	obs_data_t *data = nullptr;
 
 	int ret = GetProfilePath(fullPath, sizeof(fullPath), jsonFile);
 	if (ret > 0) {
@@ -4336,7 +4336,7 @@ static OBSData GetDataFromJsonFile(const char *jsonFile)
 	if (!data)
 		data = obs_data_create();
 
-	return data.Get();
+	return data;
 }
 
 void CanvasDock::RecordButtonClicked()
@@ -4795,6 +4795,17 @@ void CanvasDock::StartStream()
 		const char *recordEncoder =
 			config_get_string(config, "AdvOut", "RecEncoder");
 		useRecordEncoder = astrcmpi(recordEncoder, "none") == 0;
+
+		uint64_t streamTrack =
+			config_get_uint(config, "AdvOut", "TrackIndex");
+		static const char *trackNames[] = {
+			"Track1Bitrate", "Track2Bitrate", "Track3Bitrate",
+			"Track4Bitrate", "Track5Bitrate", "Track6Bitrate",
+		};
+		const int audioBitrate = (int)config_get_uint(
+			config, "AdvOut", trackNames[streamTrack - 1]);
+		obs_data_set_int(audio_settings, "bitrate", audioBitrate);
+
 	} else {
 		video_settings = obs_data_create();
 		const int videoBitrate =
@@ -4875,11 +4886,10 @@ void CanvasDock::StartStream()
 	if (!video_encoder ||
 	    strcmp(obs_encoder_get_id(video_encoder), enc_id) != 0) {
 		video_encoder = obs_video_encoder_create(
-			enc_id, "vertical_canvas_video_encoder", video_settings,
+			enc_id, "vertical_canvas_video_encoder", nullptr,
 			nullptr);
-	} else {
-		obs_encoder_update(video_encoder, video_settings);
 	}
+	obs_encoder_update(video_encoder, video_settings);
 
 	switch (video_output_get_format(video)) {
 	case VIDEO_FORMAT_I420:
