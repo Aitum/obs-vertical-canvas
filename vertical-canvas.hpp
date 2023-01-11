@@ -42,6 +42,10 @@ enum replayMode {
 	REPLAY_MODE_STREAMING = 3,
 	REPLAY_MODE_VIRTUAL_CAMERA = 4,
 	REPLAY_MODE_ANY = 5,
+	REPLAY_MODE_MAIN_RECORDING = 6,
+	REPLAY_MODE_MAIN_STREAMING = 7,
+	REPLAY_MODE_MAIN_VIRTUAL_CAMERA = 8,
+	REPLAY_MODE_MAIN_ANY = 9,
 };
 
 typedef std::function<bool(QObject *, QEvent *)> EventFilterFunc;
@@ -304,6 +308,13 @@ public:
 	inline uint32_t GetCanvasHeight() const { return canvas_height; }
 
 	obs_data_t *SaveSettings();
+
+	void MainStreamStart();
+	void MainStreamStop();
+	void MainRecordStart();
+	void MainRecordStop();
+	void MainVirtualCamStart();
+	void MainVirtualCamStop();
 };
 
 class LockedCheckBox : public QCheckBox {

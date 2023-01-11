@@ -46,6 +46,14 @@ CanvasConfigDialog::CanvasConfigDialog(QMainWindow *parent) : QDialog(parent)
 		obs_module_text("ReplayBufferVirtualCamera")));
 	replayBuffer->addItem(
 		QString::fromUtf8(obs_module_text("ReplayBufferAny")));
+	replayBuffer->addItem(QString::fromUtf8(
+		obs_module_text("ReplayBufferMainRecording")));
+	replayBuffer->addItem(QString::fromUtf8(
+		obs_module_text("ReplayBufferMainStreaming")));
+	replayBuffer->addItem(QString::fromUtf8(
+		obs_module_text("ReplayBufferMainVirtualCamera")));
+	replayBuffer->addItem(
+		QString::fromUtf8(obs_module_text("ReplayBufferMainAny")));
 	mainLayout->addRow(QString::fromUtf8(obs_module_text("ReplayBuffer")),
 			   replayBuffer);
 

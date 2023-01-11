@@ -63,7 +63,7 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 			return;
 		std::string name = item->text().toUtf8().constData();
 		obs_source_t *source = obs_get_source_by_name(name.c_str());
-		if(!source)
+		if (!source)
 			return;
 		obs_source_t *s = nullptr;
 		do {
@@ -77,7 +77,6 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 			obs_source_set_name(source, name.c_str());
 		} while (s);
 		obs_source_release(source);
-
 	});
 	auto orderMenu =
 		menu->addMenu(QString::fromUtf8(obs_module_text("Order")));

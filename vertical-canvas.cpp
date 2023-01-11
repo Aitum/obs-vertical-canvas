@@ -106,6 +106,36 @@ void frontend_event(obs_frontend_event event, void *private_data)
 		for (const auto &it : canvas_docks) {
 			it->MainSceneChanged();
 		}
+	} else if (event == OBS_FRONTEND_EVENT_STREAMING_STARTING ||
+		   event == OBS_FRONTEND_EVENT_STREAMING_STARTED) {
+		for (const auto &it : canvas_docks) {
+			it->MainStreamStart();
+		}
+	} else if (event == OBS_FRONTEND_EVENT_STREAMING_STOPPING ||
+		   event == OBS_FRONTEND_EVENT_STREAMING_STOPPED) {
+		for (const auto &it : canvas_docks) {
+			it->MainStreamStop();
+		}
+	} else if (event == OBS_FRONTEND_EVENT_RECORDING_STARTING ||
+		   event == OBS_FRONTEND_EVENT_RECORDING_STARTED) {
+		for (const auto &it : canvas_docks) {
+			it->MainRecordStart();
+		}
+	} else if (event == OBS_FRONTEND_EVENT_RECORDING_STOPPING ||
+		   event == OBS_FRONTEND_EVENT_RECORDING_STOPPED) {
+		for (const auto &it : canvas_docks) {
+			it->MainRecordStop();
+		}
+
+	} else if (event == OBS_FRONTEND_EVENT_VIRTUALCAM_STARTED) {
+		for (const auto &it : canvas_docks) {
+			it->MainVirtualCamStart();
+		}
+
+	} else if (event == OBS_FRONTEND_EVENT_VIRTUALCAM_STOPPED) {
+		for (const auto &it : canvas_docks) {
+			it->MainVirtualCamStop();
+		}
 	}
 }
 
@@ -5214,6 +5244,58 @@ QIcon CanvasDock::GetGroupIcon() const
 	const auto main_window =
 		static_cast<QMainWindow *>(obs_frontend_get_main_window());
 	return main_window->property("groupIcon").value<QIcon>();
+}
+
+void CanvasDock::MainStreamStart()
+{
+	if (replay_mode == REPLAY_MODE_MAIN_STREAMING ||
+	    replay_mode == REPLAY_MODE_MAIN_ANY)
+		StartReplayBuffer();
+}
+void CanvasDock::MainStreamStop()
+{
+	if (replay_mode == REPLAY_MODE_MAIN_STREAMING)
+		StopReplayBuffer();
+	if (replay_mode == REPLAY_MODE_MAIN_ANY &&
+	    !obs_frontend_recording_active() &&
+	    !obs_frontend_virtualcam_active()) {
+		StopReplayBuffer();
+	}
+}
+
+void CanvasDock::MainRecordStart()
+{
+	if (replay_mode == REPLAY_MODE_MAIN_RECORDING ||
+	    replay_mode == REPLAY_MODE_MAIN_ANY)
+		StartReplayBuffer();
+}
+
+void CanvasDock::MainRecordStop()
+{
+	if (replay_mode == REPLAY_MODE_MAIN_RECORDING)
+		StopReplayBuffer();
+	if (replay_mode == REPLAY_MODE_MAIN_ANY &&
+	    !obs_frontend_streaming_active() &&
+	    !obs_frontend_virtualcam_active()) {
+		StopReplayBuffer();
+	}
+}
+void CanvasDock::MainVirtualCamStart()
+{
+	if (replay_mode == REPLAY_MODE_MAIN_VIRTUAL_CAMERA ||
+	    replay_mode == REPLAY_MODE_MAIN_ANY)
+		StartReplayBuffer();
+}
+
+void CanvasDock::MainVirtualCamStop()
+{
+	if (replay_mode == REPLAY_MODE_MAIN_VIRTUAL_CAMERA)
+		StopReplayBuffer();
+	if (replay_mode == REPLAY_MODE_MAIN_ANY &&
+	    !obs_frontend_streaming_active() &&
+	    !obs_frontend_recording_active()) {
+		StopReplayBuffer();
+	}
 }
 
 LockedCheckBox::LockedCheckBox() {}
