@@ -6,6 +6,7 @@
 #include <QToolBar>
 #include <QWidgetAction>
 
+#include "name-dialog.hpp"
 #include "obs-module.h"
 #include "vertical-canvas.hpp"
 
@@ -45,7 +46,7 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 	menu->addSeparator();
 	menu->addAction(QString::fromUtf8(obs_module_text("Duplicate")),
 			[this] {
-				auto item = sceneList->currentItem();
+				const auto item = sceneList->currentItem();
 				if (!item)
 					return;
 				canvasDock->AddScene(item->text());
@@ -56,14 +57,28 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 			return;
 		canvasDock->RemoveScene(item->text());
 	});
-	/*menu->addAction(QString::fromUtf8(obs_module_text("Rename")), [this] {
-		QListWidgetItem *item = sceneList->currentItem();
-		Qt::ItemFlags flags = item->flags();
+	menu->addAction(QString::fromUtf8(obs_module_text("Rename")), [this] {
+		const auto item = sceneList->currentItem();
+		if (!item)
+			return;
+		std::string name = item->text().toUtf8().constData();
+		obs_source_t *source = obs_get_source_by_name(name.c_str());
+		if(!source)
+			return;
+		obs_source_t *s = nullptr;
+		do {
+			obs_source_release(s);
+			if (!NameDialog::AskForName(this, name)) {
+				break;
+			}
+			s = obs_get_source_by_name(name.c_str());
+			if (s)
+				continue;
+			obs_source_set_name(source, name.c_str());
+		} while (s);
+		obs_source_release(source);
 
-		item->setFlags(flags | Qt::ItemIsEditable);
-		sceneList->editItem(item);
-		item->setFlags(flags);
-	});*/
+	});
 	auto orderMenu =
 		menu->addMenu(QString::fromUtf8(obs_module_text("Order")));
 	orderMenu->addAction(QString::fromUtf8(obs_module_text("Up")),
