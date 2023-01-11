@@ -221,6 +221,13 @@ private:
 	vec2 GetMouseEventPos(QMouseEvent *event);
 	float GetDevicePixelRatio();
 
+	enum class CenterType {
+		Scene,
+		Vertical,
+		Horizontal,
+	};
+	void CenterSelectedItems(CenterType centerType);
+
 	void setSource(obs_weak_source_t *source);
 	void AddSourceToScene(obs_source_t *source);
 

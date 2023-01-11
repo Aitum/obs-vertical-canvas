@@ -1187,15 +1187,12 @@ void CanvasDock::RenderSpacingHelper(int sourceIndex, vec3 &start, vec3 &end,
 
 	float length = vec3_dist(&start, &end);
 
-	obs_video_info ovi;
-	obs_get_video_info(&ovi);
-
 	float px;
 
 	if (horizontal) {
-		px = length * ovi.base_width;
+		px = length * canvas_width;
 	} else {
-		px = length * ovi.base_height;
+		px = length * canvas_height;
 	}
 
 	if (px <= 0.0f)
@@ -1968,6 +1965,228 @@ bool CanvasDock::HandleMousePressEvent(QMouseEvent *event)
 	return true;
 }
 
+static void GetItemBox(obs_sceneitem_t *item, vec3 &tl, vec3 &br)
+{
+	matrix4 boxTransform;
+	obs_sceneitem_get_box_transform(item, &boxTransform);
+
+	vec3_set(&tl, M_INFINITE, M_INFINITE, 0.0f);
+	vec3_set(&br, -M_INFINITE, -M_INFINITE, 0.0f);
+
+	auto GetMinPos = [&](float x, float y) {
+		vec3 pos;
+		vec3_set(&pos, x, y, 0.0f);
+		vec3_transform(&pos, &pos, &boxTransform);
+		vec3_min(&tl, &tl, &pos);
+		vec3_max(&br, &br, &pos);
+	};
+
+	GetMinPos(0.0f, 0.0f);
+	GetMinPos(1.0f, 0.0f);
+	GetMinPos(0.0f, 1.0f);
+	GetMinPos(1.0f, 1.0f);
+}
+
+static vec3 GetItemTL(obs_sceneitem_t *item)
+{
+	vec3 tl, br;
+	GetItemBox(item, tl, br);
+	return tl;
+}
+
+static void SetItemTL(obs_sceneitem_t *item, const vec3 &tl)
+{
+	vec3 newTL;
+	vec2 pos;
+
+	obs_sceneitem_get_pos(item, &pos);
+	newTL = GetItemTL(item);
+	pos.x += tl.x - newTL.x;
+	pos.y += tl.y - newTL.y;
+	obs_sceneitem_set_pos(item, &pos);
+}
+
+static bool RotateSelectedSources(obs_scene_t *scene, obs_sceneitem_t *item,
+				  void *param)
+{
+	if (obs_sceneitem_is_group(item))
+		obs_sceneitem_group_enum_items(item, RotateSelectedSources,
+					       param);
+	if (!obs_sceneitem_selected(item))
+		return true;
+	if (obs_sceneitem_locked(item))
+		return true;
+
+	float rot = *reinterpret_cast<float *>(param);
+
+	vec3 tl = GetItemTL(item);
+
+	rot += obs_sceneitem_get_rot(item);
+	if (rot >= 360.0f)
+		rot -= 360.0f;
+	else if (rot <= -360.0f)
+		rot += 360.0f;
+	obs_sceneitem_set_rot(item, rot);
+
+	obs_sceneitem_force_update_transform(item);
+
+	SetItemTL(item, tl);
+
+	UNUSED_PARAMETER(scene);
+	return true;
+};
+
+static bool MultiplySelectedItemScale(obs_scene_t *scene, obs_sceneitem_t *item,
+				      void *param)
+{
+	vec2 &mul = *reinterpret_cast<vec2 *>(param);
+
+	if (obs_sceneitem_is_group(item))
+		obs_sceneitem_group_enum_items(item, MultiplySelectedItemScale,
+					       param);
+	if (!obs_sceneitem_selected(item))
+		return true;
+	if (obs_sceneitem_locked(item))
+		return true;
+
+	vec3 tl = GetItemTL(item);
+
+	vec2 scale;
+	obs_sceneitem_get_scale(item, &scale);
+	vec2_mul(&scale, &scale, &mul);
+	obs_sceneitem_set_scale(item, &scale);
+
+	obs_sceneitem_force_update_transform(item);
+
+	SetItemTL(item, tl);
+
+	UNUSED_PARAMETER(scene);
+	return true;
+}
+
+static bool CenterAlignSelectedItems(obs_scene_t *scene, obs_sceneitem_t *item,
+				     void *param)
+{
+	obs_bounds_type boundsType =
+		*reinterpret_cast<obs_bounds_type *>(param);
+
+	if (obs_sceneitem_is_group(item))
+		obs_sceneitem_group_enum_items(item, CenterAlignSelectedItems,
+					       param);
+	if (!obs_sceneitem_selected(item))
+		return true;
+	if (obs_sceneitem_locked(item))
+		return true;
+
+	obs_source_t *scene_source = obs_scene_get_source(scene);
+
+	obs_transform_info itemInfo;
+	vec2_set(&itemInfo.pos, 0.0f, 0.0f);
+	vec2_set(&itemInfo.scale, 1.0f, 1.0f);
+	itemInfo.alignment = OBS_ALIGN_LEFT | OBS_ALIGN_TOP;
+	itemInfo.rot = 0.0f;
+
+	vec2_set(&itemInfo.bounds,
+		 float(obs_source_get_base_width(scene_source)),
+		 float(obs_source_get_base_height(scene_source)));
+	itemInfo.bounds_type = boundsType;
+	itemInfo.bounds_alignment = OBS_ALIGN_CENTER;
+
+	obs_sceneitem_set_info(item, &itemInfo);
+
+	UNUSED_PARAMETER(scene);
+	return true;
+}
+
+static bool GetSelectedItemsWithSize(obs_scene_t *scene, obs_sceneitem_t *item,
+				     void *param)
+{
+	auto items = static_cast<std::vector<obs_sceneitem_t *> *>(param);
+
+	if (obs_sceneitem_is_group(item))
+		obs_sceneitem_group_enum_items(item, GetSelectedItemsWithSize,
+					       param);
+	if (!obs_sceneitem_selected(item))
+		return true;
+	if (obs_sceneitem_locked(item))
+		return true;
+
+	obs_transform_info oti;
+	obs_sceneitem_get_info(item, &oti);
+
+	obs_source_t *source = obs_sceneitem_get_source(item);
+	const float width = float(obs_source_get_width(source)) * oti.scale.x;
+	const float height = float(obs_source_get_height(source)) * oti.scale.y;
+
+	if (width == 0.0f || height == 0.0f)
+		return true;
+
+	items->push_back(item);
+
+	UNUSED_PARAMETER(scene);
+	return true;
+}
+
+void CanvasDock::CenterSelectedItems(CenterType centerType)
+{
+	std::vector<obs_sceneitem_t *> items;
+	obs_scene_enum_items(scene, GetSelectedItemsWithSize, &items);
+	if (!items.size())
+		return;
+
+	// Get center x, y coordinates of items
+	vec3 center;
+
+	float top = M_INFINITE;
+	float left = M_INFINITE;
+	float right = 0.0f;
+	float bottom = 0.0f;
+
+	for (auto &item : items) {
+		vec3 tl, br;
+
+		GetItemBox(item, tl, br);
+
+		left = (std::min)(tl.x, left);
+		top = (std::min)(tl.y, top);
+		right = (std::max)(br.x, right);
+		bottom = (std::max)(br.y, bottom);
+	}
+
+	center.x = (right + left) / 2.0f;
+	center.y = (top + bottom) / 2.0f;
+	center.z = 0.0f;
+
+	// Get coordinates of screen center
+	vec3 screenCenter;
+	vec3_set(&screenCenter, float(canvas_width), float(canvas_height),
+		 0.0f);
+
+	vec3_mulf(&screenCenter, &screenCenter, 0.5f);
+
+	// Calculate difference between screen center and item center
+	vec3 offset;
+	vec3_sub(&offset, &screenCenter, &center);
+
+	// Shift items by offset
+	for (auto &item : items) {
+		vec3 tl, br;
+
+		GetItemBox(item, tl, br);
+
+		vec3_add(&tl, &tl, &offset);
+
+		vec3 itemTL = GetItemTL(item);
+
+		if (centerType == CenterType::Vertical)
+			tl.x = itemTL.x;
+		else if (centerType == CenterType::Horizontal)
+			tl.y = itemTL.y;
+
+		SetItemTL(item, tl);
+	}
+}
+
 bool CanvasDock::HandleMouseReleaseEvent(QMouseEvent *event)
 {
 	if (scrollMode)
@@ -2073,17 +2292,96 @@ bool CanvasDock::HandleMouseReleaseEvent(QMouseEvent *event)
 							       &crop);
 					obs_sceneitem_set_rot(sceneItem, 0.0f);
 				});
-
-			action = popup.addAction(
-				QString::fromUtf8(obs_module_text("Locked")),
-				this, [sceneItem] {
-					obs_sceneitem_set_locked(
-						sceneItem,
-						!obs_sceneitem_locked(
-							sceneItem));
+			transformMenu->addSeparator();
+			transformMenu->addAction(
+				QString::fromUtf8(obs_module_text("Rotate90")),
+				this, [this] {
+					float rotation = 90.0f;
+					obs_scene_enum_items(
+						scene, RotateSelectedSources,
+						&rotation);
 				});
-			action->setCheckable(true);
-			action->setChecked(obs_sceneitem_locked(sceneItem));
+			transformMenu->addAction(
+				QString::fromUtf8(obs_module_text("Rotate270")),
+				this, [this] {
+					float rotation = -90.0f;
+					obs_scene_enum_items(
+						scene, RotateSelectedSources,
+						&rotation);
+				});
+			transformMenu->addAction(
+				QString::fromUtf8(obs_module_text("Rotate180")),
+				this, [this] {
+					float rotation = 180.0f;
+					obs_scene_enum_items(
+						scene, RotateSelectedSources,
+						&rotation);
+				});
+			transformMenu->addSeparator();
+			transformMenu->addAction(
+				QString::fromUtf8(
+					obs_module_text("FlipHorizontal")),
+				this, [this] {
+					vec2 scale;
+					vec2_set(&scale, -1.0f, 1.0f);
+					obs_scene_enum_items(
+						scene,
+						MultiplySelectedItemScale,
+						&scale);
+				});
+			transformMenu->addAction(
+				QString::fromUtf8(
+					obs_module_text("FlipVertical")),
+				this, [this] {
+					vec2 scale;
+					vec2_set(&scale, 1.0f, -1.0f);
+					obs_scene_enum_items(
+						scene,
+						MultiplySelectedItemScale,
+						&scale);
+				});
+			transformMenu->addSeparator();
+			transformMenu->addAction(
+				QString::fromUtf8(
+					obs_module_text("FitToCanvas")),
+				this, [this] {
+					obs_bounds_type boundsType =
+						OBS_BOUNDS_SCALE_INNER;
+					obs_scene_enum_items(
+						scene, CenterAlignSelectedItems,
+						&boundsType);
+				});
+			transformMenu->addAction(
+				QString::fromUtf8(
+					obs_module_text("StretchToCanvas")),
+				this, [this] {
+					obs_bounds_type boundsType =
+						OBS_BOUNDS_STRETCH;
+					obs_scene_enum_items(
+						scene, CenterAlignSelectedItems,
+						&boundsType);
+				});
+			transformMenu->addAction(
+				QString::fromUtf8(
+					obs_module_text("CenterToCanvas")),
+				this, [this] {
+					CenterSelectedItems(CenterType::Scene);
+				});
+			transformMenu->addAction(
+				QString::fromUtf8(
+					obs_module_text("CenterVertically")),
+				this, [this] {
+					CenterSelectedItems(
+						CenterType::Vertical);
+				});
+			transformMenu->addAction(
+				QString::fromUtf8(
+					obs_module_text("CenterHorizontally")),
+				this, [this] {
+					CenterSelectedItems(
+						CenterType::Horizontal);
+				});
+
 			popup.addAction(
 				QString::fromUtf8(obs_module_text("Filters")),
 				this, [source] {
