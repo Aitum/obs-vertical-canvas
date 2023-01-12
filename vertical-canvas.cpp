@@ -5097,6 +5097,8 @@ void CanvasDock::SwitchScene(const QString &scene_name)
 	source = obs_source_get_weak_source(s);
 	scene = obs_scene_from_source(s);
 	currentSceneName = scene_name;
+	if (video && view)
+		obs_view_set_source(view, 0, s);
 	if (scenesCombo && scenesCombo->currentText() != scene_name) {
 		scenesCombo->setCurrentText(scene_name);
 	}
