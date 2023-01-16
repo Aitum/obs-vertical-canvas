@@ -119,12 +119,12 @@ private:
 	gs_stagesurf_t *stagesurface = nullptr;
 	QPushButton *virtualCamButton;
 	QPushButton *recordButton;
-	QIcon recordActiveIcon = QIcon(":/res/images/recording-active.svg");
-	QIcon recordInactiveIcon = QIcon(":/res/images/recording-inactive.svg");
+	QIcon recordActiveIcon = QIcon(":/aitum/media/recording.svg");
+	QIcon recordInactiveIcon = QIcon(":/aitum/media/record.svg");
 	QPushButton *replayButton;
 	QPushButton *streamButton;
-	QIcon streamActiveIcon = QIcon(":/res/images/streaming-active.svg");
-	QIcon streamInactiveIcon = QIcon(":/res/images/streaming-inactive.svg");
+	QIcon streamActiveIcon = QIcon(":/aitum/media/streaming.svg");
+	QIcon streamInactiveIcon = QIcon(":/aitum/media/stream.svg");
 	QComboBox *scenesCombo = nullptr;
 	QCheckBox *linkedButton = nullptr;
 	CanvasScenesDock *scenesDock = nullptr;

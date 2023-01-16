@@ -7,6 +7,7 @@
 
 #include <obs-module.h>
 #include <obs-frontend-api.h>
+#include <QDesktopServices>
 
 #include <QMainWindow>
 #include <QPushButton>
@@ -489,12 +490,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	QString title = QString::fromUtf8(obs_module_text("VerticalCanvas"));
 	setWindowTitle(title);
-	setStyleSheet(
-		QString::fromUtf8("CanvasDock::title {"
-				  "background-image: url(:/aitum/logo.png);"
-				  "background-repeat: no-repeat;"
-				  "padding-left: 100px;"
-				  "}"));
 
 	const QString name = "CanvasDock" + QString::number(canvas_width) +
 			     "x" + QString::number(canvas_height);
@@ -536,14 +531,17 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	connect(preview, &OBSQTDisplay::DisplayCreated, addDrawCallback);
 	mainLayout->addWidget(preview, 1);
 
+	QSizePolicy sp2;
+	sp2.setHeightForWidth(true);
+
 	auto buttonRow = new QHBoxLayout(this);
 
 	streamButton = new QPushButton;
 	streamButton->setObjectName(QStringLiteral("canvasStream"));
 	streamButton->setIcon(streamInactiveIcon);
-	streamButton->setText(QString::fromUtf8(obs_module_text("Stream")));
 	streamButton->setCheckable(true);
 	streamButton->setChecked(false);
+	streamButton->setSizePolicy(sp2);
 	connect(streamButton, SIGNAL(clicked()), this,
 		SLOT(StreamButtonClicked()));
 	buttonRow->addWidget(streamButton);
@@ -551,21 +549,25 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	recordButton = new QPushButton;
 	recordButton->setObjectName(QStringLiteral("canvasRecord"));
 	recordButton->setIcon(recordInactiveIcon);
-	recordButton->setText(QString::fromUtf8(obs_module_text("Record")));
 	recordButton->setCheckable(true);
 	recordButton->setChecked(false);
+	recordButton->setSizePolicy(sp2);
 	connect(recordButton, SIGNAL(clicked()), this,
 		SLOT(RecordButtonClicked()));
 	buttonRow->addWidget(recordButton);
 
 	replayButton = new QPushButton;
 	replayButton->setObjectName(QStringLiteral("canvasReplay"));
-	replayButton->setText(QString::fromUtf8(obs_module_text("Replay")));
 	replayButton->setVisible(false);
+	replayButton->setSizePolicy(sp2);
 	replayButton->setProperty("themeID", QStringLiteral("replayIconSmall"));
 	connect(replayButton, SIGNAL(clicked()), this,
 		SLOT(ReplayButtonClicked()));
 	buttonRow->addWidget(replayButton);
+
+	auto statusLabel = new QLabel;
+	statusLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+	buttonRow->addWidget(statusLabel, 1);
 
 	virtualCamButton = new QPushButton;
 	virtualCamButton->setObjectName(QStringLiteral("canvasVirtualCam"));
@@ -573,6 +575,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		QString::fromUtf8(obs_module_text("VirtualCam")));
 	virtualCamButton->setCheckable(true);
 	virtualCamButton->setChecked(false);
+	virtualCamButton->setVisible(false);
 	connect(virtualCamButton, SIGNAL(clicked()), this,
 		SLOT(VirtualCamButtonClicked()));
 	buttonRow->addWidget(virtualCamButton);
@@ -581,12 +584,17 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	configButton->setProperty("themeID", "configIconSmall");
 	configButton->setFlat(true);
 	configButton->setAutoDefault(false);
-	QSizePolicy sp2;
-	sp2.setHeightForWidth(true);
 	configButton->setSizePolicy(sp2);
 	connect(configButton, SIGNAL(clicked()), this,
 		SLOT(ConfigButtonClicked()));
 	buttonRow->addWidget(configButton);
+
+	auto aitumButton = new QPushButton;
+	aitumButton->setSizePolicy(sp2);
+	aitumButton->setIcon(QIcon(":/aitum/media/aitum.png"));
+	connect(aitumButton, &QPushButton::clicked,
+		[] { QDesktopServices::openUrl(QUrl("https://aitum.tv")); });
+	buttonRow->addWidget(aitumButton);
 
 	mainLayout->addLayout(buttonRow);
 
@@ -5252,12 +5260,17 @@ void CanvasDock::OnRecordStart()
 {
 	recordButton->setChecked(true);
 	recordButton->setIcon(recordActiveIcon);
+	recordButton->setStyleSheet(
+		QString::fromUtf8("QPushButton {"
+				  "background: rgb(192,28,40);"
+				  "}"));
 }
 
 void CanvasDock::OnRecordStop(int code, QString last_error)
 {
 	recordButton->setChecked(false);
 	recordButton->setIcon(recordInactiveIcon);
+	recordButton->setStyleSheet(QString::fromUtf8(""));
 	if (code == OBS_OUTPUT_UNSUPPORTED && isVisible()) {
 		QMessageBox::critical(
 			this, QString::fromUtf8(obs_module_text("RecordFail")),
@@ -5297,12 +5310,17 @@ void CanvasDock::OnStreamStart()
 {
 	streamButton->setChecked(true);
 	streamButton->setIcon(streamActiveIcon);
+	streamButton->setStyleSheet(
+		QString::fromUtf8("QPushButton {"
+				  "background: rgb(28,113,216);"
+				  "}"));
 }
 
 void CanvasDock::OnStreamStop(int code, QString last_error)
 {
 	streamButton->setChecked(false);
 	streamButton->setIcon(streamInactiveIcon);
+	streamButton->setStyleSheet(QString::fromUtf8(""));
 	const char *errorDescription = "";
 
 	bool use_last_error = false;
