@@ -986,8 +986,6 @@ void SourceTreeModel::UngroupSelectedGroups(QModelIndexList &indices)
 	if (indices.count() == 0)
 		return;
 
-	obs_scene_t *scene = st->canvasDock->scene;
-
 	for (int i = indices.count() - 1; i >= 0; i--) {
 		obs_sceneitem_t *item = items[indices[i].row()];
 		obs_sceneitem_group_ungroup(item);
@@ -1081,8 +1079,7 @@ SourceTree::SourceTree(CanvasDock *canvas_dock, QWidget *parent_)
 		"*[bgColor=\"8\"]{background-color:rgba(255,255,255,33%);}"));
 
 	UpdateNoSourcesMessage();
-	const auto main_window =
-		static_cast<QMainWindow *>(obs_frontend_get_main_window());
+	//const auto main_window = static_cast<QMainWindow *>(obs_frontend_get_main_window());
 	//connect(App(), &OBSApp::StyleChanged, this, &SourceTree::UpdateNoSourcesMessage);
 	//connect(App(), &OBSApp::StyleChanged, this, &SourceTree::UpdateIcons);
 
@@ -1171,7 +1168,6 @@ void SourceTree::dropEvent(QDropEvent *event)
 	}
 
 	obs_scene_t *scene = canvasDock->scene;
-	obs_source_t *scenesource = obs_scene_get_source(scene);
 	SourceTreeModel *stm = GetStm();
 	auto &items = stm->items;
 	QModelIndexList indices = selectedIndexes();
@@ -1570,8 +1566,6 @@ bool SourceTree::GroupsSelected() const
 	SourceTreeModel *stm = GetStm();
 	QModelIndexList selectedIndices = selectedIndexes();
 
-	obs_scene_t *scene = canvasDock->scene;
-
 	if (selectedIndices.size() < 1) {
 		return false;
 	}
@@ -1675,17 +1669,16 @@ void SourceTree::paintEvent(QPaintEvent *event)
 		//QSizeF iconSize = iconRect.size();
 		QSizeF textSize = textNoSources.size();
 		QSizeF thisSize = size();
-		const qreal spacing = 16.0;
+		//const qreal spacing = 16.0;
 
 		qreal totalHeight =
-			/*iconSize.height() + spacing + */textSize.height();
+			/*iconSize.height() + spacing + */ textSize.height();
 
-		qreal x = thisSize.width() / 2.0/* - iconSize.width() / 2.0*/;
+		qreal x = thisSize.width() / 2.0 /* - iconSize.width() / 2.0*/;
 		qreal y = thisSize.height() / 2.0 - totalHeight / 2.0;
 		//iconRect.moveTo(std::round(x), std::round(y));
 		//iconNoSources.render(&p, iconRect);
 
-		x = thisSize.width() / 2.0 - textSize.width() / 2.0;
 		//y += spacing + iconSize.height();
 		p.drawStaticText(x, y, textNoSources);
 	} else {
