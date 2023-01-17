@@ -4597,6 +4597,10 @@ void CanvasDock::StartReplayBuffer()
 	obs_output_set_mixers(replayOutput,
 			      obs_output_get_mixers(replay_output));
 	obs_data_t *settings = obs_output_get_settings(replay_output);
+	if(!strlen(obs_data_get_string(settings, "directory"))) {
+		obs_frontend_replay_buffer_start();
+		obs_frontend_replay_buffer_stop();
+	}
 	obs_output_update(replayOutput, settings);
 	obs_data_release(settings);
 
