@@ -22,12 +22,16 @@ set(CMAKE_AUTORCC ON)
 target_sources(${PROJECT_NAME} PRIVATE
 	vertical-canvas.cpp
 	scenes-dock.cpp
+	sources-dock.cpp
+	source-tree.cpp
 	qt-display.cpp
 	config-dialog.cpp
 	name-dialog.cpp
 	resources.qrc
 	vertical-canvas.hpp
 	scenes-dock.hpp
+	sources-dock.hpp
+	source-tree.hpp
 	qt-display.hpp
 	display-helpers.hpp
 	config-dialog.hpp

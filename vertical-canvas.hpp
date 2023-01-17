@@ -15,6 +15,7 @@
 #include "scenes-dock.hpp"
 #include "obs.hpp"
 #include "qt-display.hpp"
+#include "sources-dock.hpp"
 
 #define ITEM_LEFT (1 << 0)
 #define ITEM_RIGHT (1 << 1)
@@ -68,7 +69,10 @@ public:
 class CanvasDock : public QDockWidget {
 	Q_OBJECT
 	friend class CanvasScenesDock;
-
+	friend class CanvasSourcesDock;
+	friend class SourceTree;
+	friend class SourceTreeItem;
+	friend class SourceTreeModel;
 private:
 	QAction *action;
 	QVBoxLayout *mainLayout;
@@ -129,6 +133,8 @@ private:
 	QCheckBox *linkedButton = nullptr;
 	CanvasScenesDock *scenesDock = nullptr;
 	QAction *scenesDockAction = nullptr;
+	CanvasSourcesDock * sourcesDock = nullptr;
+	QAction *sourcesDockAction = nullptr;
 	CanvasConfigDialog *configDialog = nullptr;
 
 	obs_hotkey_pair_id stream_hotkey;
@@ -183,6 +189,7 @@ private:
 	OBSSceneItem GetItemAtPos(const vec2 &pos, bool selectBelow);
 
 	QMenu *CreateAddSourcePopupMenu();
+	void AddSceneItemMenuItems(QMenu* popup, OBSSceneItem sceneItem);
 	void LoadSourceTypeMenu(QMenu *menu, const char *type);
 	QIcon GetIconFromType(enum obs_icon_type icon_type) const;
 	QIcon GetGroupIcon() const;
@@ -285,6 +292,10 @@ private:
 	static bool stop_streaming_hotkey(void *data, obs_hotkey_pair_id id,
 					  obs_hotkey_t *hotkey, bool pressed);
 
+	static void SceneItemAdded(void *data, calldata_t *params);
+	static void SceneReordered(void *data, calldata_t *params);
+	static void SceneRefreshed(void *data, calldata_t *params);
+
 private slots:
 	void AddSourceFromAction();
 	void VirtualCamButtonClicked();
@@ -301,6 +312,9 @@ private slots:
 	void OnReplayBufferStart();
 	void OnReplayBufferStop();
 	void SwitchScene(const QString &scene_name);
+	void AddSceneItem(OBSSceneItem item);
+	void RefreshSources(OBSScene scene);
+	void ReorderSources(OBSScene scene);
 public:
 	CanvasDock(obs_data_t *settings, QWidget *parent = nullptr);
 	~CanvasDock();
@@ -330,4 +344,12 @@ class LockedCheckBox : public QCheckBox {
 public:
 	LockedCheckBox();
 	explicit LockedCheckBox(QWidget *parent);
+};
+
+class VisibilityCheckBox : public QCheckBox {
+	Q_OBJECT
+
+public:
+	VisibilityCheckBox();
+	explicit VisibilityCheckBox(QWidget *parent);
 };
