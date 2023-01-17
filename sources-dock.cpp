@@ -32,7 +32,7 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 	sourceList->setSelectionMode(QAbstractItemView::SingleSelection);
 	sourceList->setContextMenuPolicy(Qt::CustomContextMenu);
 		connect(sourceList, &SourceTree::customContextMenuRequested,
-		[this](const QPoint &pos) {
+		[this] {
 			ShowSourcesContextMenu(GetCurrentSceneItem());
 		});
 

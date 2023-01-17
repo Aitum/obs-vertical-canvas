@@ -67,6 +67,9 @@ public:
 	EventFilterFunc filter;
 };
 
+class CanvasScenesDock;
+class CanvasSourcesDock;
+
 class CanvasDock : public QDockWidget {
 	Q_OBJECT
 	friend class CanvasScenesDock;
