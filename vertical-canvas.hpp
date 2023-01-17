@@ -7,6 +7,7 @@
 #include <qlistwidget.h>
 #include <qpushbutton.h>
 #include <QVBoxLayout>
+#include <QLabel>
 
 #include <graphics/vec2.h>
 #include <graphics/matrix4.h>
@@ -73,6 +74,7 @@ class CanvasDock : public QDockWidget {
 	friend class SourceTree;
 	friend class SourceTreeItem;
 	friend class SourceTreeModel;
+
 private:
 	QAction *action;
 	QVBoxLayout *mainLayout;
@@ -126,6 +128,7 @@ private:
 	QIcon recordActiveIcon = QIcon(":/aitum/media/recording.svg");
 	QIcon recordInactiveIcon = QIcon(":/aitum/media/record.svg");
 	QPushButton *replayButton;
+	QLabel *statusLabel;
 	QPushButton *streamButton;
 	QIcon streamActiveIcon = QIcon(":/aitum/media/streaming.svg");
 	QIcon streamInactiveIcon = QIcon(":/aitum/media/stream.svg");
@@ -133,7 +136,7 @@ private:
 	QCheckBox *linkedButton = nullptr;
 	CanvasScenesDock *scenesDock = nullptr;
 	QAction *scenesDockAction = nullptr;
-	CanvasSourcesDock * sourcesDock = nullptr;
+	CanvasSourcesDock *sourcesDock = nullptr;
 	QAction *sourcesDockAction = nullptr;
 	CanvasConfigDialog *configDialog = nullptr;
 
@@ -189,7 +192,7 @@ private:
 	OBSSceneItem GetItemAtPos(const vec2 &pos, bool selectBelow);
 
 	QMenu *CreateAddSourcePopupMenu();
-	void AddSceneItemMenuItems(QMenu* popup, OBSSceneItem sceneItem);
+	void AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem);
 	void LoadSourceTypeMenu(QMenu *menu, const char *type);
 	QIcon GetIconFromType(enum obs_icon_type icon_type) const;
 	QIcon GetGroupIcon() const;
@@ -273,6 +276,7 @@ private:
 	static void record_output_stopping(void *p, calldata_t *calldata);
 	static void replay_output_start(void *p, calldata_t *calldata);
 	static void replay_output_stop(void *p, calldata_t *calldata);
+	static void replay_saved(void *p, calldata_t *calldata);
 	static void stream_output_start(void *p, calldata_t *calldata);
 	static void stream_output_stop(void *p, calldata_t *calldata);
 	static void source_rename(void *p, calldata_t *calldata);
@@ -307,6 +311,7 @@ private slots:
 	void OnVirtualCamStop();
 	void OnRecordStart();
 	void OnRecordStop(int code, QString last_error);
+	void OnReplaySaved();
 	void OnStreamStart();
 	void OnStreamStop(int code, QString last_error);
 	void OnReplayBufferStart();
@@ -315,6 +320,7 @@ private slots:
 	void AddSceneItem(OBSSceneItem item);
 	void RefreshSources(OBSScene scene);
 	void ReorderSources(OBSScene scene);
+
 public:
 	CanvasDock(obs_data_t *settings, QWidget *parent = nullptr);
 	~CanvasDock();

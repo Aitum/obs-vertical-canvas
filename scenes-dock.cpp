@@ -212,8 +212,8 @@ CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent)
 {
 	const auto scenesName = canvasDock->objectName() + "Scenes";
 	setObjectName(scenesName);
-	const auto scenesTitle = QString::fromUtf8(obs_module_text("Scenes")) +
-				 " " + canvasDock->windowTitle();
+	const auto scenesTitle = canvasDock->windowTitle() + " " +
+				 QString::fromUtf8(obs_module_text("Scenes"));
 	setWindowTitle(scenesTitle);
 
 	auto mainLayout = new QVBoxLayout(this);
