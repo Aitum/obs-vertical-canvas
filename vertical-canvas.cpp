@@ -2336,10 +2336,10 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 			 [source] {
 				 obs_frontend_open_source_filters(source);
 			 });
-	action = popup->addAction(
+	auto a = popup->addAction(
 		QString::fromUtf8(obs_module_text("Properties")), this,
 		[source] { obs_frontend_open_source_properties(source); });
-	action->setEnabled(obs_source_configurable(source));
+	a->setEnabled(obs_source_configurable(source));
 }
 
 bool CanvasDock::HandleMouseReleaseEvent(QMouseEvent *event)

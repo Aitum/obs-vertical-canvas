@@ -31,33 +31,33 @@ bool CanvasScenesDock::IsGridMode()
 
 void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 {
-	auto menu = new QMenu(this);
+	auto menu = QMenu(this);
 	auto a =
-		menu->addAction(QString::fromUtf8(obs_module_text("GridMode")),
+		menu.addAction(QString::fromUtf8(obs_module_text("GridMode")),
 				[this](bool checked) { SetGridMode(checked); });
 	a->setCheckable(true);
 	a->setChecked(IsGridMode());
-	menu->addAction(QString::fromUtf8(obs_module_text("Add")),
+	menu.addAction(QString::fromUtf8(obs_module_text("Add")),
 			[this] { canvasDock->AddScene(); });
 	if (!item) {
-		menu->exec(QCursor::pos());
+		menu.exec(QCursor::pos());
 		return;
 	}
-	menu->addSeparator();
-	menu->addAction(QString::fromUtf8(obs_module_text("Duplicate")),
+	menu.addSeparator();
+	menu.addAction(QString::fromUtf8(obs_module_text("Duplicate")),
 			[this] {
 				const auto item = sceneList->currentItem();
 				if (!item)
 					return;
 				canvasDock->AddScene(item->text());
 			});
-	menu->addAction(QString::fromUtf8(obs_module_text("Remove")), [this] {
+	menu.addAction(QString::fromUtf8(obs_module_text("Remove")), [this] {
 		auto item = sceneList->currentItem();
 		if (!item)
 			return;
 		canvasDock->RemoveScene(item->text());
 	});
-	menu->addAction(QString::fromUtf8(obs_module_text("Rename")), [this] {
+	menu.addAction(QString::fromUtf8(obs_module_text("Rename")), [this] {
 		const auto item = sceneList->currentItem();
 		if (!item)
 			return;
@@ -79,7 +79,7 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 		obs_source_release(source);
 	});
 	auto orderMenu =
-		menu->addMenu(QString::fromUtf8(obs_module_text("Order")));
+		menu.addMenu(QString::fromUtf8(obs_module_text("Order")));
 	orderMenu->addAction(QString::fromUtf8(obs_module_text("Up")),
 			     [this] { ChangeSceneIndex(true, -1, 0); });
 	orderMenu->addAction(
@@ -91,7 +91,7 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 		QString::fromUtf8(obs_module_text("Bottom")),
 		[this] { ChangeSceneIndex(false, 1, sceneList->count() - 1); });
 
-	menu->addAction(QString::fromUtf8(obs_module_text("Screenshot")),
+	menu.addAction(QString::fromUtf8(obs_module_text("Screenshot")),
 			[this] {
 				auto item = sceneList->currentItem();
 				if (!item)
@@ -103,7 +103,7 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 					obs_source_release(s);
 				}
 			});
-	menu->addAction(QString::fromUtf8(obs_module_text("Filters")), [this] {
+	menu.addAction(QString::fromUtf8(obs_module_text("Filters")), [this] {
 		auto item = sceneList->currentItem();
 		if (!item)
 			return;
@@ -115,7 +115,7 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 		}
 	});
 
-	auto linkedScenesMenu = menu->addMenu(
+	auto linkedScenesMenu = menu.addMenu(
 		QString::fromUtf8(obs_module_text("LinkedScenes")));
 	connect(linkedScenesMenu, &QMenu::aboutToShow, [linkedScenesMenu, this] {
 		linkedScenesMenu->clear();
@@ -185,7 +185,7 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 		obs_frontend_source_list_free(&scenes);
 	});
 	if (canvasDock->hideScenes) {
-		menu->addAction(
+		menu.addAction(
 			QString::fromUtf8(obs_module_text("OnMainCanvas")),
 			[this] {
 				auto item = sceneList->currentItem();
@@ -204,7 +204,7 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 				obs_source_release(s);
 			});
 	}
-	menu->exec(QCursor::pos());
+	menu.exec(QCursor::pos());
 }
 
 CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent)

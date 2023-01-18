@@ -79,7 +79,7 @@ class CanvasDock : public QDockWidget {
 	friend class SourceTreeModel;
 
 private:
-	QAction *action;
+	QPointer<QAction> action;
 	QVBoxLayout *mainLayout;
 	OBSQTDisplay *preview;
 	OBSWeakSource source;

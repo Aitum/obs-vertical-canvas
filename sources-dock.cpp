@@ -10,8 +10,6 @@
 #include "obs-module.h"
 #include "vertical-canvas.hpp"
 
-
-
 CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 	: QDockWidget(parent), canvasDock(canvas_dock)
 {
@@ -31,10 +29,8 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 	sourceList->setFrameShadow(QFrame::Plain);
 	sourceList->setSelectionMode(QAbstractItemView::SingleSelection);
 	sourceList->setContextMenuPolicy(Qt::CustomContextMenu);
-		connect(sourceList, &SourceTree::customContextMenuRequested,
-		[this] {
-			ShowSourcesContextMenu(GetCurrentSceneItem());
-		});
+	connect(sourceList, &SourceTree::customContextMenuRequested,
+		[this] { ShowSourcesContextMenu(GetCurrentSceneItem()); });
 
 	mainLayout->addWidget(sourceList, 1);
 
@@ -194,15 +190,14 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 
 CanvasSourcesDock::~CanvasSourcesDock() {}
 
-void CanvasSourcesDock::ShowSourcesContextMenu(obs_sceneitem_t * item)
+void CanvasSourcesDock::ShowSourcesContextMenu(obs_sceneitem_t *item)
 {
-	auto menu = new QMenu(this);
-
-	menu->addMenu(canvasDock->CreateAddSourcePopupMenu());
-	if(item) {
-		canvasDock->AddSceneItemMenuItems(menu, item);
+	auto menu = QMenu(this);
+	auto a = menu.addMenu(canvasDock->CreateAddSourcePopupMenu());
+	if (item) {
+		canvasDock->AddSceneItemMenuItems(&menu, item);
 	}
-	menu->exec(QCursor::pos());
+	menu.exec(QCursor::pos());
 }
 
 bool CanvasSourcesDock::remove_items(obs_scene_t *, obs_sceneitem_t *item,
