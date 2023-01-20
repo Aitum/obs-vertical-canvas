@@ -193,7 +193,7 @@ CanvasSourcesDock::~CanvasSourcesDock() {}
 void CanvasSourcesDock::ShowSourcesContextMenu(obs_sceneitem_t *item)
 {
 	auto menu = QMenu(this);
-	auto a = menu.addMenu(canvasDock->CreateAddSourcePopupMenu());
+	menu.addMenu(canvasDock->CreateAddSourcePopupMenu());
 	if (item) {
 		canvasDock->AddSceneItemMenuItems(&menu, item);
 	}
