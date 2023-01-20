@@ -27,9 +27,6 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	listWidget = new QListWidget(this);
 	listWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
 	listWidget->setMaximumWidth(120);
-	//auto w = listWidget->minimumWidth();
-	auto m = listWidget->maximumWidth();
-	auto w = listWidget->width();
 	QListWidgetItem *listwidgetitem = new QListWidgetItem(listWidget);
 	listwidgetitem->setIcon(QIcon(
 		QString::fromUtf8(":/settings/images/settings/general.svg")));
@@ -588,6 +585,7 @@ OBSBasicSettings::GetHotKeysFromOutput(obs_output_t *obs_output)
 	t.output = obs_output_get_weak_output(canvasDock->replayOutput);
 	obs_enum_hotkeys(
 		[](void *data, obs_hotkey_id id, obs_hotkey_t *key) {
+			UNUSED_PARAMETER(id);
 			if (obs_hotkey_get_registerer_type(key) !=
 			    OBS_HOTKEY_REGISTERER_OUTPUT)
 				return true;
@@ -615,6 +613,7 @@ OBSBasicSettings::GetCombosForHotkey(obs_hotkey_id hotkey)
 	find_combos t = {hotkey, {}};
 	obs_enum_hotkey_bindings(
 		[](void *data, size_t idx, obs_hotkey_binding_t *binding) {
+			UNUSED_PARAMETER(idx);
 			auto t = (struct find_combos *)data;
 			if (t->hotkey ==
 			    obs_hotkey_binding_get_hotkey_id(binding)) {
@@ -660,6 +659,7 @@ obs_hotkey_t *OBSBasicSettings::GetHotkeyByName(QString name)
 	t.name = n.constData();
 	obs_enum_hotkeys(
 		[](void *data, obs_hotkey_id id, obs_hotkey_t *key) {
+			UNUSED_PARAMETER(id);
 			const auto hp = (struct find_hotkey *)data;
 			const auto hn = obs_hotkey_get_name(key);
 			if (strcmp(hp->name, hn) == 0)
