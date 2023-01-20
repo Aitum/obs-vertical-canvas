@@ -190,7 +190,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		}
 		hotkeys.push_back(hw);
 	}
-	auto maxWidth = 150;
+	auto maxWidth = 180;
 	for (int row = 0; row < generalLayout->rowCount(); row++) {
 		auto item = generalLayout->itemAt(row, QFormLayout::LabelRole);
 		if (!item)
@@ -575,14 +575,14 @@ void OBSBasicSettings::SetEncoderBitrate(obs_encoder_t *encoder)
 }
 
 std::vector<obs_hotkey_t *>
-OBSBasicSettings::GetHotKeysFromOutput(obs_output_t *obs_output)
+OBSBasicSettings::GetHotKeysFromOutput(obs_output_t *output)
 {
 	struct find_hotkey {
 		std::vector<obs_hotkey_t *> hotkeys;
 		obs_weak_output_t *output;
 	};
 	find_hotkey t = {};
-	t.output = obs_output_get_weak_output(canvasDock->replayOutput);
+	t.output = obs_output_get_weak_output(output);
 	obs_enum_hotkeys(
 		[](void *data, obs_hotkey_id id, obs_hotkey_t *key) {
 			UNUSED_PARAMETER(id);

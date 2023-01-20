@@ -227,9 +227,11 @@ void OBSHotkeyEdit::InitSignalHandler()
 
 void OBSHotkeyEdit::CreateDupeIcon()
 {
-	dupeIcon = addAction(QIcon::fromTheme("obs", QIcon(":/res/images/warning.svg")),
-			     ActionPosition::TrailingPosition);
-	dupeIcon->setToolTip(QString::fromUtf8(obs_module_text("Basic.Settings.Hotkeys.DuplicateWarning")));
+	dupeIcon = addAction(
+		QIcon::fromTheme("obs", QIcon(":/res/images/warning.svg")),
+		ActionPosition::TrailingPosition);
+	dupeIcon->setToolTip(
+		QString::fromUtf8(obs_module_text("DuplicateWarning")));
 	QObject::connect(dupeIcon, &QAction::triggered,
 			 [=] { emit SearchKey(key); });
 	dupeIcon->setVisible(false);
