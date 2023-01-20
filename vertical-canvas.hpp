@@ -37,18 +37,6 @@ enum class ItemHandle : uint32_t {
 	Rot = ITEM_ROT
 };
 
-enum replayMode {
-	REPLAY_MODE_NONE = 0,
-	REPLAY_MODE_START = 1,
-	REPLAY_MODE_RECORDING = 2,
-	REPLAY_MODE_STREAMING = 3,
-	REPLAY_MODE_VIRTUAL_CAMERA = 4,
-	REPLAY_MODE_ANY = 5,
-	REPLAY_MODE_MAIN_RECORDING = 6,
-	REPLAY_MODE_MAIN_STREAMING = 7,
-	REPLAY_MODE_MAIN_VIRTUAL_CAMERA = 8,
-	REPLAY_MODE_MAIN_ANY = 9,
-};
 
 typedef std::function<bool(QObject *, QEvent *)> EventFilterFunc;
 
@@ -77,6 +65,7 @@ class CanvasDock : public QDockWidget {
 	friend class SourceTree;
 	friend class SourceTreeItem;
 	friend class SourceTreeModel;
+	friend class OBSBasicSettings;
 
 private:
 	QPointer<QAction> action;
@@ -135,13 +124,16 @@ private:
 	QPushButton *streamButton;
 	QIcon streamActiveIcon = QIcon(":/aitum/media/streaming.svg");
 	QIcon streamInactiveIcon = QIcon(":/aitum/media/stream.svg");
+
+	QIcon replayActiveIcon = QIcon(":/aitum/media/backtrack_on.svg");
+	QIcon replayInactiveIcon = QIcon(":/aitum/media/backtrack_off.svg");
 	QComboBox *scenesCombo = nullptr;
 	QCheckBox *linkedButton = nullptr;
 	CanvasScenesDock *scenesDock = nullptr;
 	QAction *scenesDockAction = nullptr;
 	CanvasSourcesDock *sourcesDock = nullptr;
 	QAction *sourcesDockAction = nullptr;
-	CanvasConfigDialog *configDialog = nullptr;
+	OBSBasicSettings *configDialog = nullptr;
 
 	obs_hotkey_pair_id stream_hotkey;
 	obs_hotkey_pair_id record_hotkey;
@@ -153,11 +145,21 @@ private:
 	obs_output_t *streamOutput = nullptr;
 
 	obs_service_t *stream_service = nullptr;
-	QString stream_key;
-	QString stream_server;
+
 	uint32_t canvas_width;
 	uint32_t canvas_height;
 	bool hideScenes;
+	uint32_t videoBitrate;
+	uint32_t audioBitrate;
+	bool startReplay;
+	uint32_t replayDuration;
+	std::string replayPath;
+
+	std::string stream_key;
+	std::string stream_server;
+
+	std::string recordPath;
+
 	QString currentSceneName;
 	bool first_time = false;
 
@@ -173,8 +175,6 @@ private:
 
 	OBSSourceAutoRelease spacerLabel[4];
 	int spacerPx[4] = {0};
-
-	enum replayMode replay_mode = REPLAY_MODE_NONE;
 
 	inline bool IsFixedScaling() const { return fixedScaling; }
 
@@ -260,6 +260,8 @@ private:
 	void AddScene(QString duplicate = "");
 	void RemoveScene(const QString &sceneName);
 	void SetLinkedScene(obs_source_t *scene, const QString &linkedScene);
+	bool HasScene(QString scene) const;
+	void CheckReplayBuffer(bool start = false);
 	QListWidget *GetGlobalScenesList();
 
 	static bool DrawSelectedOverflow(obs_scene_t *scene,

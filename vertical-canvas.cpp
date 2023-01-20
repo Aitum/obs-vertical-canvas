@@ -1,4 +1,3 @@
-
 #include "vertical-canvas.hpp"
 
 #include <list>
@@ -431,6 +430,47 @@ void CanvasDock::SetLinkedScene(obs_source_t *scene, const QString &linkedScene)
 	obs_data_array_release(c);
 }
 
+bool CanvasDock::HasScene(QString scene) const
+{
+	if (scenesCombo) {
+		for (int i = 0; i < scenesCombo->count(); i++) {
+			if (scene == scenesCombo->itemText(i)) {
+				return true;
+			}
+		}
+	}
+	if (scenesDock) {
+		for (int i = 0; i < scenesDock->sceneList->count(); i++) {
+			if (scene == scenesDock->sceneList->item(i)->text()) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+void CanvasDock::CheckReplayBuffer(bool start)
+{
+	struct check_output {
+		obs_output_t *output;
+		bool found;
+	};
+	struct check_output t = {replayOutput, false};
+	obs_enum_outputs(
+		[](void *b, obs_output_t *output) {
+			auto t = (struct check_output *)b;
+			if (t->output == output || !obs_output_active(output))
+				return true;
+			t->found = true;
+			return false;
+		},
+		&t);
+	if (!start && !t.found)
+		StopReplayBuffer();
+	if (start && t.found)
+		StartReplayBuffer();
+}
+
 void CanvasDock::CreateScenesRow()
 {
 	const auto sceneRow = new QHBoxLayout(this);
@@ -476,8 +516,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	if (!settings) {
 		settings = obs_data_create();
-		obs_data_set_int(settings, "replay_buffer_mode",
-				 REPLAY_MODE_MAIN_ANY);
+		obs_data_set_bool(settings, "backtrack", true);
 		first_time = true;
 	}
 
@@ -488,12 +527,19 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		canvas_width = 1080;
 		canvas_height = 1920;
 	}
-	stream_server = QString::fromUtf8(
-		obs_data_get_string(settings, "stream_server"));
-	stream_key =
-		QString::fromUtf8(obs_data_get_string(settings, "stream_key"));
+	videoBitrate = (uint32_t)obs_data_get_int(settings, "video_bitrate");
+	audioBitrate = (uint32_t)obs_data_get_int(settings, "audio_bitrate");
+	startReplay = obs_data_get_bool(settings, "backtrack");
+	replayDuration =
+		(uint32_t)obs_data_get_int(settings, "backtrack_seconds");
+	replayPath = obs_data_get_string(settings, "backtrack_path");
 
-	QString title = QString::fromUtf8(obs_module_text("Vertical"));
+	stream_server = obs_data_get_string(settings, "stream_server");
+	stream_key = obs_data_get_string(settings, "stream_key");
+
+	recordPath = obs_data_get_string(settings, "record_path");
+
+	const QString title = QString::fromUtf8(obs_module_text("Vertical"));
 	setWindowTitle(title);
 
 	const QString name = "CanvasDock" + QString::number(canvas_width) +
@@ -506,6 +552,16 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	dockWidgetContents->setLayout(mainLayout);
 
 	setWidget(dockWidgetContents);
+
+	const QString replayName =
+		title + " " + QString::fromUtf8(obs_module_text("Backtrack"));
+	auto hotkeyData = obs_data_get_obj(settings, "backtrack_hotkeys");
+	replayOutput = obs_output_create("replay_buffer",
+					 replayName.toUtf8().constData(),
+					 nullptr, hotkeyData);
+	obs_data_release(hotkeyData);
+	auto rpsh = obs_output_get_signal_handler(replayOutput);
+	signal_handler_connect(rpsh, "saved", replay_saved, this);
 
 	if (obs_data_get_bool(settings, "scenes_row")) {
 		CreateScenesRow();
@@ -567,9 +623,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	replayButton = new QPushButton;
 	replayButton->setObjectName(QStringLiteral("canvasReplay"));
-	replayButton->setEnabled(false);
+	replayButton->setIcon(replayInactiveIcon);
 	replayButton->setSizePolicy(sp2);
-	replayButton->setProperty("themeID", QStringLiteral("replayIconSmall"));
 	connect(replayButton, SIGNAL(clicked()), this,
 		SLOT(ReplayButtonClicked()));
 	buttonRow->addWidget(replayButton);
@@ -629,9 +684,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	//signal_handler_connect(sh, "source_create", source_create, this);
 	//signal_handler_connect(sh, "source_load", source_load, this);
 	signal_handler_connect(sh, "source_save", source_save, this);
-
-	replay_mode = (enum replayMode)obs_data_get_int(settings,
-							"replay_buffer_mode");
 
 	virtual_cam_hotkey = obs_hotkey_pair_register_frontend(
 		(name + "StartVirtualCam").toUtf8().constData(),
@@ -4016,9 +4068,7 @@ void CanvasDock::virtual_cam_output_start(void *data, calldata_t *calldata)
 {
 	UNUSED_PARAMETER(calldata);
 	auto d = static_cast<CanvasDock *>(data);
-	if (d->replay_mode == REPLAY_MODE_VIRTUAL_CAMERA ||
-	    d->replay_mode == REPLAY_MODE_ANY)
-		d->StartReplayBuffer();
+	d->StartReplayBuffer();
 	QMetaObject::invokeMethod(d, "OnVirtualCamStart");
 }
 
@@ -4033,11 +4083,6 @@ void CanvasDock::virtual_cam_output_stop(void *data, calldata_t *calldata)
 	signal_handler_disconnect(signal, "stop", virtual_cam_output_stop, d);
 	obs_output_release(d->virtualCamOutput);
 	d->virtualCamOutput = nullptr;
-	if (d->replay_mode == REPLAY_MODE_VIRTUAL_CAMERA ||
-	    (d->replay_mode == REPLAY_MODE_ANY &&
-	     !obs_output_active(d->streamOutput) &&
-	     !obs_output_active(d->recordOutput)))
-		d->StopReplayBuffer();
 	d->DestroyVideo();
 }
 
@@ -4062,9 +4107,7 @@ void CanvasDock::VirtualCamButtonClicked()
 
 void CanvasDock::StartVirtualCam()
 {
-	if (replay_mode == REPLAY_MODE_VIRTUAL_CAMERA ||
-	    replay_mode == REPLAY_MODE_ANY)
-		StartReplayBuffer();
+	StartReplayBuffer();
 	const auto output = obs_frontend_get_virtualcam_output();
 	if (obs_output_active(output)) {
 		if (!virtualCamOutput)
@@ -4106,142 +4149,12 @@ void CanvasDock::StopVirtualCam()
 
 void CanvasDock::ConfigButtonClicked()
 {
-	if (!configDialog)
-		configDialog = new CanvasConfigDialog(
-			(QMainWindow *)obs_frontend_get_main_window());
-	configDialog->hideScenes->setChecked(hideScenes);
-	configDialog->resolution->setCurrentText(
-		QString::number(canvas_width) + "x" +
-		QString::number(canvas_height));
-	configDialog->resolution->setEnabled(
-		!obs_output_active(recordOutput) &&
-		!obs_output_active(streamOutput) &&
-		!obs_output_active(virtualCamOutput));
-	configDialog->replayBuffer->setCurrentIndex(replay_mode);
-	configDialog->key->setEchoMode(QLineEdit::Password);
-	configDialog->key->setText(stream_key);
-	configDialog->server->setCurrentText(stream_server);
-	const auto result = configDialog->exec();
-	if (result == 1) {
-		if (hideScenes != configDialog->hideScenes->isChecked()) {
-			hideScenes = configDialog->hideScenes->isChecked();
-			auto sl = GetGlobalScenesList();
-			for (int j = 0; j < sl->count(); j++) {
-				auto item = sl->item(j);
-				if (scenesCombo) {
-					for (int i = 0;
-					     i < scenesCombo->count(); i++) {
-						if (item->text() ==
-						    scenesCombo->itemText(i)) {
-							item->setHidden(
-								hideScenes);
-						}
-					}
-				}
-				if (scenesDock) {
-					for (int i = 0;
-					     i < scenesDock->sceneList->count();
-					     i++) {
-						if (item->text() ==
-						    scenesDock->sceneList
-							    ->item(i)
-							    ->text()) {
-							item->setHidden(
-								hideScenes);
-						}
-					}
-				}
-			}
-		}
-		const auto res = configDialog->resolution->currentText();
-		uint32_t width, height;
-		if (sscanf(res.toUtf8().constData(), "%dx%d", &width,
-			   &height) == 2 &&
-		    width && height && width != canvas_width &&
-		    height != canvas_height) {
-			if (obs_output_active(replayOutput))
-				obs_output_stop(replayOutput);
-			DestroyVideo();
-
-			obs_weak_source_release(source);
-			source = nullptr;
-			scene = nullptr;
-
-			canvas_width = width;
-			canvas_height = height;
-
-			QString title = QString::fromUtf8(
-				obs_module_text("VerticalCanvas"));
-			setWindowTitle(title);
-
-			const QString name =
-				"CanvasDock" + QString::number(canvas_width) +
-				"x" + QString::number(canvas_height);
-			setObjectName(name);
-
-			if (scenesDock)
-				scenesDock->setObjectName(name + "Scenes");
-
-			LoadScenes();
-		}
-		replay_mode =
-			(enum replayMode)
-				configDialog->replayBuffer->currentIndex();
-		if (replay_mode == REPLAY_MODE_NONE) {
-			if (obs_output_active(replayOutput))
-				StopReplayBuffer();
-		} else if (replay_mode == REPLAY_MODE_START) {
-			if (!obs_output_active(replayOutput))
-				StartReplayBuffer();
-		} else if (replay_mode == REPLAY_MODE_RECORDING) {
-			if (obs_output_active(replayOutput) &&
-			    !obs_output_active(recordOutput)) {
-				StopReplayBuffer();
-			} else if (!obs_output_active(replayOutput) &&
-				   obs_output_active(recordOutput)) {
-				StartReplayBuffer();
-			}
-		} else if (replay_mode == REPLAY_MODE_STREAMING) {
-			if (obs_output_active(replayOutput) &&
-			    !obs_output_active(streamOutput)) {
-				StopReplayBuffer();
-			} else if (!obs_output_active(replayOutput) &&
-				   obs_output_active(streamOutput)) {
-				StartReplayBuffer();
-			}
-		} else if (replay_mode == REPLAY_MODE_VIRTUAL_CAMERA) {
-			if (obs_output_active(replayOutput) &&
-			    !obs_output_active(virtualCamOutput)) {
-				StopReplayBuffer();
-			} else if (!obs_output_active(replayOutput) &&
-				   obs_output_active(virtualCamOutput)) {
-				StartReplayBuffer();
-			}
-		} else if (replay_mode == REPLAY_MODE_ANY) {
-			if (obs_output_active(replayOutput) &&
-			    !obs_output_active(virtualCamOutput) &&
-			    !obs_output_active(streamOutput) &&
-			    !obs_output_active(recordOutput)) {
-				StopReplayBuffer();
-			} else if (!obs_output_active(replayOutput) &&
-				   (obs_output_active(virtualCamOutput) ||
-				    obs_output_active(streamOutput) ||
-				    obs_output_active(recordOutput))) {
-				StartReplayBuffer();
-			}
-		}
-		const auto sk = configDialog->key->text();
-		const auto ss = configDialog->server->currentText();
-		if (sk != stream_key || ss != stream_server) {
-			stream_key = sk;
-			stream_server = ss;
-			if (obs_output_active(streamOutput)) {
-				//TODO restart
-				//StopStream();
-				//StartStream();
-			}
-		}
+	if (!configDialog) {
+		configDialog = new OBSBasicSettings(
+			this, (QMainWindow *)obs_frontend_get_main_window());
 	}
+	configDialog->LoadSettings();
+	configDialog->exec();
 }
 
 void CanvasDock::ReplayButtonClicked()
@@ -4326,9 +4239,7 @@ void CanvasDock::RecordButtonClicked()
 
 void CanvasDock::StartRecord()
 {
-	if (replay_mode == REPLAY_MODE_RECORDING ||
-	    replay_mode == REPLAY_MODE_ANY)
-		StartReplayBuffer();
+	StartReplayBuffer();
 	if (obs_output_active(recordOutput))
 		return;
 
@@ -4420,6 +4331,17 @@ void CanvasDock::StartRecord()
 
 	obs_data_t *d = obs_encoder_get_settings(enc);
 	obs_encoder_update(video_encoder, d);
+	if (!videoBitrate) {
+		videoBitrate = (uint32_t)obs_data_get_int(d, "bitrate");
+	} else {
+		auto s = obs_encoder_get_settings(video_encoder);
+		if (videoBitrate != obs_data_get_int(s, "bitrate")) {
+			obs_data_set_int(s, "bitrate", videoBitrate);
+			obs_encoder_update(video_encoder, nullptr);
+		}
+		obs_data_release(s);
+	}
+
 	obs_data_release(d);
 
 	obs_output_set_video_encoder(recordOutput, video_encoder);
@@ -4451,6 +4373,11 @@ void CanvasDock::StartRecord()
 	char path[512];
 	char *filename = os_generate_formatted_filename(
 		ffmpegOutput ? "avi" : format, true, filenameFormat);
+	if(!strlen(recordPath.c_str()) && dir) {
+		recordPath = dir;
+	}else {
+		dir = recordPath.c_str();
+	}
 	snprintf(path, 512, "%s/%s", dir, filename);
 	bfree(filename);
 	ensure_directory(path);
@@ -4484,9 +4411,7 @@ void CanvasDock::record_output_start(void *data, calldata_t *calldata)
 {
 	UNUSED_PARAMETER(calldata);
 	auto d = static_cast<CanvasDock *>(data);
-	if (d->replay_mode == REPLAY_MODE_RECORDING ||
-	    d->replay_mode == REPLAY_MODE_ANY)
-		d->StartReplayBuffer();
+	d->StartReplayBuffer();
 	QMetaObject::invokeMethod(d, "OnRecordStart");
 }
 
@@ -4499,11 +4424,6 @@ void CanvasDock::record_output_stop(void *data, calldata_t *calldata)
 	auto d = static_cast<CanvasDock *>(data);
 	QMetaObject::invokeMethod(d, "OnRecordStop", Q_ARG(int, code),
 				  Q_ARG(QString, arg_last_error));
-	if (d->replay_mode == REPLAY_MODE_RECORDING ||
-	    (d->replay_mode == REPLAY_MODE_ANY &&
-	     !obs_output_active(d->streamOutput) &&
-	     !obs_output_active(d->virtualCamOutput)))
-		d->StopReplayBuffer();
 	d->DestroyVideo();
 }
 
@@ -4511,11 +4431,7 @@ void CanvasDock::record_output_stopping(void *data, calldata_t *calldata)
 {
 	UNUSED_PARAMETER(calldata);
 	auto d = static_cast<CanvasDock *>(data);
-	if (d->replay_mode == REPLAY_MODE_RECORDING ||
-	    (d->replay_mode == REPLAY_MODE_ANY &&
-	     !obs_output_active(d->streamOutput) &&
-	     !obs_output_active(d->virtualCamOutput)))
-		d->StopReplayBuffer();
+	d->CheckReplayBuffer();
 }
 
 void CanvasDock::replay_saved(void *data, calldata_t *calldata)
@@ -4527,7 +4443,7 @@ void CanvasDock::replay_saved(void *data, calldata_t *calldata)
 
 void CanvasDock::StartReplayBuffer()
 {
-	if (obs_output_active(replayOutput))
+	if (!startReplay || obs_output_active(replayOutput))
 		return;
 
 	obs_output_t *replay_output = obs_frontend_get_replay_buffer_output();
@@ -4544,19 +4460,6 @@ void CanvasDock::StartReplayBuffer()
 		return;
 	}
 
-	if (!replayOutput) {
-		const QString name =
-			QString::fromUtf8(obs_module_text("VerticalCanvas")) +
-			" (" + QString::number(canvas_width) + "x" +
-			QString::number(canvas_height) + ") " +
-			QString::fromUtf8(obs_module_text("Replay"));
-		replayOutput = obs_output_create(
-			obs_output_get_id(replay_output),
-			name.toUtf8().constData(), nullptr, nullptr);
-		auto sh = obs_output_get_signal_handler(replayOutput);
-		signal_handler_connect(sh, "saved", replay_saved, this);
-	}
-
 	obs_output_set_mixers(replayOutput,
 			      obs_output_get_mixers(replay_output));
 	obs_data_t *settings = obs_output_get_settings(replay_output);
@@ -4565,7 +4468,28 @@ void CanvasDock::StartReplayBuffer()
 		obs_frontend_replay_buffer_stop();
 	}
 	obs_output_update(replayOutput, settings);
+	bool changedSettings = false;
+	if (!replayDuration) {
+		replayDuration = obs_data_get_int(settings, "max_time_sec");
+	} else if (obs_data_get_int(settings, "max_time_sec") !=
+		   replayDuration) {
+		const auto s = obs_output_get_settings(replayOutput);
+		obs_data_set_int(s, "max_time_sec", replayDuration);
+		obs_data_release(s);
+		changedSettings = true;
+	}
+	if (!strlen(replayPath.c_str())) {
+		replayPath = obs_data_get_string(settings, "directory");
+	} else if (strcmp(replayPath.c_str(),
+			  obs_data_get_string(settings, "directory")) != 0) {
+		const auto s = obs_output_get_settings(replayOutput);
+		obs_data_set_string(s, "directory", replayPath.c_str());
+		obs_data_release(s);
+		changedSettings = true;
+	}
 	obs_data_release(settings);
+	if (changedSettings)
+		obs_output_update(replayOutput, nullptr);
 
 	obs_encoder_t *video_encoder =
 		obs_output_get_video_encoder(replayOutput);
@@ -4591,8 +4515,18 @@ void CanvasDock::StartReplayBuffer()
 						       VIDEO_FORMAT_NV12);
 	}
 
-	obs_data_t *d = obs_encoder_get_settings(video_encoder);
+	obs_data_t *d = obs_encoder_get_settings(enc);
 	obs_encoder_update(video_encoder, d);
+	if (!videoBitrate) {
+		videoBitrate = (uint32_t)obs_data_get_int(d, "bitrate");
+	} else {
+		auto s = obs_encoder_get_settings(video_encoder);
+		if (videoBitrate != obs_data_get_int(s, "bitrate")) {
+			obs_data_set_int(s, "bitrate", videoBitrate);
+			obs_encoder_update(video_encoder, nullptr);
+		}
+		obs_data_release(s);
+	}
 	obs_data_release(d);
 
 	obs_output_set_video_encoder(replayOutput, video_encoder);
@@ -4715,9 +4649,7 @@ const char *get_simple_output_encoder(const char *encoder)
 
 void CanvasDock::StartStream()
 {
-	if (replay_mode == REPLAY_MODE_STREAMING ||
-	    replay_mode == REPLAY_MODE_ANY)
-		StartReplayBuffer();
+	StartReplayBuffer();
 	if (obs_output_active(streamOutput))
 		return;
 
@@ -4729,8 +4661,8 @@ void CanvasDock::StartStream()
 			nullptr, nullptr);
 
 	auto s = obs_data_create();
-	obs_data_set_string(s, "server", stream_server.toUtf8().constData());
-	obs_data_set_string(s, "key", stream_key.toUtf8().constData());
+	obs_data_set_string(s, "server", stream_server.c_str());
+	obs_data_set_string(s, "key", stream_key.c_str());
 	//use_auth
 	//username
 	//password
@@ -4767,7 +4699,6 @@ void CanvasDock::StartStream()
 	//"lookahead"
 
 	const auto audio_settings = obs_data_create();
-	//"bitrate"
 
 	config_t *config = obs_frontend_get_profile_config();
 	const char *mode = config_get_string(config, "Output", "Mode");
@@ -4784,24 +4715,32 @@ void CanvasDock::StartStream()
 		const char *recordEncoder =
 			config_get_string(config, "AdvOut", "RecEncoder");
 		useRecordEncoder = astrcmpi(recordEncoder, "none") == 0;
-
-		uint64_t streamTrack =
-			config_get_uint(config, "AdvOut", "TrackIndex");
-		static const char *trackNames[] = {
-			"Track1Bitrate", "Track2Bitrate", "Track3Bitrate",
-			"Track4Bitrate", "Track5Bitrate", "Track6Bitrate",
-		};
-		const int audioBitrate = (int)config_get_uint(
-			config, "AdvOut", trackNames[streamTrack - 1]);
-		obs_data_set_int(audio_settings, "bitrate", audioBitrate);
-
+		if (!videoBitrate) {
+			videoBitrate = (uint32_t)obs_data_get_int(
+				video_settings, "bitrate");
+		} else {
+			obs_data_set_int(video_settings, "bitrate",
+					 videoBitrate);
+		}
+		if (!audioBitrate) {
+			uint64_t streamTrack =
+				config_get_uint(config, "AdvOut", "TrackIndex");
+			static const char *trackNames[] = {
+				"Track1Bitrate", "Track2Bitrate",
+				"Track3Bitrate", "Track4Bitrate",
+				"Track5Bitrate", "Track6Bitrate",
+			};
+			const int advAudioBitrate = (int)config_get_uint(
+				config, "AdvOut", trackNames[streamTrack - 1]);
+			obs_data_set_int(audio_settings, "bitrate",
+					 advAudioBitrate);
+			audioBitrate = advAudioBitrate;
+		} else {
+			obs_data_set_int(audio_settings, "bitrate",
+					 audioBitrate);
+		}
 	} else {
 		video_settings = obs_data_create();
-		const int videoBitrate =
-			config_get_uint(config, "SimpleOutput", "VBitrate");
-		const int audioBitrate = (int)config_get_uint(
-			config, "SimpleOutput", "ABitrate");
-
 		bool advanced =
 			config_get_bool(config, "SimpleOutput", "UseAdvanced");
 		enc_id = get_simple_output_encoder(config_get_string(
@@ -4843,7 +4782,16 @@ void CanvasDock::StartStream()
 				    preset);
 
 		obs_data_set_string(video_settings, "rate_control", "CBR");
-		obs_data_set_int(video_settings, "bitrate", videoBitrate);
+		if (!videoBitrate) {
+			const int sVideoBitrate = config_get_uint(
+				config, "SimpleOutput", "VBitrate");
+			obs_data_set_int(video_settings, "bitrate",
+					 sVideoBitrate);
+			videoBitrate = sVideoBitrate;
+		} else {
+			obs_data_set_int(video_settings, "bitrate",
+					 videoBitrate);
+		}
 
 		if (advanced) {
 			const char *custom = config_get_string(
@@ -4852,7 +4800,16 @@ void CanvasDock::StartStream()
 		}
 
 		obs_data_set_string(audio_settings, "rate_control", "CBR");
-		obs_data_set_int(audio_settings, "bitrate", audioBitrate);
+		if (!audioBitrate) {
+			const int sAudioBitrate = (int)config_get_uint(
+				config, "SimpleOutput", "ABitrate");
+			obs_data_set_int(audio_settings, "bitrate",
+					 sAudioBitrate);
+			audioBitrate = sAudioBitrate;
+		} else {
+			obs_data_set_int(audio_settings, "bitrate",
+					 audioBitrate);
+		}
 
 		const char *quality =
 			config_get_string(config, "SimpleOutput", "RecQuality");
@@ -4917,17 +4874,14 @@ void CanvasDock::StopStream()
 	streamButton->setChecked(false);
 	if (obs_output_active(streamOutput))
 		obs_output_stop(streamOutput);
-	if (replay_mode == REPLAY_MODE_STREAMING)
-		StopReplayBuffer();
+	CheckReplayBuffer();
 }
 
 void CanvasDock::stream_output_start(void *data, calldata_t *calldata)
 {
 	UNUSED_PARAMETER(calldata);
 	auto d = static_cast<CanvasDock *>(data);
-	if (d->replay_mode == REPLAY_MODE_STREAMING ||
-	    d->replay_mode == REPLAY_MODE_ANY)
-		d->StartReplayBuffer();
+	d->StartReplayBuffer();
 	QMetaObject::invokeMethod(d, "OnStreamStart");
 }
 
@@ -4938,11 +4892,6 @@ void CanvasDock::stream_output_stop(void *data, calldata_t *calldata)
 	QString arg_last_error = QString::fromUtf8(last_error);
 	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
-	if (d->replay_mode == REPLAY_MODE_STREAMING ||
-	    (d->replay_mode == REPLAY_MODE_ANY &&
-	     !obs_output_active(d->virtualCamOutput) &&
-	     !obs_output_active(d->recordOutput)))
-		d->StopReplayBuffer();
 	d->DestroyVideo();
 	QMetaObject::invokeMethod(d, "OnStreamStop", Q_ARG(int, code),
 				  Q_ARG(QString, arg_last_error));
@@ -4952,35 +4901,45 @@ void CanvasDock::DestroyVideo()
 {
 	if (!video)
 		return;
+	CheckReplayBuffer();
 	if (obs_output_active(virtualCamOutput) ||
-	    obs_output_active(recordOutput) || obs_output_active(streamOutput))
+	    obs_output_active(recordOutput) ||
+	    obs_output_active(streamOutput) || obs_output_active(replayOutput))
 		return;
-	if (replay_mode == REPLAY_MODE_ANY && obs_output_active(replayOutput)) {
-		StopReplayBuffer();
-	} else if (!obs_output_active(replayOutput)) {
-		obs_view_remove(view);
-		obs_view_set_source(view, 0, nullptr);
-		video = nullptr;
-	}
+	obs_view_remove(view);
+	obs_view_set_source(view, 0, nullptr);
+	video = nullptr;
 }
 
 obs_data_t *CanvasDock::SaveSettings()
 {
 	auto data = obs_data_create();
-	obs_data_set_bool(data, "show_scenes", !hideScenes);
 	if (!currentSceneName.isEmpty()) {
 		auto cs = currentSceneName.toUtf8();
 		obs_data_set_string(data, "current_scene", cs.constData());
 	}
-	obs_data_set_int(data, "width", canvas_width);
-	obs_data_set_int(data, "height", canvas_height);
 	if (scenesDock)
 		obs_data_set_bool(data, "grid_mode", scenesDock->IsGridMode());
-	obs_data_set_int(data, "replay_buffer_mode", replay_mode);
-	obs_data_set_string(data, "stream_server",
-			    stream_server.toUtf8().constData());
-	obs_data_set_string(data, "stream_key",
-			    stream_key.toUtf8().constData());
+
+	obs_data_set_int(data, "width", canvas_width);
+	obs_data_set_int(data, "height", canvas_height);
+	obs_data_set_bool(data, "show_scenes", !hideScenes);
+	obs_data_set_int(data, "video_bitrate", videoBitrate);
+	obs_data_set_int(data, "audio_bitrate", audioBitrate);
+	obs_data_set_bool(data, "backtrack", startReplay);
+	obs_data_set_int(data, "backtrack_seconds", replayDuration);
+	obs_data_set_string(data, "backtrack_path", replayPath.c_str());
+	if (replayOutput) {
+		auto hotkeys = obs_hotkeys_save_output(replayOutput);
+		obs_data_set_obj(data, "backtrack_hotkeys", hotkeys);
+		obs_data_release(hotkeys);
+	}
+
+	obs_data_set_string(data, "stream_server", stream_server.c_str());
+	obs_data_set_string(data, "stream_key", stream_key.c_str());
+
+	obs_data_set_string(data, "record_path", recordPath.c_str());
+
 	obs_data_array_t *start_hotkey = nullptr;
 	obs_data_array_t *stop_hotkey = nullptr;
 	obs_hotkey_pair_save(virtual_cam_hotkey, &start_hotkey, &stop_hotkey);
@@ -5222,8 +5181,6 @@ void CanvasDock::source_save(void *data, calldata_t *calldata)
 
 void CanvasDock::FinishLoading()
 {
-	if (replay_mode == REPLAY_MODE_START)
-		StartReplayBuffer();
 	if (first_time) {
 		if (!action->isChecked())
 			action->trigger();
@@ -5286,9 +5243,7 @@ void CanvasDock::OnRecordStart()
 	recordButton->setChecked(true);
 	recordButton->setIcon(recordActiveIcon);
 	recordButton->setStyleSheet(
-		QString::fromUtf8("QPushButton {"
-				  "background: rgb(192,28,40);"
-				  "}"));
+		QString::fromUtf8("background: rgb(255,0,0);"));
 }
 
 void CanvasDock::OnRecordStop(int code, QString last_error)
@@ -5342,9 +5297,7 @@ void CanvasDock::OnStreamStart()
 	streamButton->setChecked(true);
 	streamButton->setIcon(streamActiveIcon);
 	streamButton->setStyleSheet(
-		QString::fromUtf8("QPushButton {"
-				  "background: rgb(28,113,216);"
-				  "}"));
+		QString::fromUtf8("background: rgb(0,210,153);"));
 }
 
 void CanvasDock::OnStreamStop(int code, QString last_error)
@@ -5414,12 +5367,16 @@ void CanvasDock::OnStreamStop(int code, QString last_error)
 
 void CanvasDock::OnReplayBufferStart()
 {
-	replayButton->setEnabled(true);
+	replayButton->setIcon(replayActiveIcon);
+	replayButton->setStyleSheet(
+		QString::fromUtf8("background: rgb(26,87,255);"));
+	//replayButton->setEnabled(true);
 }
 
 void CanvasDock::OnReplayBufferStop()
 {
-	replayButton->setEnabled(false);
+	replayButton->setIcon(replayInactiveIcon);
+	replayButton->setStyleSheet(QString::fromUtf8(""));
 	statusLabel->setText(QString::fromUtf8(""));
 }
 
@@ -5608,54 +5565,32 @@ QIcon CanvasDock::GetGroupIcon() const
 
 void CanvasDock::MainStreamStart()
 {
-	if (replay_mode == REPLAY_MODE_MAIN_STREAMING ||
-	    replay_mode == REPLAY_MODE_MAIN_ANY)
-		StartReplayBuffer();
+	StartReplayBuffer();
 }
+
 void CanvasDock::MainStreamStop()
 {
-	if (replay_mode == REPLAY_MODE_MAIN_STREAMING)
-		StopReplayBuffer();
-	if (replay_mode == REPLAY_MODE_MAIN_ANY &&
-	    !obs_frontend_recording_active() &&
-	    !obs_frontend_virtualcam_active()) {
-		StopReplayBuffer();
-	}
+	CheckReplayBuffer();
 }
 
 void CanvasDock::MainRecordStart()
 {
-	if (replay_mode == REPLAY_MODE_MAIN_RECORDING ||
-	    replay_mode == REPLAY_MODE_MAIN_ANY)
-		StartReplayBuffer();
+	StartReplayBuffer();
 }
 
 void CanvasDock::MainRecordStop()
 {
-	if (replay_mode == REPLAY_MODE_MAIN_RECORDING)
-		StopReplayBuffer();
-	if (replay_mode == REPLAY_MODE_MAIN_ANY &&
-	    !obs_frontend_streaming_active() &&
-	    !obs_frontend_virtualcam_active()) {
-		StopReplayBuffer();
-	}
+	CheckReplayBuffer();
 }
+
 void CanvasDock::MainVirtualCamStart()
 {
-	if (replay_mode == REPLAY_MODE_MAIN_VIRTUAL_CAMERA ||
-	    replay_mode == REPLAY_MODE_MAIN_ANY)
-		StartReplayBuffer();
+	StartReplayBuffer();
 }
 
 void CanvasDock::MainVirtualCamStop()
 {
-	if (replay_mode == REPLAY_MODE_MAIN_VIRTUAL_CAMERA)
-		StopReplayBuffer();
-	if (replay_mode == REPLAY_MODE_MAIN_ANY &&
-	    !obs_frontend_streaming_active() &&
-	    !obs_frontend_recording_active()) {
-		StopReplayBuffer();
-	}
+	CheckReplayBuffer();
 }
 
 void CanvasDock::SceneReordered(void *data, calldata_t *params)
