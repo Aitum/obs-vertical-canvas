@@ -1674,11 +1674,12 @@ void SourceTree::paintEvent(QPaintEvent *event)
 		qreal totalHeight =
 			/*iconSize.height() + spacing + */ textSize.height();
 
-		qreal x = thisSize.width() / 2.0 /* - iconSize.width() / 2.0*/;
+		//qreal x = thisSize.width() / 2.0 /* - iconSize.width() / 2.0*/;
 		qreal y = thisSize.height() / 2.0 - totalHeight / 2.0;
 		//iconRect.moveTo(std::round(x), std::round(y));
 		//iconNoSources.render(&p, iconRect);
 
+		qreal x = thisSize.width() / 2.0 - textSize.width() / 2.0;
 		//y += spacing + iconSize.height();
 		p.drawStaticText(x, y, textNoSources);
 	} else {
