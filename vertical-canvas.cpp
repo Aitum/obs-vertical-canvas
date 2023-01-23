@@ -494,10 +494,12 @@ void CanvasDock::CreateScenesRow()
 
 	auto addButton = new QPushButton;
 	addButton->setProperty("themeID", "addIconSmall");
+	addButton->setToolTip(QString::fromUtf8(obs_module_text("AddVerticalScene")));
 	connect(addButton, &QPushButton::clicked, [this] { AddScene(); });
 	sceneRow->addWidget(addButton);
 	auto removeButton = new QPushButton;
 	removeButton->setProperty("themeID", "removeIconSmall");
+	removeButton->setToolTip(QString::fromUtf8(obs_module_text("RemoveVerticalScene")));
 	connect(removeButton, &QPushButton::clicked,
 		[this] { RemoveScene(scenesCombo->currentText()); });
 	sceneRow->addWidget(removeButton);
@@ -607,6 +609,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	streamButton->setCheckable(true);
 	streamButton->setChecked(false);
 	streamButton->setSizePolicy(sp2);
+	streamButton->setToolTip(QString::fromUtf8(obs_module_text("StreamVertical")));
 	connect(streamButton, SIGNAL(clicked()), this,
 		SLOT(StreamButtonClicked()));
 	buttonRow->addWidget(streamButton);
@@ -617,6 +620,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	recordButton->setCheckable(true);
 	recordButton->setChecked(false);
 	recordButton->setSizePolicy(sp2);
+	recordButton->setToolTip(QString::fromUtf8(obs_module_text("RecordVertical")));
 	connect(recordButton, SIGNAL(clicked()), this,
 		SLOT(RecordButtonClicked()));
 	buttonRow->addWidget(recordButton);
@@ -625,6 +629,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	replayButton->setObjectName(QStringLiteral("canvasReplay"));
 	replayButton->setIcon(replayInactiveIcon);
 	replayButton->setSizePolicy(sp2);
+	replayButton->setToolTip(QString::fromUtf8(obs_module_text("BacktrackClipVertical")));
 	connect(replayButton, SIGNAL(clicked()), this,
 		SLOT(ReplayButtonClicked()));
 	buttonRow->addWidget(replayButton);
@@ -639,6 +644,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		QString::fromUtf8(obs_module_text("VirtualCam")));
 	virtualCamButton->setCheckable(true);
 	virtualCamButton->setChecked(false);
+	virtualCamButton->setToolTip(QString::fromUtf8(obs_module_text("VirtualCameraVertical")));
 	virtualCamButton->setVisible(false);
 	connect(virtualCamButton, SIGNAL(clicked()), this,
 		SLOT(VirtualCamButtonClicked()));
@@ -649,6 +655,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	configButton->setFlat(true);
 	configButton->setAutoDefault(false);
 	configButton->setSizePolicy(sp2);
+	configButton->setToolTip(QString::fromUtf8(obs_module_text("VerticalSettings")));
 	connect(configButton, SIGNAL(clicked()), this,
 		SLOT(ConfigButtonClicked()));
 	buttonRow->addWidget(configButton);
@@ -656,6 +663,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	auto aitumButton = new QPushButton;
 	aitumButton->setSizePolicy(sp2);
 	aitumButton->setIcon(QIcon(":/aitum/media/aitum.png"));
+	aitumButton->setToolTip(QString::fromUtf8("https://aitum.tv"));
 	connect(aitumButton, &QPushButton::clicked,
 		[] { QDesktopServices::openUrl(QUrl("https://aitum.tv")); });
 	buttonRow->addWidget(aitumButton);
