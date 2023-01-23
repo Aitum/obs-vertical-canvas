@@ -8,6 +8,9 @@
 #include <qpushbutton.h>
 #include <QVBoxLayout>
 #include <QLabel>
+#include <QMovie>
+#include <QStackedWidget>
+#include <QTimer>
 
 #include <graphics/vec2.h>
 #include <graphics/matrix4.h>
@@ -119,14 +122,18 @@ private:
 	QPushButton *recordButton;
 	QIcon recordActiveIcon = QIcon(":/aitum/media/recording.svg");
 	QIcon recordInactiveIcon = QIcon(":/aitum/media/record.svg");
+	QStackedWidget* replayStack;
 	QPushButton *replayButton;
 	QLabel *statusLabel;
+	QTimer replaySavingResetTimer;
+	QTimer replayStatusResetTimer;
 	QPushButton *streamButton;
 	QIcon streamActiveIcon = QIcon(":/aitum/media/streaming.svg");
 	QIcon streamInactiveIcon = QIcon(":/aitum/media/stream.svg");
 
 	QIcon replayActiveIcon = QIcon(":/aitum/media/backtrack_on.svg");
 	QIcon replayInactiveIcon = QIcon(":/aitum/media/backtrack_off.svg");
+	QMovie replaySaveMovie = QMovie(":/aitum/media/backtrack_save.gif");
 	QComboBox *scenesCombo = nullptr;
 	QCheckBox *linkedButton = nullptr;
 	CanvasScenesDock *scenesDock = nullptr;

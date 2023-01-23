@@ -283,14 +283,14 @@ QListWidget *CanvasDock::GetGlobalScenesList()
 void CanvasDock::AddScene(QString duplicate)
 {
 	std::string name = duplicate.isEmpty()
-				   ? obs_module_text("VerticalCanvas")
+				   ? obs_module_text("VerticalScene")
 				   : duplicate.toUtf8().constData();
 	obs_source_t *s = obs_get_source_by_name(name.c_str());
 	int i = 0;
 	while (s) {
 		obs_source_release(s);
 		i++;
-		name = obs_module_text("VerticalCanvas");
+		name = obs_module_text("VerticalScene");
 		name += " ";
 		name += std::to_string(i);
 		s = obs_get_source_by_name(name.c_str());
@@ -494,12 +494,14 @@ void CanvasDock::CreateScenesRow()
 
 	auto addButton = new QPushButton;
 	addButton->setProperty("themeID", "addIconSmall");
-	addButton->setToolTip(QString::fromUtf8(obs_module_text("AddVerticalScene")));
+	addButton->setToolTip(
+		QString::fromUtf8(obs_module_text("AddVerticalScene")));
 	connect(addButton, &QPushButton::clicked, [this] { AddScene(); });
 	sceneRow->addWidget(addButton);
 	auto removeButton = new QPushButton;
 	removeButton->setProperty("themeID", "removeIconSmall");
-	removeButton->setToolTip(QString::fromUtf8(obs_module_text("RemoveVerticalScene")));
+	removeButton->setToolTip(
+		QString::fromUtf8(obs_module_text("RemoveVerticalScene")));
 	connect(removeButton, &QPushButton::clicked,
 		[this] { RemoveScene(scenesCombo->currentText()); });
 	sceneRow->addWidget(removeButton);
@@ -609,7 +611,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	streamButton->setCheckable(true);
 	streamButton->setChecked(false);
 	streamButton->setSizePolicy(sp2);
-	streamButton->setToolTip(QString::fromUtf8(obs_module_text("StreamVertical")));
+	streamButton->setToolTip(
+		QString::fromUtf8(obs_module_text("StreamVertical")));
 	connect(streamButton, SIGNAL(clicked()), this,
 		SLOT(StreamButtonClicked()));
 	buttonRow->addWidget(streamButton);
@@ -620,23 +623,46 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	recordButton->setCheckable(true);
 	recordButton->setChecked(false);
 	recordButton->setSizePolicy(sp2);
-	recordButton->setToolTip(QString::fromUtf8(obs_module_text("RecordVertical")));
+	recordButton->setToolTip(
+		QString::fromUtf8(obs_module_text("RecordVertical")));
 	connect(recordButton, SIGNAL(clicked()), this,
 		SLOT(RecordButtonClicked()));
 	buttonRow->addWidget(recordButton);
 
+	replayStack = new QStackedWidget;
+
 	replayButton = new QPushButton;
 	replayButton->setObjectName(QStringLiteral("canvasReplay"));
 	replayButton->setIcon(replayInactiveIcon);
+	replayButton->setContentsMargins(0, 0, 0, 0);
 	replayButton->setSizePolicy(sp2);
-	replayButton->setToolTip(QString::fromUtf8(obs_module_text("BacktrackClipVertical")));
+	replayButton->setToolTip(
+		QString::fromUtf8(obs_module_text("BacktrackClipVertical")));
 	connect(replayButton, SIGNAL(clicked()), this,
 		SLOT(ReplayButtonClicked()));
-	buttonRow->addWidget(replayButton);
+	replayStack->addWidget(replayButton);
+
+	auto replaySavingLabel = new QLabel;
+	replaySavingLabel->setMovie(&replaySaveMovie);
+	replaySavingLabel->setAlignment(Qt::AlignCenter);
+	replaySavingLabel->setContentsMargins(0, 0, 0, 0);
+	replayStack->addWidget(replaySavingLabel);
+
+	buttonRow->addWidget(replayStack);
 
 	statusLabel = new QLabel;
 	statusLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
 	buttonRow->addWidget(statusLabel, 1);
+
+	replaySavingResetTimer.setInterval(10000);
+	replaySavingResetTimer.setSingleShot(true);
+	connect(&replaySavingResetTimer, &QTimer::timeout,
+		[this] { replayStack->setCurrentIndex(0); });
+
+	replayStatusResetTimer.setInterval(4000);
+	replayStatusResetTimer.setSingleShot(true);
+	connect(&replayStatusResetTimer, &QTimer::timeout,
+		[this] { statusLabel->setText(""); });
 
 	virtualCamButton = new QPushButton;
 	virtualCamButton->setObjectName(QStringLiteral("canvasVirtualCam"));
@@ -644,7 +670,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		QString::fromUtf8(obs_module_text("VirtualCam")));
 	virtualCamButton->setCheckable(true);
 	virtualCamButton->setChecked(false);
-	virtualCamButton->setToolTip(QString::fromUtf8(obs_module_text("VirtualCameraVertical")));
+	virtualCamButton->setToolTip(
+		QString::fromUtf8(obs_module_text("VirtualCameraVertical")));
 	virtualCamButton->setVisible(false);
 	connect(virtualCamButton, SIGNAL(clicked()), this,
 		SLOT(VirtualCamButtonClicked()));
@@ -655,7 +682,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	configButton->setFlat(true);
 	configButton->setAutoDefault(false);
 	configButton->setSizePolicy(sp2);
-	configButton->setToolTip(QString::fromUtf8(obs_module_text("VerticalSettings")));
+	configButton->setToolTip(
+		QString::fromUtf8(obs_module_text("VerticalSettings")));
 	connect(configButton, SIGNAL(clicked()), this,
 		SLOT(ConfigButtonClicked()));
 	buttonRow->addWidget(configButton);
@@ -4173,7 +4201,13 @@ void CanvasDock::ReplayButtonClicked()
 	proc_handler_t *ph = obs_output_get_proc_handler(replayOutput);
 	proc_handler_call(ph, "save", &cd);
 	calldata_free(&cd);
-	statusLabel->setText(QString::fromUtf8(obs_module_text("Saving")));
+	replaySaveMovie.stop();
+	replaySaveMovie.setScaledSize(replayButton->iconSize() * 1.5);
+	replaySaveMovie.start();
+	replayStack->setFixedSize(replayButton->size());
+	replayStack->widget(1)->setFixedSize(replayButton->size());
+	replayStack->setCurrentIndex(1);
+	replaySavingResetTimer.start(10000);
 }
 
 int GetConfigPath(char *path, size_t size, const char *name)
@@ -4381,9 +4415,9 @@ void CanvasDock::StartRecord()
 	char path[512];
 	char *filename = os_generate_formatted_filename(
 		ffmpegOutput ? "avi" : format, true, filenameFormat);
-	if(!strlen(recordPath.c_str()) && dir) {
+	if (recordPath.empty() && dir) {
 		recordPath = dir;
-	}else {
+	} else {
 		dir = recordPath.c_str();
 	}
 	snprintf(path, 512, "%s/%s", dir, filename);
@@ -4479,6 +4513,8 @@ void CanvasDock::StartReplayBuffer()
 	bool changedSettings = false;
 	if (!replayDuration) {
 		replayDuration = obs_data_get_int(settings, "max_time_sec");
+		if (!replayDuration)
+			replayDuration = 5;
 	} else if (obs_data_get_int(settings, "max_time_sec") !=
 		   replayDuration) {
 		const auto s = obs_output_get_settings(replayOutput);
@@ -4486,7 +4522,7 @@ void CanvasDock::StartReplayBuffer()
 		obs_data_release(s);
 		changedSettings = true;
 	}
-	if (!strlen(replayPath.c_str())) {
+	if (replayPath.empty()) {
 		replayPath = obs_data_get_string(settings, "directory");
 	} else if (strcmp(replayPath.c_str(),
 			  obs_data_get_string(settings, "directory")) != 0) {
@@ -5296,8 +5332,19 @@ void CanvasDock::OnRecordStop(int code, QString last_error)
 
 void CanvasDock::OnReplaySaved()
 {
+	if (replaySavingResetTimer.isActive()) {
+		auto doneTime = replaySavingResetTimer.interval() -
+				replaySavingResetTimer.remainingTime();
+		if (doneTime > 1000) {
+			replaySavingResetTimer.start(1000);
+		} else {
+			replaySavingResetTimer.start(1000 - doneTime);
+		}
+	} else if (replayStack->currentIndex() != 0) {
+		replayStack->setCurrentIndex(0);
+	}
 	statusLabel->setText(QString::fromUtf8(obs_module_text("Saved")));
-	QTimer::singleShot(4000, this, [this]() { statusLabel->setText(""); });
+	replayStatusResetTimer.start(4000);
 }
 
 void CanvasDock::OnStreamStart()
@@ -5385,7 +5432,8 @@ void CanvasDock::OnReplayBufferStop()
 {
 	replayButton->setIcon(replayInactiveIcon);
 	replayButton->setStyleSheet(QString::fromUtf8(""));
-	statusLabel->setText(QString::fromUtf8(""));
+	if (!replayStatusResetTimer.isActive())
+		replayStatusResetTimer.start();
 }
 
 void CanvasDock::MainSceneChanged()
