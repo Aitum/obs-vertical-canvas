@@ -253,14 +253,6 @@ private:
 
 	bool StartVideo();
 
-	void StartVirtualCam();
-	void StopVirtualCam();
-	void StartRecord();
-	void StopRecord();
-	void StartReplayBuffer();
-	void StopReplayBuffer();
-	void StartStream();
-	void StopStream();
 	void DestroyVideo();
 
 	void CreateScenesRow();
@@ -329,6 +321,14 @@ private slots:
 	void OnReplayBufferStart();
 	void OnReplayBufferStop();
 	void SwitchScene(const QString &scene_name);
+	void StartVirtualCam();
+	void StopVirtualCam();
+	void StartRecord();
+	void StopRecord();
+	void StartReplayBuffer();
+	void StopReplayBuffer();
+	void StartStream();
+	void StopStream();
 	void AddSceneItem(OBSSceneItem item);
 	void RefreshSources(OBSScene scene);
 	void ReorderSources(OBSScene scene);
@@ -347,6 +347,12 @@ public:
 	inline uint32_t GetCanvasHeight() const { return canvas_height; }
 
 	obs_data_t *SaveSettings();
+
+	obs_scene_t* GetCurrentScene();
+	bool StreamingActive();
+	bool RecordingActive();
+	bool BacktrackActive();
+	bool VirtualCameraActive();
 
 	void MainStreamStart();
 	void MainStreamStop();

@@ -144,6 +144,14 @@ void frontend_event(obs_frontend_event event, void *private_data)
 
 obs_websocket_vendor vendor = nullptr;
 
+void vendor_request_version(obs_data_t *request_data, obs_data_t *response_data,
+			    void *)
+{
+	UNUSED_PARAMETER(request_data);
+	obs_data_set_string(response_data, "version", PROJECT_VERSION);
+	obs_data_set_bool(response_data, "success", true);
+}
+
 void vendor_request_switch_scene(obs_data_t *request_data,
 				 obs_data_t *response_data, void *)
 {
@@ -190,6 +198,68 @@ void vendor_request_switch_scene(obs_data_t *request_data,
 	}
 
 	obs_data_set_bool(response_data, "success", true);
+}
+
+void vendor_request_current_scene(obs_data_t *request_data,
+				  obs_data_t *response_data, void *)
+{
+	const auto width = obs_data_get_int(request_data, "width");
+	const auto height = obs_data_get_int(request_data, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) ||
+		    (height && it->GetCanvasHeight() != height))
+			continue;
+		auto scene = obs_scene_get_source(it->GetCurrentScene());
+		if (scene) {
+			obs_data_set_string(response_data, "scene",
+					    obs_source_get_name(scene));
+		} else {
+			obs_data_set_string(response_data, "scene", "");
+		}
+		obs_data_set_bool(response_data, "success", true);
+		return;
+	}
+	obs_data_set_bool(response_data, "success", false);
+}
+
+void vendor_request_status(obs_data_t *request_data, obs_data_t *response_data,
+			   void *)
+{
+	const auto width = obs_data_get_int(request_data, "width");
+	const auto height = obs_data_get_int(request_data, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) ||
+		    (height && it->GetCanvasHeight() != height))
+			continue;
+		obs_data_set_bool(response_data, "streaming",
+				  it->StreamingActive());
+		obs_data_set_bool(response_data, "recording",
+				  it->RecordingActive());
+		obs_data_set_bool(response_data, "backtrack",
+				  it->BacktrackActive());
+		obs_data_set_bool(response_data, "virtual_camera",
+				  it->VirtualCameraActive());
+		obs_data_set_bool(response_data, "success", true);
+		return;
+	}
+	obs_data_set_bool(response_data, "success", false);
+}
+
+void vendor_request_invoke(obs_data_t *request_data, obs_data_t *response_data,
+			   void *p)
+{
+	const char *method = static_cast<char *>(p);
+	const auto width = obs_data_get_int(request_data, "width");
+	const auto height = obs_data_get_int(request_data, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) ||
+		    (height && it->GetCanvasHeight() != height))
+			continue;
+		QMetaObject::invokeMethod(it, method);
+		obs_data_set_bool(response_data, "success", true);
+		return;
+	}
+	obs_data_set_bool(response_data, "success", false);
 }
 
 bool obs_module_load(void)
@@ -239,16 +309,80 @@ bool obs_module_load(void)
 	vendor = obs_websocket_register_vendor("vertical-canvas");
 	if (!vendor)
 		return true;
+	obs_websocket_vendor_register_request(vendor, "version",
+					      vendor_request_version, nullptr);
 	obs_websocket_vendor_register_request(
 		vendor, "switch_scene", vendor_request_switch_scene, nullptr);
-
+	obs_websocket_vendor_register_request(
+		vendor, "current_scene", vendor_request_current_scene, nullptr);
+	obs_websocket_vendor_register_request(vendor, "status",
+					      vendor_request_status, nullptr);
+	obs_websocket_vendor_register_request(vendor, "start_streaming",
+					      vendor_request_invoke,
+					      (void *)"StartStream");
+	obs_websocket_vendor_register_request(vendor, "stop_streaming",
+					      vendor_request_invoke,
+					      (void *)"StopStream");
+	obs_websocket_vendor_register_request(vendor, "toggle_streaming",
+					      vendor_request_invoke,
+					      (void *)"StreamButtonClicked");
+	obs_websocket_vendor_register_request(vendor, "start_recording",
+					      vendor_request_invoke,
+					      (void *)"StartRecord");
+	obs_websocket_vendor_register_request(vendor, "stop_recording",
+					      vendor_request_invoke,
+					      (void *)"StopRecord");
+	obs_websocket_vendor_register_request(vendor, "toggle_recording",
+					      vendor_request_invoke,
+					      (void *)"RecordButtonClicked");
+	obs_websocket_vendor_register_request(vendor, "start_backtrack",
+					      vendor_request_invoke,
+					      (void *)"StartReplayBuffer");
+	obs_websocket_vendor_register_request(vendor, "stop_backtrack",
+					      vendor_request_invoke,
+					      (void *)"StopReplayBuffer");
+	obs_websocket_vendor_register_request(vendor, "save_backtrack",
+					      vendor_request_invoke,
+					      (void *)"ReplayButtonClicked");
+	obs_websocket_vendor_register_request(vendor, "start_virtual_camera",
+					      vendor_request_invoke,
+					      (void *)"StartVirtualCam");
+	obs_websocket_vendor_register_request(vendor, "stop_virtual_camera",
+					      vendor_request_invoke,
+					      (void *)"StopVirtualCam");
 	return true;
 }
 
 void obs_module_unload(void)
 {
 	if (vendor) {
+		obs_websocket_vendor_unregister_request(vendor, "version");
 		obs_websocket_vendor_unregister_request(vendor, "switch_scene");
+		obs_websocket_vendor_unregister_request(vendor,
+							"current_scene");
+		obs_websocket_vendor_unregister_request(vendor, "status");
+		obs_websocket_vendor_unregister_request(vendor,
+							"start_streaming");
+		obs_websocket_vendor_unregister_request(vendor,
+							"stop_streaming");
+		obs_websocket_vendor_unregister_request(vendor,
+							"toggle_streaming");
+		obs_websocket_vendor_unregister_request(vendor,
+							"start_recording");
+		obs_websocket_vendor_unregister_request(vendor,
+							"stop_recording");
+		obs_websocket_vendor_unregister_request(vendor,
+							"toggle_recording");
+		obs_websocket_vendor_unregister_request(vendor,
+							"start_backtrack");
+		obs_websocket_vendor_unregister_request(vendor,
+							"stop_backtrack");
+		obs_websocket_vendor_unregister_request(vendor,
+							"save_backtrack");
+		obs_websocket_vendor_unregister_request(vendor,
+							"start_virtual_camera");
+		obs_websocket_vendor_unregister_request(vendor,
+							"stop_virtual_camera");
 	}
 	obs_frontend_remove_event_callback(frontend_event, nullptr);
 }
@@ -4955,6 +5089,31 @@ void CanvasDock::DestroyVideo()
 	video = nullptr;
 }
 
+obs_scene_t *CanvasDock::GetCurrentScene()
+{
+	return scene;
+}
+
+bool CanvasDock::StreamingActive()
+{
+	return obs_output_active(streamOutput);
+}
+
+bool CanvasDock::RecordingActive()
+{
+	return obs_output_active(recordOutput);
+}
+
+bool CanvasDock::BacktrackActive()
+{
+	return obs_output_active(replayOutput);
+}
+
+bool CanvasDock::VirtualCameraActive()
+{
+	return obs_output_active(virtualCamOutput);
+}
+
 obs_data_t *CanvasDock::SaveSettings()
 {
 	auto data = obs_data_create();
@@ -5107,6 +5266,7 @@ void CanvasDock::SwitchScene(const QString &scene_name)
 					       this);
 		}
 	}
+	auto oldName = currentSceneName;
 	if (!scene_name.isEmpty())
 		currentSceneName = scene_name;
 	if (video && view)
@@ -5132,6 +5292,13 @@ void CanvasDock::SwitchScene(const QString &scene_name)
 		sourcesDock->sourceList->GetStm()->SceneChanged();
 	}
 	obs_source_release(s);
+	if(vendor && oldName != currentSceneName){
+		const auto d = obs_data_create();
+		obs_data_set_string(d, "old_scene", oldName.toUtf8().constData());
+		obs_data_set_string(d, "new_scene", currentSceneName.toUtf8().constData());
+		obs_websocket_vendor_emit_event(vendor, "switch_scene", d);
+		obs_data_release(d);
+	}
 }
 
 void CanvasDock::source_rename(void *data, calldata_t *calldata)
