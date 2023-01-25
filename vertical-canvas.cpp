@@ -917,6 +917,13 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		obs_data_release(settings);
 	}
 	hide();
+	auto fadeName = name + "Fade";
+	OBSSourceAutoRelease fade = obs_source_create(
+		"fade_transition", fadeName.toUtf8().constData(), nullptr,
+		nullptr);
+	obs_transition_set_size(fade, canvas_width, canvas_height);
+	transitions.push_back(fade.Get());
+	source = obs_source_get_weak_source(fade);
 }
 
 CanvasDock::~CanvasDock()
@@ -971,14 +978,6 @@ CanvasDock::~CanvasDock()
 void CanvasDock::setAction(QAction *a)
 {
 	action = a;
-}
-
-void CanvasDock::setSource(obs_weak_source_t *source)
-{
-	this->source = source;
-	auto s = obs_weak_source_get_source(source);
-	this->scene = obs_scene_from_source(s);
-	obs_source_release(s);
 }
 
 static bool SceneItemHasVideo(obs_sceneitem_t *item)
@@ -5246,14 +5245,42 @@ void CanvasDock::SwitchScene(const QString &scene_name)
 		obs_source_release(s);
 		return;
 	}
-	auto sh = obs_source_get_signal_handler(obs_scene_get_source(scene));
+	auto oldSource = obs_scene_get_source(scene);
+	auto sh = obs_source_get_signal_handler(oldSource);
 	if (sh) {
 		signal_handler_disconnect(sh, "item_add", SceneItemAdded, this);
 		signal_handler_disconnect(sh, "reorder", SceneReordered, this);
 		signal_handler_disconnect(sh, "refresh", SceneRefreshed, this);
 	}
-	obs_weak_source_release(source);
-	source = obs_source_get_weak_source(s);
+	if (!source || obs_weak_source_references_source(source, oldSource)) {
+		obs_weak_source_release(source);
+		source = obs_source_get_weak_source(s);
+	} else {
+		oldSource = obs_weak_source_get_source(source);
+		if (oldSource) {
+			auto ost = obs_source_get_type(oldSource);
+			if (ost == OBS_SOURCE_TYPE_TRANSITION) {
+				auto sourceA = obs_transition_get_source(
+					oldSource, OBS_TRANSITION_SOURCE_A);
+				if (sourceA != obs_scene_get_source(scene))
+					obs_transition_set(
+						oldSource,
+						obs_scene_get_source(scene));
+				obs_source_release(sourceA);
+				obs_transition_start(
+					oldSource, OBS_TRANSITION_MODE_AUTO,
+					obs_frontend_get_transition_duration(),
+					s);
+			} else {
+				obs_weak_source_release(source);
+				source = obs_source_get_weak_source(s);
+			}
+			obs_source_release(oldSource);
+		} else {
+			obs_weak_source_release(source);
+			source = obs_source_get_weak_source(s);
+		}
+	}
 	scene = obs_scene_from_source(s);
 	if (scene) {
 		sh = obs_source_get_signal_handler(s);
@@ -5292,10 +5319,12 @@ void CanvasDock::SwitchScene(const QString &scene_name)
 		sourcesDock->sourceList->GetStm()->SceneChanged();
 	}
 	obs_source_release(s);
-	if(vendor && oldName != currentSceneName){
+	if (vendor && oldName != currentSceneName) {
 		const auto d = obs_data_create();
-		obs_data_set_string(d, "old_scene", oldName.toUtf8().constData());
-		obs_data_set_string(d, "new_scene", currentSceneName.toUtf8().constData());
+		obs_data_set_string(d, "old_scene",
+				    oldName.toUtf8().constData());
+		obs_data_set_string(d, "new_scene",
+				    currentSceneName.toUtf8().constData());
 		obs_websocket_vendor_emit_event(vendor, "switch_scene", d);
 		obs_data_release(d);
 	}

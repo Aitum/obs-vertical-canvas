@@ -75,6 +75,7 @@ private:
 	QVBoxLayout *mainLayout;
 	OBSQTDisplay *preview;
 	OBSWeakSource source;
+	std::vector<OBSSource> transitions;
 	std::unique_ptr<OBSEventFilter> eventFilter;
 
 	std::vector<obs_sceneitem_t *> hoveredPreviewItems;
@@ -248,7 +249,6 @@ private:
 	};
 	void CenterSelectedItems(CenterType centerType);
 
-	void setSource(obs_weak_source_t *source);
 	void AddSourceToScene(obs_source_t *source);
 
 	bool StartVideo();
