@@ -763,7 +763,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		SLOT(RecordButtonClicked()));
 	buttonRow->addWidget(recordButton);
 
-	replayStack = new QStackedWidget;
+	
 
 	replayButton = new QPushButton;
 	replayButton->setObjectName(QStringLiteral("canvasReplay"));
@@ -774,24 +774,11 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		QString::fromUtf8(obs_module_text("BacktrackClipVertical")));
 	connect(replayButton, SIGNAL(clicked()), this,
 		SLOT(ReplayButtonClicked()));
-	replayStack->addWidget(replayButton);
-
-	auto replaySavingLabel = new QLabel;
-	replaySavingLabel->setMovie(&replaySaveMovie);
-	replaySavingLabel->setAlignment(Qt::AlignCenter);
-	replaySavingLabel->setContentsMargins(0, 0, 0, 0);
-	replayStack->addWidget(replaySavingLabel);
-
-	buttonRow->addWidget(replayStack);
+	buttonRow->addWidget(replayButton);
 
 	statusLabel = new QLabel;
 	statusLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
 	buttonRow->addWidget(statusLabel, 1);
-
-	replaySavingResetTimer.setInterval(10000);
-	replaySavingResetTimer.setSingleShot(true);
-	connect(&replaySavingResetTimer, &QTimer::timeout,
-		[this] { replayStack->setCurrentIndex(0); });
 
 	replayStatusResetTimer.setInterval(4000);
 	replayStatusResetTimer.setSingleShot(true);
@@ -4334,13 +4321,8 @@ void CanvasDock::ReplayButtonClicked()
 	proc_handler_t *ph = obs_output_get_proc_handler(replayOutput);
 	proc_handler_call(ph, "save", &cd);
 	calldata_free(&cd);
-	replaySaveMovie.stop();
-	replaySaveMovie.setScaledSize(replayButton->iconSize() * 1.5);
-	replaySaveMovie.start();
-	replayStack->setFixedSize(replayButton->size());
-	replayStack->widget(1)->setFixedSize(replayButton->size());
-	replayStack->setCurrentIndex(1);
-	replaySavingResetTimer.start(10000);
+	statusLabel->setText(QString::fromUtf8(obs_module_text("Saving")));
+	replayStatusResetTimer.start(10000);
 }
 
 int GetConfigPath(char *path, size_t size, const char *name)
@@ -5528,17 +5510,6 @@ void CanvasDock::OnRecordStop(int code, QString last_error)
 
 void CanvasDock::OnReplaySaved()
 {
-	if (replaySavingResetTimer.isActive()) {
-		auto doneTime = replaySavingResetTimer.interval() -
-				replaySavingResetTimer.remainingTime();
-		if (doneTime > 1000) {
-			replaySavingResetTimer.start(1000);
-		} else {
-			replaySavingResetTimer.start(1000 - doneTime);
-		}
-	} else if (replayStack->currentIndex() != 0) {
-		replayStack->setCurrentIndex(0);
-	}
 	statusLabel->setText(QString::fromUtf8(obs_module_text("Saved")));
 	replayStatusResetTimer.start(4000);
 }

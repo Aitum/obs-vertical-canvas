@@ -7,6 +7,5 @@
     <file>media/streaming.svg</file>
     <file>media/backtrack_off.svg</file>
     <file>media/backtrack_on.svg</file>
-    <file>media/backtrack_save.gif</file>
   </qresource>
 </RCC>

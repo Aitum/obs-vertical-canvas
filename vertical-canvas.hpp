@@ -123,10 +123,8 @@ private:
 	QPushButton *recordButton;
 	QIcon recordActiveIcon = QIcon(":/aitum/media/recording.svg");
 	QIcon recordInactiveIcon = QIcon(":/aitum/media/record.svg");
-	QStackedWidget* replayStack;
 	QPushButton *replayButton;
 	QLabel *statusLabel;
-	QTimer replaySavingResetTimer;
 	QTimer replayStatusResetTimer;
 	QPushButton *streamButton;
 	QIcon streamActiveIcon = QIcon(":/aitum/media/streaming.svg");
@@ -134,7 +132,6 @@ private:
 
 	QIcon replayActiveIcon = QIcon(":/aitum/media/backtrack_on.svg");
 	QIcon replayInactiveIcon = QIcon(":/aitum/media/backtrack_off.svg");
-	QMovie replaySaveMovie = QMovie(":/aitum/media/backtrack_save.gif");
 	QComboBox *scenesCombo = nullptr;
 	QCheckBox *linkedButton = nullptr;
 	CanvasScenesDock *scenesDock = nullptr;
