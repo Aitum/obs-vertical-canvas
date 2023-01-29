@@ -139,7 +139,9 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	backtrackLayout->addWidget(backtrackClip);
 
 	backtrackDuration = new QSpinBox;
-	backtrackDuration->setSuffix(" s");
+	backtrackDuration->setSuffix(" sec");
+	backtrackDuration->setMinimum(5);
+	backtrackDuration->setMaximum(21600);
 	backtrackLayout->addRow(
 		QString::fromUtf8(obs_module_text("BacktrackDuration")),
 		backtrackDuration);
