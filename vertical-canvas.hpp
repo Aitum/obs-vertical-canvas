@@ -206,7 +206,7 @@ private:
 	QIcon GetGroupIcon() const;
 	QIcon GetSceneIcon() const;
 
-	obs_scene_item *GetSelectedItem();
+	obs_scene_item *GetSelectedItem(obs_scene_t* scene = nullptr);
 
 	bool SelectedAtPos(obs_scene_t *scene, const vec2 &pos);
 	void DrawOverflow(float scale);

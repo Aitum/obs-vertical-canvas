@@ -1487,12 +1487,14 @@ static obs_source_t *CreateLabel(float pixelRatio)
 	return txtSource;
 }
 
-obs_scene_item *CanvasDock::GetSelectedItem()
+obs_scene_item *CanvasDock::GetSelectedItem(obs_scene_t *s)
 {
-	vec2 s;
-	SceneFindBoxData data(s, s);
+	vec2 pos;
+	SceneFindBoxData data(pos, pos);
 
-	obs_scene_enum_items(scene, FindSelected, &data);
+	if (!s)
+		s = this->scene;
+	obs_scene_enum_items(s, FindSelected, &data);
 
 	if (data.sceneItems.size() != 1)
 		return nullptr;
@@ -2487,6 +2489,43 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 
 	auto transformMenu =
 		popup->addMenu(QString::fromUtf8(obs_module_text("Transform")));
+	transformMenu->addAction(QString::fromUtf8(obs_module_text("Edit")), [this,
+									      sceneItem] {
+		const auto mainDialog = static_cast<QMainWindow *>(
+			obs_frontend_get_main_window());
+		auto transformDialog =
+			mainDialog->findChild<QDialog *>("OBSBasicTransform");
+		if (!transformDialog) {
+			// make sure there is an item selected on the main canvas before starting the transform dialog
+			const auto currentScene =
+				obs_frontend_preview_program_mode_active()
+					? obs_frontend_get_current_preview_scene()
+					: obs_frontend_get_current_scene();
+			auto selected = GetSelectedItem(
+				obs_scene_from_source(currentScene));
+			if (!selected) {
+				obs_scene_enum_items(
+					obs_scene_from_source(currentScene),
+					[](obs_scene_t *, obs_sceneitem_t *item,
+					   void *) {
+						obs_sceneitem_select(item,
+								     true);
+						return false;
+					},
+					nullptr);
+			}
+			obs_source_release(currentScene);
+			QMetaObject::invokeMethod(
+				mainDialog, "on_actionEditTransform_triggered");
+			transformDialog = mainDialog->findChild<QDialog *>(
+				"OBSBasicTransform");
+		}
+		if (!transformDialog)
+			return;
+		QMetaObject::invokeMethod(transformDialog, "SetItemQt",
+					  Q_ARG(OBSSceneItem,
+						OBSSceneItem(sceneItem)));
+	});
 	transformMenu->addAction(
 		QString::fromUtf8(obs_module_text("Reset")), this, [sceneItem] {
 			obs_sceneitem_set_alignment(
