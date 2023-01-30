@@ -105,9 +105,9 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	videoBitrate->setSuffix(" Kbps");
 	videoBitrate->setMinimum(200);
 	videoBitrate->setMaximum(1000000);
-	generalLayout->addRow(
-		QString::fromUtf8(obs_module_text("VideoBitrate")),
-		videoBitrate);
+	generalLayout->addRow(QString::fromUtf8(obs_frontend_get_locale_string(
+				      "Basic.Settings.Output.VideoBitrate")),
+			      videoBitrate);
 
 	audioBitrate = new QComboBox;
 	audioBitrate->addItem("64", QVariant(64));
@@ -121,9 +121,9 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	audioBitrate->addItem("320", QVariant(320));
 
 	audioBitrate->setCurrentText("160");
-	generalLayout->addRow(
-		QString::fromUtf8(obs_module_text("AudioBitrate")),
-		audioBitrate);
+	generalLayout->addRow(QString::fromUtf8(obs_frontend_get_locale_string(
+				      "Basic.Settings.Output.AudioBitrate")),
+			      audioBitrate);
 
 	auto backtrackGroup =
 		new QGroupBox(QString::fromUtf8(obs_module_text("Backtrack")));
@@ -150,12 +150,13 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	backtrackPath = new QLineEdit();
 	backtrackPath->setReadOnly(true);
 
-	auto button =
-		new QPushButton(QString::fromUtf8(obs_module_text("Browse")));
+	auto button = new QPushButton(
+		QString::fromUtf8(obs_frontend_get_locale_string("Browse")));
 	button->setProperty("themeID", "settingsButtons");
 	connect(button, &QPushButton::clicked, [this] {
 		const QString dir = QFileDialog::getExistingDirectory(
-			this, QString::fromUtf8(obs_module_text("SelectPath")),
+			this,
+			QString::fromUtf8(obs_module_text("BacktrackPath")),
 			backtrackPath->text(),
 			QFileDialog::ShowDirsOnly |
 				QFileDialog::DontResolveSymlinks);
@@ -243,12 +244,13 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	key->setEchoMode(QLineEdit::Password);
 
 	QPushButton *show = new QPushButton();
-	show->setText(QString::fromUtf8(obs_module_text("Show")));
+	show->setText(
+		QString::fromUtf8(obs_frontend_get_locale_string("Show")));
 	show->setCheckable(true);
 	connect(show, &QAbstractButton::toggled, [=](bool hide) {
-		show->setText(
-			QString::fromUtf8(hide ? obs_module_text("Hide")
-					       : obs_module_text("Show")));
+		show->setText(QString::fromUtf8(
+			hide ? obs_frontend_get_locale_string("Hide")
+			     : obs_frontend_get_locale_string("Show")));
 		key->setEchoMode(hide ? QLineEdit::Normal
 				      : QLineEdit::Password);
 	});
@@ -307,11 +309,14 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	recordPath = new QLineEdit();
 	recordPath->setReadOnly(true);
 
-	button = new QPushButton(QString::fromUtf8(obs_module_text("Browse")));
+	button = new QPushButton(
+		QString::fromUtf8(obs_frontend_get_locale_string("Browse")));
 	button->setProperty("themeID", "settingsButtons");
 	connect(button, &QPushButton::clicked, [this] {
 		const QString dir = QFileDialog::getExistingDirectory(
-			this, QString::fromUtf8(obs_module_text("SelectPath")),
+			this,
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"Basic.Settings.Output.Simple.SavePath")),
 			backtrackPath->text(),
 			QFileDialog::ShowDirsOnly |
 				QFileDialog::DontResolveSymlinks);
@@ -323,7 +328,8 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	recordPathLayout->addWidget(recordPath);
 	recordPathLayout->addWidget(button);
 
-	recordLayout->addRow(QString::fromUtf8(obs_module_text("RecordPath")),
+	recordLayout->addRow(QString::fromUtf8(obs_frontend_get_locale_string(
+				     "Basic.Settings.Output.Simple.SavePath")),
 			     recordPathLayout);
 
 	otherHotkey = nullptr;
@@ -366,15 +372,15 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	recordingPage->setLayout(recordLayout);
 
-	QPushButton *okButton =
-		new QPushButton(QString::fromUtf8(obs_module_text("Ok")));
+	QPushButton *okButton = new QPushButton(
+		QString::fromUtf8(obs_frontend_get_locale_string("OK")));
 	connect(okButton, &QPushButton::clicked, [this] {
 		SaveSettings();
 		close();
 	});
 
-	QPushButton *cancelButton =
-		new QPushButton(QString::fromUtf8(obs_module_text("Cancel")));
+	QPushButton *cancelButton = new QPushButton(
+		QString::fromUtf8(obs_frontend_get_locale_string("Cancel")));
 	connect(cancelButton, &QPushButton::clicked, [this] { close(); });
 
 	QHBoxLayout *contentLayout = new QHBoxLayout;

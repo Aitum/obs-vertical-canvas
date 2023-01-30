@@ -33,87 +33,105 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 {
 	auto menu = QMenu(this);
 	auto a =
-		menu.addAction(QString::fromUtf8(obs_module_text("GridMode")),
-				[this](bool checked) { SetGridMode(checked); });
+		menu.addAction(QString::fromUtf8(obs_frontend_get_locale_string(
+				       "Basic.Main.GridMode")),
+			       [this](bool checked) { SetGridMode(checked); });
 	a->setCheckable(true);
 	a->setChecked(IsGridMode());
-	menu.addAction(QString::fromUtf8(obs_module_text("Add")),
-			[this] { canvasDock->AddScene(); });
+	menu.addAction(QString::fromUtf8(obs_frontend_get_locale_string("Add")),
+		       [this] { canvasDock->AddScene(); });
 	if (!item) {
 		menu.exec(QCursor::pos());
 		return;
 	}
 	menu.addSeparator();
-	menu.addAction(QString::fromUtf8(obs_module_text("Duplicate")),
-			[this] {
-				const auto item = sceneList->currentItem();
-				if (!item)
-					return;
-				canvasDock->AddScene(item->text());
-			});
-	menu.addAction(QString::fromUtf8(obs_module_text("Remove")), [this] {
-		auto item = sceneList->currentItem();
-		if (!item)
-			return;
-		canvasDock->RemoveScene(item->text());
-	});
-	menu.addAction(QString::fromUtf8(obs_module_text("Rename")), [this] {
-		const auto item = sceneList->currentItem();
-		if (!item)
-			return;
-		std::string name = item->text().toUtf8().constData();
-		obs_source_t *source = obs_get_source_by_name(name.c_str());
-		if (!source)
-			return;
-		obs_source_t *s = nullptr;
-		do {
-			obs_source_release(s);
-			if (!NameDialog::AskForName(this, QString::fromUtf8(obs_module_text("SceneName")), name)) {
-				break;
-			}
-			s = obs_get_source_by_name(name.c_str());
-			if (s)
-				continue;
-			obs_source_set_name(source, name.c_str());
-		} while (s);
-		obs_source_release(source);
-	});
-	auto orderMenu =
-		menu.addMenu(QString::fromUtf8(obs_module_text("Order")));
-	orderMenu->addAction(QString::fromUtf8(obs_module_text("Up")),
+	menu.addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string("Duplicate")),
+		[this] {
+			const auto item = sceneList->currentItem();
+			if (!item)
+				return;
+			canvasDock->AddScene(item->text());
+		});
+	menu.addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string("Remove")),
+		[this] {
+			auto item = sceneList->currentItem();
+			if (!item)
+				return;
+			canvasDock->RemoveScene(item->text());
+		});
+	menu.addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string("Rename")),
+		[this] {
+			const auto item = sceneList->currentItem();
+			if (!item)
+				return;
+			std::string name = item->text().toUtf8().constData();
+			obs_source_t *source =
+				obs_get_source_by_name(name.c_str());
+			if (!source)
+				return;
+			obs_source_t *s = nullptr;
+			do {
+				obs_source_release(s);
+				if (!NameDialog::AskForName(
+					    this,
+					    QString::fromUtf8(obs_module_text(
+						    "SceneName")),
+					    name)) {
+					break;
+				}
+				s = obs_get_source_by_name(name.c_str());
+				if (s)
+					continue;
+				obs_source_set_name(source, name.c_str());
+			} while (s);
+			obs_source_release(source);
+		});
+	auto orderMenu = menu.addMenu(QString::fromUtf8(
+		obs_frontend_get_locale_string("Basic.MainMenu.Edit.Order")));
+	orderMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
+				     "Basic.MainMenu.Edit.Order.MoveUp")),
 			     [this] { ChangeSceneIndex(true, -1, 0); });
 	orderMenu->addAction(
-		QString::fromUtf8(obs_module_text("Down")),
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Order.MoveDown")),
 		[this] { ChangeSceneIndex(true, 1, sceneList->count() - 1); });
-	orderMenu->addAction(QString::fromUtf8(obs_module_text("Top")),
+	orderMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
+				     "Basic.MainMenu.Edit.Order.MoveToTop")),
 			     [this] { ChangeSceneIndex(false, 0, 0); });
 	orderMenu->addAction(
-		QString::fromUtf8(obs_module_text("Bottom")),
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Order.MoveToBottom")),
 		[this] { ChangeSceneIndex(false, 1, sceneList->count() - 1); });
 
-	menu.addAction(QString::fromUtf8(obs_module_text("Screenshot")),
-			[this] {
-				auto item = sceneList->currentItem();
-				if (!item)
-					return;
-				auto s = obs_get_source_by_name(
-					item->text().toUtf8().constData());
-				if (s) {
-					obs_frontend_take_source_screenshot(s);
-					obs_source_release(s);
-				}
-			});
-	menu.addAction(QString::fromUtf8(obs_module_text("Filters")), [this] {
-		auto item = sceneList->currentItem();
-		if (!item)
-			return;
-		auto s = obs_get_source_by_name(
-			item->text().toUtf8().constData());
-		if (s) {
-			obs_frontend_open_source_filters(s);
-			obs_source_release(s);
-		}
-	});
+	menu.addAction(QString::fromUtf8(obs_frontend_get_locale_string(
+			       "Screenshot.Scene")),
+		       [this] {
+			       auto item = sceneList->currentItem();
+			       if (!item)
+				       return;
+			       auto s = obs_get_source_by_name(
+				       item->text().toUtf8().constData());
+			       if (s) {
+				       obs_frontend_take_source_screenshot(s);
+				       obs_source_release(s);
+			       }
+		       });
+	menu.addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string("Filters")),
+		[this] {
+			auto item = sceneList->currentItem();
+			if (!item)
+				return;
+			auto s = obs_get_source_by_name(
+				item->text().toUtf8().constData());
+			if (s) {
+				obs_frontend_open_source_filters(s);
+				obs_source_release(s);
+			}
+		});
 
 	auto linkedScenesMenu = menu.addMenu(
 		QString::fromUtf8(obs_module_text("LinkedScenes")));
@@ -212,8 +230,10 @@ CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent)
 {
 	const auto scenesName = canvasDock->objectName() + "Scenes";
 	setObjectName(scenesName);
-	const auto scenesTitle = canvasDock->windowTitle() + " " +
-				 QString::fromUtf8(obs_module_text("Scenes"));
+	const auto scenesTitle =
+		canvasDock->windowTitle() + " " +
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("Basic.Main.Scenes"));
 	setWindowTitle(scenesTitle);
 
 	auto mainLayout = new QVBoxLayout(this);
@@ -253,13 +273,14 @@ CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent)
 	toolbar->setFloatable(false);
 	auto a = toolbar->addAction(
 		QIcon(QString::fromUtf8(":/res/images/plus.svg")),
-		QString::fromUtf8(obs_module_text("Add")),
+		QString::fromUtf8(obs_frontend_get_locale_string("Add")),
 		[this] { canvasDock->AddScene(); });
 	toolbar->widgetForAction(a)->setProperty(
 		"themeID", QVariant(QString::fromUtf8("addIconSmall")));
 
 	a = toolbar->addAction(QIcon(":/res/images/minus.svg"),
-			       QString::fromUtf8(obs_module_text("Remove")),
+			       QString::fromUtf8(obs_frontend_get_locale_string(
+				       "RemoveScene")),
 			       [this] {
 				       auto item = sceneList->currentItem();
 				       if (!item)
@@ -271,7 +292,9 @@ CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent)
 	toolbar->addSeparator();
 	a = toolbar->addAction(
 		QIcon(":/res/images/filter.svg"),
-		QString::fromUtf8(obs_module_text("Filters")), [this] {
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("SceneFilters")),
+		[this] {
 			auto item = sceneList->currentItem();
 			if (!item)
 				return;
@@ -286,13 +309,15 @@ CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent)
 		"themeID", QVariant(QString::fromUtf8("filtersIcon")));
 	toolbar->addSeparator();
 	a = toolbar->addAction(QIcon(":/res/images/up.svg"),
-			       QString::fromUtf8(obs_module_text("Up")),
+			       QString::fromUtf8(obs_frontend_get_locale_string(
+				       "MoveSceneUp")),
 			       [this] { ChangeSceneIndex(true, -1, 0); });
 	toolbar->widgetForAction(a)->setProperty(
 		"themeID", QVariant(QString::fromUtf8("upArrowIconSmall")));
 	a = toolbar->addAction(
 		QIcon(":/res/images/down.svg"),
-		QString::fromUtf8(obs_module_text("Down")),
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("MoveSceneDown")),
 		[this] { ChangeSceneIndex(true, 1, sceneList->count() - 1); });
 	toolbar->widgetForAction(a)->setProperty(
 		"themeID", QVariant(QString::fromUtf8("downArrowIconSmall")));

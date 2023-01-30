@@ -515,8 +515,12 @@ void CanvasDock::RemoveScene(const QString &sceneName)
 		return;
 	}
 
-	QMessageBox mb(QMessageBox::Question, obs_module_text("DeleteQuestion"),
-		       obs_module_text("AreYouSureQuestion"),
+	QMessageBox mb(QMessageBox::Question,
+		       QString::fromUtf8(obs_frontend_get_locale_string(
+			       "ConfirmRemove.Title")),
+		       QString::fromUtf8(obs_frontend_get_locale_string(
+						 "ConfirmRemove.Text"))
+			       .arg(QString::fromUtf8(obs_source_get_name(s))),
 		       QMessageBox::StandardButtons(QMessageBox::Yes |
 						    QMessageBox::No));
 	mb.setDefaultButton(QMessageBox::NoButton);
@@ -846,12 +850,14 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	virtual_cam_hotkey = obs_hotkey_pair_register_frontend(
 		(name + "StartVirtualCam").toUtf8().constData(),
 		(title + " " +
-		 QString::fromUtf8(obs_module_text("StartVirtualCam")))
+		 QString::fromUtf8(obs_frontend_get_locale_string(
+			 "Basic.Main.StartVirtualCam")))
 			.toUtf8()
 			.constData(),
 		(name + "StopVirtualCam").toUtf8().constData(),
 		(title + " " +
-		 QString::fromUtf8(obs_module_text("StopVirtualCam")))
+		 QString::fromUtf8(obs_frontend_get_locale_string(
+			 "Basic.Main.StopVirtualCam")))
 			.toUtf8()
 			.constData(),
 		start_virtual_cam_hotkey, stop_virtual_cam_hotkey, this, this);
@@ -867,12 +873,14 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	record_hotkey = obs_hotkey_pair_register_frontend(
 		(name + "StartRecording").toUtf8().constData(),
 		(title + " " +
-		 QString::fromUtf8(obs_module_text("StartRecording")))
+		 QString::fromUtf8(obs_frontend_get_locale_string(
+			 "Basic.Main.StartRecording")))
 			.toUtf8()
 			.constData(),
 		(name + "StopRecording").toUtf8().constData(),
 		(title + " " +
-		 QString::fromUtf8(obs_module_text("StopRecording")))
+		 QString::fromUtf8(obs_frontend_get_locale_string(
+			 "Basic.Main.StopRecording")))
 			.toUtf8()
 			.constData(),
 		start_recording_hotkey, stop_recording_hotkey, this, this);
@@ -886,12 +894,14 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	stream_hotkey = obs_hotkey_pair_register_frontend(
 		(name + "StartStreaming").toUtf8().constData(),
 		(title + " " +
-		 QString::fromUtf8(obs_module_text("StartStreaming")))
+		 QString::fromUtf8(obs_frontend_get_locale_string(
+			 "Basic.Main.StartStreaming")))
 			.toUtf8()
 			.constData(),
 		(name + "StopStreaming").toUtf8().constData(),
 		(title + " " +
-		 QString::fromUtf8(obs_module_text("StopStreaming")))
+		 QString::fromUtf8(obs_frontend_get_locale_string(
+			 "Basic.Main.StopStreaming")))
 			.toUtf8()
 			.constData(),
 		start_streaming_hotkey, stop_streaming_hotkey, this, this);
@@ -2423,7 +2433,7 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 	obs_source_t *source = obs_sceneitem_get_source(sceneItem);
 
 	popup->addAction(
-		QString::fromUtf8(obs_module_text("Rename")),
+		QString::fromUtf8(obs_frontend_get_locale_string("Rename")),
 		[this, sceneItem] {
 			obs_source_t *source = obs_source_get_ref(
 				obs_sceneitem_get_source(sceneItem));
@@ -2449,14 +2459,20 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 		});
 	popup->addAction(
 		//removeButton->icon(),
-		QString::fromUtf8(obs_module_text("Remove")), this,
-		[sceneItem] {
+		QString::fromUtf8(obs_frontend_get_locale_string("Remove")),
+		this, [sceneItem] {
 			QMessageBox mb(
 				QMessageBox::Question,
 				QString::fromUtf8(
-					obs_module_text("DeleteQuestion")),
+					obs_frontend_get_locale_string(
+						"ConfirmRemove.Title")),
 				QString::fromUtf8(
-					obs_module_text("AreYouSureQuestion")),
+					obs_frontend_get_locale_string(
+						"ConfirmRemove.Text"))
+					.arg(QString::fromUtf8(
+						obs_source_get_name(
+							obs_sceneitem_get_source(
+								sceneItem)))),
 				QMessageBox::StandardButtons(QMessageBox::Yes |
 							     QMessageBox::No));
 			mb.setDefaultButton(QMessageBox::NoButton);
@@ -2466,68 +2482,84 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 		});
 
 	popup->addSeparator();
-	auto orderMenu =
-		popup->addMenu(QString::fromUtf8(obs_module_text("Order")));
-	orderMenu->addAction(
-		QString::fromUtf8(obs_module_text("Up")), this, [sceneItem] {
-			obs_sceneitem_set_order(sceneItem, OBS_ORDER_MOVE_UP);
-		});
-	orderMenu->addAction(
-		QString::fromUtf8(obs_module_text("Down")), this, [sceneItem] {
-			obs_sceneitem_set_order(sceneItem, OBS_ORDER_MOVE_DOWN);
-		});
+	auto orderMenu = popup->addMenu(QString::fromUtf8(
+		obs_frontend_get_locale_string("Basic.MainMenu.Edit.Order")));
+	orderMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
+				     "Basic.MainMenu.Edit.Order.MoveUp")),
+			     this, [sceneItem] {
+				     obs_sceneitem_set_order(sceneItem,
+							     OBS_ORDER_MOVE_UP);
+			     });
+	orderMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
+				     "Basic.MainMenu.Edit.Order.MoveDown")),
+			     this, [sceneItem] {
+				     obs_sceneitem_set_order(
+					     sceneItem, OBS_ORDER_MOVE_DOWN);
+			     });
 	orderMenu->addSeparator();
-	orderMenu->addAction(
-		QString::fromUtf8(obs_module_text("Top")), this, [sceneItem] {
-			obs_sceneitem_set_order(sceneItem, OBS_ORDER_MOVE_TOP);
-		});
-	orderMenu->addAction(QString::fromUtf8(obs_module_text("Bottom")), this,
-			     [sceneItem] {
+	orderMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
+				     "Basic.MainMenu.Edit.Order.MoveToTop")),
+			     this, [sceneItem] {
+				     obs_sceneitem_set_order(
+					     sceneItem, OBS_ORDER_MOVE_TOP);
+			     });
+	orderMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
+				     "Basic.MainMenu.Edit.Order.MoveToBottom")),
+			     this, [sceneItem] {
 				     obs_sceneitem_set_order(
 					     sceneItem, OBS_ORDER_MOVE_BOTTOM);
 			     });
 
 	auto transformMenu =
-		popup->addMenu(QString::fromUtf8(obs_module_text("Transform")));
-	transformMenu->addAction(QString::fromUtf8(obs_module_text("Edit")), [this,
-									      sceneItem] {
-		const auto mainDialog = static_cast<QMainWindow *>(
-			obs_frontend_get_main_window());
-		auto transformDialog =
-			mainDialog->findChild<QDialog *>("OBSBasicTransform");
-		if (!transformDialog) {
-			// make sure there is an item selected on the main canvas before starting the transform dialog
-			const auto currentScene =
-				obs_frontend_preview_program_mode_active()
-					? obs_frontend_get_current_preview_scene()
-					: obs_frontend_get_current_scene();
-			auto selected = GetSelectedItem(
-				obs_scene_from_source(currentScene));
-			if (!selected) {
-				obs_scene_enum_items(
-					obs_scene_from_source(currentScene),
-					[](obs_scene_t *, obs_sceneitem_t *item,
-					   void *) {
-						obs_sceneitem_select(item,
-								     true);
-						return false;
-					},
-					nullptr);
-			}
-			obs_source_release(currentScene);
-			QMetaObject::invokeMethod(
-				mainDialog, "on_actionEditTransform_triggered");
-			transformDialog = mainDialog->findChild<QDialog *>(
-				"OBSBasicTransform");
-		}
-		if (!transformDialog)
-			return;
-		QMetaObject::invokeMethod(transformDialog, "SetItemQt",
-					  Q_ARG(OBSSceneItem,
-						OBSSceneItem(sceneItem)));
-	});
+		popup->addMenu(QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Transform")));
 	transformMenu->addAction(
-		QString::fromUtf8(obs_module_text("Reset")), this, [sceneItem] {
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Transform.EditTransform")),
+		[this, sceneItem] {
+			const auto mainDialog = static_cast<QMainWindow *>(
+				obs_frontend_get_main_window());
+			auto transformDialog = mainDialog->findChild<QDialog *>(
+				"OBSBasicTransform");
+			if (!transformDialog) {
+				// make sure there is an item selected on the main canvas before starting the transform dialog
+				const auto currentScene =
+					obs_frontend_preview_program_mode_active()
+						? obs_frontend_get_current_preview_scene()
+						: obs_frontend_get_current_scene();
+				auto selected = GetSelectedItem(
+					obs_scene_from_source(currentScene));
+				if (!selected) {
+					obs_scene_enum_items(
+						obs_scene_from_source(
+							currentScene),
+						[](obs_scene_t *,
+						   obs_sceneitem_t *item,
+						   void *) {
+							obs_sceneitem_select(
+								item, true);
+							return false;
+						},
+						nullptr);
+				}
+				obs_source_release(currentScene);
+				QMetaObject::invokeMethod(
+					mainDialog,
+					"on_actionEditTransform_triggered");
+				transformDialog =
+					mainDialog->findChild<QDialog *>(
+						"OBSBasicTransform");
+			}
+			if (!transformDialog)
+				return;
+			QMetaObject::invokeMethod(
+				transformDialog, "SetItemQt",
+				Q_ARG(OBSSceneItem, OBSSceneItem(sceneItem)));
+		});
+	transformMenu->addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Transform.ResetTransform")),
+		this, [sceneItem] {
 			obs_sceneitem_set_alignment(
 				sceneItem, OBS_ALIGN_LEFT | OBS_ALIGN_TOP);
 			obs_sceneitem_set_bounds_type(sceneItem,
@@ -2546,35 +2578,43 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 		});
 	transformMenu->addSeparator();
 	transformMenu->addAction(
-		QString::fromUtf8(obs_module_text("Rotate90")), this, [this] {
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Transform.Rotate90CW")),
+		this, [this] {
 			float rotation = 90.0f;
 			obs_scene_enum_items(scene, RotateSelectedSources,
 					     &rotation);
 		});
 	transformMenu->addAction(
-		QString::fromUtf8(obs_module_text("Rotate270")), this, [this] {
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Transform.Rotate90CCW")),
+		this, [this] {
 			float rotation = -90.0f;
 			obs_scene_enum_items(scene, RotateSelectedSources,
 					     &rotation);
 		});
 	transformMenu->addAction(
-		QString::fromUtf8(obs_module_text("Rotate180")), this, [this] {
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Transform.Rotate180")),
+		this, [this] {
 			float rotation = 180.0f;
 			obs_scene_enum_items(scene, RotateSelectedSources,
 					     &rotation);
 		});
 	transformMenu->addSeparator();
 	transformMenu->addAction(
-		QString::fromUtf8(obs_module_text("FlipHorizontal")), this,
-		[this] {
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Transform.FlipHorizontal")),
+		this, [this] {
 			vec2 scale;
 			vec2_set(&scale, -1.0f, 1.0f);
 			obs_scene_enum_items(scene, MultiplySelectedItemScale,
 					     &scale);
 		});
 	transformMenu->addAction(
-		QString::fromUtf8(obs_module_text("FlipVertical")), this,
-		[this] {
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Transform.FlipVertical")),
+		this, [this] {
 			vec2 scale;
 			vec2_set(&scale, 1.0f, -1.0f);
 			obs_scene_enum_items(scene, MultiplySelectedItemScale,
@@ -2582,35 +2622,46 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 		});
 	transformMenu->addSeparator();
 	transformMenu->addAction(
-		QString::fromUtf8(obs_module_text("FitToCanvas")), this,
-		[this] {
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Transform.FitToScreen")),
+		this, [this] {
 			obs_bounds_type boundsType = OBS_BOUNDS_SCALE_INNER;
 			obs_scene_enum_items(scene, CenterAlignSelectedItems,
 					     &boundsType);
 		});
 	transformMenu->addAction(
-		QString::fromUtf8(obs_module_text("StretchToCanvas")), this,
-		[this] {
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Transform.StretchToScreen")),
+		this, [this] {
 			obs_bounds_type boundsType = OBS_BOUNDS_STRETCH;
 			obs_scene_enum_items(scene, CenterAlignSelectedItems,
 					     &boundsType);
 		});
 	transformMenu->addAction(
-		QString::fromUtf8(obs_module_text("CenterToCanvas")), this,
-		[this] { CenterSelectedItems(CenterType::Scene); });
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Transform.CenterToScreen")),
+		this, [this] { CenterSelectedItems(CenterType::Scene); });
 	transformMenu->addAction(
-		QString::fromUtf8(obs_module_text("CenterVertically")), this,
-		[this] { CenterSelectedItems(CenterType::Vertical); });
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Transform.VerticalCenter")),
+		this, [this] { CenterSelectedItems(CenterType::Vertical); });
 	transformMenu->addAction(
-		QString::fromUtf8(obs_module_text("CenterHorizontally")), this,
-		[this] { CenterSelectedItems(CenterType::Horizontal); });
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.MainMenu.Edit.Transform.HorizontalCenter")),
+		this, [this] { CenterSelectedItems(CenterType::Horizontal); });
 
-	popup->addAction(QString::fromUtf8(obs_module_text("Filters")), this,
-			 [source] {
-				 obs_frontend_open_source_filters(source);
+	popup->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
+				 "Screenshot.Source")),
+			 this, [source] {
+				 obs_frontend_take_source_screenshot(source);
 			 });
+
+	popup->addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string("Filters")),
+		this, [source] { obs_frontend_open_source_filters(source); });
 	auto a = popup->addAction(
-		QString::fromUtf8(obs_module_text("Properties")), this,
+		QString::fromUtf8(obs_frontend_get_locale_string("Properties")),
+		this,
 		[source] { obs_frontend_open_source_properties(source); });
 	a->setEnabled(obs_source_configurable(source));
 }
@@ -2623,15 +2674,17 @@ bool CanvasDock::HandleMouseReleaseEvent(QMouseEvent *event)
 	if (!mouseDown && event->button() == Qt::RightButton) {
 		QMenu popup(this);
 		QAction *action = popup.addAction(
-			QString::fromUtf8(obs_module_text("Locked")), this,
-			[this] { locked = !locked; });
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"Basic.MainMenu.Edit.LockPreview")),
+			this, [this] { locked = !locked; });
 		action->setCheckable(true);
 		action->setChecked(locked);
 
 		popup.addAction(
 			GetIconFromType(OBS_ICON_TYPE_IMAGE),
-			QString::fromUtf8(obs_module_text("Screenshot")), this,
-			[this] {
+			QString::fromUtf8(
+				obs_frontend_get_locale_string("Screenshot")),
+			this, [this] {
 				auto s = obs_weak_source_get_source(source);
 				obs_frontend_take_source_screenshot(s);
 				obs_source_release(s);
@@ -4136,8 +4189,8 @@ void CanvasDock::LoadSourceTypeMenu(QMenu *menu, const char *type)
 	if (strcmp(type, "scene") == 0) {
 		obs_enum_scenes(add_sources_of_type_to_menu, menu);
 	} else {
-		auto popupItem = menu->addAction(
-			QString::fromUtf8(obs_module_text("New")));
+		auto popupItem = menu->addAction(QString::fromUtf8(
+			obs_frontend_get_locale_string("New")));
 		popupItem->setData(QString::fromUtf8(type));
 		connect(popupItem, SIGNAL(triggered(bool)), this,
 			SLOT(AddSourceFromAction()));
@@ -4159,10 +4212,11 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 	bool foundDeprecated = false;
 	size_t idx = 0;
 
-	QMenu *popup =
-		new QMenu(QString::fromUtf8(obs_module_text("Add")), this);
+	QMenu *popup = new QMenu(
+		QString::fromUtf8(obs_frontend_get_locale_string("Add")), this);
 	QMenu *deprecated = new QMenu(
-		QString::fromUtf8(obs_module_text("Deprecated")), popup);
+		QString::fromUtf8(obs_frontend_get_locale_string("Deprecated")),
+		popup);
 
 	auto getActionAfter = [](QMenu *menu, const QString &name) {
 		QList<QAction *> actions = menu->actions();
@@ -4214,8 +4268,9 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 		foundValues = true;
 	}
 
-	addSource(popup, "scene", obs_module_text("Scene"));
-	addSource(popup, "group", obs_module_text("Group"));
+	addSource(popup, "scene",
+		  obs_frontend_get_locale_string("Basic.Scene"));
+	addSource(popup, "group", obs_frontend_get_locale_string("Group"));
 
 	if (!foundDeprecated) {
 		delete deprecated;
@@ -4615,7 +4670,8 @@ void CanvasDock::StartRecord()
 		const char *error = obs_output_get_last_error(recordOutput);
 		QString error_reason = QString::fromUtf8(
 			error ? error
-			      : obs_module_text("Output.StartFailedGeneric"));
+			      : obs_frontend_get_locale_string(
+					"Output.StartFailedGeneric"));
 		obs_view_remove(view);
 		obs_view_set_source(view, 0, nullptr);
 		video = nullptr;
@@ -5540,32 +5596,42 @@ void CanvasDock::OnRecordStop(int code, QString last_error)
 	recordButton->setStyleSheet(QString::fromUtf8(""));
 	if (code == OBS_OUTPUT_UNSUPPORTED && isVisible()) {
 		QMessageBox::critical(
-			this, QString::fromUtf8(obs_module_text("RecordFail")),
-			QString::fromUtf8(
-				obs_module_text("RecordUnsupported")));
+			this,
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"Output.RecordFail.Title")),
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"Output.RecordFail.Unsupported")));
 
 	} else if (code == OBS_OUTPUT_ENCODE_ERROR && isVisible()) {
 		QString msg =
 			last_error.isEmpty()
-				? QString::fromUtf8(
-					  obs_module_text("RecordEncodeError"))
+				? QString::fromUtf8(obs_frontend_get_locale_string(
+					  "Output.RecordError.EncodeErrorMsg"))
 				: QString::fromUtf8(
-					  obs_module_text("RecordLastError"))
+					  obs_frontend_get_locale_string(
+						  "Output.RecordError.EncodeErrorMsg.LastError"))
 					  .arg(last_error);
 		QMessageBox::warning(
-			this, QString::fromUtf8(obs_module_text("RecordError")),
+			this,
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"Output.RecordError.Title")),
 			msg);
 
 	} else if (code == OBS_OUTPUT_NO_SPACE && isVisible()) {
 		QMessageBox::warning(
 			this,
-			QString::fromUtf8(obs_module_text("RecordNoSpace")),
-			QString::fromUtf8(obs_module_text("RecordNoSpaceMsg")));
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"Output.RecordNoSpace.Title")),
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"Output.RecordNoSpace.Msg")));
 
 	} else if (code != OBS_OUTPUT_SUCCESS && isVisible()) {
 		QMessageBox::critical(
-			this, QString::fromUtf8(obs_module_text("RecordError")),
-			QString::fromUtf8(obs_module_text("RecordErrorMsg")) +
+			this,
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"Output.RecordError.Title")),
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"Output.RecordError.Msg")) +
 				(!last_error.isEmpty()
 					 ? QString::fromUtf8("\n\n") +
 						   last_error
@@ -5599,16 +5665,19 @@ void CanvasDock::OnStreamStop(int code, QString last_error)
 
 	switch (code) {
 	case OBS_OUTPUT_BAD_PATH:
-		errorDescription = obs_module_text("BadPath");
+		errorDescription = obs_frontend_get_locale_string(
+			"Output.ConnectFail.BadPath");
 		break;
 
 	case OBS_OUTPUT_CONNECT_FAILED:
 		use_last_error = true;
-		errorDescription = obs_module_text("ConnectFailed");
+		errorDescription = obs_frontend_get_locale_string(
+			"Output.ConnectFail.ConnectFailed");
 		break;
 
 	case OBS_OUTPUT_INVALID_STREAM:
-		errorDescription = obs_module_text("InvalidStream");
+		errorDescription = obs_frontend_get_locale_string(
+			"Output.ConnectFail.InvalidStream");
 		break;
 
 	case OBS_OUTPUT_ENCODE_ERROR:
@@ -5618,32 +5687,39 @@ void CanvasDock::OnStreamStop(int code, QString last_error)
 	default:
 	case OBS_OUTPUT_ERROR:
 		use_last_error = true;
-		errorDescription = obs_module_text("ConnectionError");
+		errorDescription = obs_frontend_get_locale_string(
+			"Output.ConnectFail.Error");
 		break;
 
 	case OBS_OUTPUT_DISCONNECTED:
 		/* doesn't happen if output is set to reconnect.  note that
 		 * reconnects are handled in the output, not in the UI */
 		use_last_error = true;
-		errorDescription = obs_module_text("Disconnected");
+		errorDescription = obs_frontend_get_locale_string(
+			"Output.ConnectFail.Disconnected");
 	}
 
 	if (encode_error) {
 		QString msg =
 			last_error.isEmpty()
-				? QString::fromUtf8(obs_module_text(
-					  "StreamEncodeErrorMsg"))
+				? QString::fromUtf8(
+					  obs_frontend_get_locale_string(
+						  "Output.StreamEncodeError.Msg"))
 				: QString::fromUtf8(
-					  obs_module_text("StreamLastError"))
+					  obs_frontend_get_locale_string(
+						  "Output.StreamEncodeError.Msg.LastError"))
 					  .arg(last_error);
 		QMessageBox::information(
 			this,
-			QString::fromUtf8(obs_module_text("StreamEncodeError")),
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"Output.StreamEncodeError.Title")),
 			msg);
 
 	} else if (code != OBS_OUTPUT_SUCCESS && isVisible()) {
 		QMessageBox::information(
-			this, QString::fromUtf8(obs_module_text("ConnectFail")),
+			this,
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"Output.ConnectFail.Title")),
 			QString::fromUtf8(errorDescription) +
 				(use_last_error && !last_error.isEmpty()
 					 ? QString::fromUtf8("\n\n") +

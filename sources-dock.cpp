@@ -15,8 +15,10 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 {
 	const auto sourcesName = canvasDock->objectName() + "Sources";
 	setObjectName(sourcesName);
-	const auto sourcesTitle = canvasDock->windowTitle() + " " +
-				  QString::fromUtf8(obs_module_text("Sources"));
+	const auto sourcesTitle =
+		canvasDock->windowTitle() + " " +
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("Basic.Main.Sources"));
 	setWindowTitle(sourcesTitle);
 
 	auto mainLayout = new QVBoxLayout(this);
@@ -40,7 +42,8 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 	toolbar->setFloatable(false);
 	auto a = toolbar->addAction(
 		QIcon(QString::fromUtf8(":/res/images/plus.svg")),
-		QString::fromUtf8(obs_module_text("Add")), [this] {
+		QString::fromUtf8(obs_frontend_get_locale_string("AddSource")),
+		[this] {
 			const auto menu =
 				canvasDock->CreateAddSourcePopupMenu();
 			menu->exec(QCursor::pos());
@@ -50,7 +53,9 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 
 	a = toolbar->addAction(
 		QIcon(":/res/images/minus.svg"),
-		QString::fromUtf8(obs_module_text("Remove")), [this] {
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("RemoveSource")),
+		[this] {
 			std::vector<OBSSceneItem> items;
 			obs_scene_enum_items(canvasDock->scene, remove_items,
 					     &items);
@@ -64,7 +69,7 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 			if (items.size() > 1) {
 				QString text =
 					QString::fromUtf8(
-						obs_module_text(
+						obs_frontend_get_locale_string(
 							"ConfirmRemove.TextMultiple"))
 						.arg(QString::number(
 							items.size()));
@@ -73,16 +78,18 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 				remove_items.setText(text);
 				QPushButton *Yes = remove_items.addButton(
 					QString::fromUtf8(
-						obs_module_text("Yes")),
+						obs_frontend_get_locale_string(
+							"Yes")),
 					QMessageBox::YesRole);
 				remove_items.setDefaultButton(Yes);
 				remove_items.addButton(
 					QString::fromUtf8(
-						obs_module_text("No")),
+						obs_frontend_get_locale_string(
+							"No")),
 					QMessageBox::NoRole);
 				remove_items.setIcon(QMessageBox::Question);
-				remove_items.setWindowTitle(
-					QString::fromUtf8(obs_module_text(
+				remove_items.setWindowTitle(QString::fromUtf8(
+					obs_frontend_get_locale_string(
 						"ConfirmRemove.Title")));
 				remove_items.exec();
 
@@ -97,28 +104,28 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 
 					QString text =
 						QString::fromUtf8(
-							obs_module_text(
+							obs_frontend_get_locale_string(
 								"ConfirmRemove.Text"))
 							.arg(QString::fromUtf8(
 								name));
 
 					QMessageBox remove_source(this);
 					remove_source.setText(text);
-					QPushButton *Yes =
-						remove_source.addButton(
-							QString::fromUtf8(
-								obs_module_text(
-									"Yes")),
-							QMessageBox::YesRole);
+					QPushButton *Yes = remove_source.addButton(
+						QString::fromUtf8(
+							obs_frontend_get_locale_string(
+								"Yes")),
+						QMessageBox::YesRole);
 					remove_source.setDefaultButton(Yes);
 					remove_source.addButton(
 						QString::fromUtf8(
-							obs_module_text("No")),
+							obs_frontend_get_locale_string(
+								"No")),
 						QMessageBox::NoRole);
 					remove_source.setIcon(
 						QMessageBox::Question);
-					remove_source.setWindowTitle(
-						QString::fromUtf8(obs_module_text(
+					remove_source.setWindowTitle(QString::fromUtf8(
+						obs_frontend_get_locale_string(
 							"ConfirmRemove.Title")));
 					remove_source.exec();
 					confirmed =
@@ -140,7 +147,9 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 	toolbar->addSeparator();
 	a = toolbar->addAction(
 		QIcon(":/res/images/filter.svg"),
-		QString::fromUtf8(obs_module_text("Filters")), [this] {
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("SourceFilters")),
+		[this] {
 			auto item = GetCurrentSceneItem();
 			auto source = obs_sceneitem_get_source(item);
 			if (source)
@@ -151,7 +160,9 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 
 	a = toolbar->addAction(
 		QIcon(":/settings/images/settings/general.svg"),
-		QString::fromUtf8(obs_module_text("Properties")), [this] {
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("SourceProperties")),
+		[this] {
 			auto item = GetCurrentSceneItem();
 			auto source = obs_sceneitem_get_source(item);
 			if (source)
@@ -163,7 +174,9 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 	toolbar->addSeparator();
 	a = toolbar->addAction(
 		QIcon(":/res/images/up.svg"),
-		QString::fromUtf8(obs_module_text("Up")), [this] {
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("MoveSourceUp")),
+		[this] {
 			auto item = GetCurrentSceneItem();
 			obs_sceneitem_set_order(item, OBS_ORDER_MOVE_UP);
 		});
@@ -171,7 +184,9 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 		"themeID", QVariant(QString::fromUtf8("upArrowIconSmall")));
 	a = toolbar->addAction(
 		QIcon(":/res/images/down.svg"),
-		QString::fromUtf8(obs_module_text("Down")), [this] {
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("MoveSourceDown")),
+		[this] {
 			auto item = GetCurrentSceneItem();
 			obs_sceneitem_set_order(item, OBS_ORDER_MOVE_DOWN);
 		});

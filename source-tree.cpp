@@ -130,19 +130,24 @@ SourceTreeItem::SourceTreeItem(SourceTree *tree_, OBSSceneItem sceneitem_)
 	vis->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
 	vis->setChecked(sourceVisible);
 	vis->setStyleSheet("background: none");
-	vis->setAccessibleName(
-		QString::fromUtf8(obs_module_text("Visibility")));
+	vis->setAccessibleName(QString::fromUtf8(obs_frontend_get_locale_string(
+		"Basic.Main.Sources.Visibility")));
 	vis->setAccessibleDescription(
-		QString::fromUtf8(obs_module_text("VisibilityDescription"))
+		QString::fromUtf8(
+			obs_frontend_get_locale_string(
+				"Basic.Main.Sources.VisibilityDescription"))
 			.arg(name));
 
 	lock = new LockedCheckBox();
 	lock->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
 	lock->setChecked(obs_sceneitem_locked(sceneitem));
 	lock->setStyleSheet("background: none");
-	lock->setAccessibleName(QString::fromUtf8(obs_module_text("Lock")));
+	lock->setAccessibleName(QString::fromUtf8(
+		obs_frontend_get_locale_string("Basic.Main.Sources.Lock")));
 	lock->setAccessibleDescription(
-		QString::fromUtf8(obs_module_text("LockDescription")).arg(name));
+		QString::fromUtf8(obs_frontend_get_locale_string(
+					  "Basic.Main.Sources.LockDescription"))
+			.arg(name));
 
 	label = new QLabel(QString::fromUtf8(name));
 	label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
@@ -426,11 +431,12 @@ void SourceTreeItem::ExitEditModeInternal(bool save)
 		return;
 
 	if (newName.empty()) {
-		QMessageBox::information(tree,
-					 QString::fromUtf8(obs_module_text(
-						 "NoNameEntered.Title")),
-					 QString::fromUtf8(obs_module_text(
-						 "NoNameEntered.Text")));
+		QMessageBox::information(
+			tree,
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"NoNameEntered.Title")),
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"NoNameEntered.Text")));
 		return;
 	}
 
@@ -451,8 +457,10 @@ void SourceTreeItem::ExitEditModeInternal(bool save)
 	if (exists) {
 		QMessageBox::information(
 			tree,
-			QString::fromUtf8(obs_module_text("NameExists.Title")),
-			QString::fromUtf8(obs_module_text("NameExists.Text")));
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"NameExists.Title")),
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"NameExists.Text")));
 		return;
 	}
 
@@ -908,14 +916,16 @@ Qt::DropActions SourceTreeModel::supportedDropActions() const
 
 QString SourceTreeModel::GetNewGroupName()
 {
-	QString name = QString::fromUtf8(obs_module_text("Group"));
+	QString name =
+		QString::fromUtf8(obs_frontend_get_locale_string("Group"));
 	int i = 2;
 	for (;;) {
 		OBSSourceAutoRelease group =
 			obs_get_source_by_name(name.toUtf8().constData());
 		if (!group)
 			break;
-		name = QString::fromUtf8(obs_module_text("GroupName"))
+		name = QString::fromUtf8(obs_frontend_get_locale_string(
+						 "Basic.Main.Group"))
 			       .arg(QString::number(i++));
 	}
 
@@ -1646,7 +1656,8 @@ void SourceTree::UpdateNoSourcesMessage()
 	QTextOption opt(Qt::AlignHCenter);
 	opt.setWrapMode(QTextOption::WordWrap);
 	textNoSources.setTextOption(opt);
-	textNoSources.setText(QString::fromUtf8(obs_module_text("NoSources"))
+	textNoSources.setText(QString::fromUtf8(obs_frontend_get_locale_string(
+							"NoSources.Label"))
 				      .replace("\n", "<br/>"));
 
 	textPrepared = false;

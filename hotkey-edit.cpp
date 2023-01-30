@@ -22,6 +22,7 @@
 #include <QStyle>
 #include <QAction>
 
+#include "obs-frontend-api.h"
 #include "obs-module.h"
 
 uint32_t TranslateQtKeyboardEventModifiers(Qt::KeyboardModifiers mods)
@@ -230,8 +231,8 @@ void OBSHotkeyEdit::CreateDupeIcon()
 	dupeIcon = addAction(
 		QIcon::fromTheme("obs", QIcon(":/res/images/warning.svg")),
 		ActionPosition::TrailingPosition);
-	dupeIcon->setToolTip(
-		QString::fromUtf8(obs_module_text("DuplicateWarning")));
+	dupeIcon->setToolTip(QString::fromUtf8(obs_frontend_get_locale_string(
+		"Basic.Settings.Hotkeys.DuplicateWarning")));
 	QObject::connect(dupeIcon, &QAction::triggered,
 			 [=] { emit SearchKey(key); });
 	dupeIcon->setVisible(false);
@@ -314,12 +315,14 @@ void OBSHotkeyWidget::AddEdit(obs_key_combination combo, int idx)
 
 	auto revert = new QPushButton;
 	revert->setProperty("themeID", "revertIcon");
-	revert->setToolTip(QString::fromUtf8(obs_module_text("Revert")));
+	revert->setToolTip(
+		QString::fromUtf8(obs_frontend_get_locale_string("Revert")));
 	revert->setEnabled(false);
 
 	auto clear = new QPushButton;
 	clear->setProperty("themeID", "clearIconSmall");
-	clear->setToolTip(QString::fromUtf8(obs_module_text("Clear")));
+	clear->setToolTip(
+		QString::fromUtf8(obs_frontend_get_locale_string("Clear")));
 	clear->setEnabled(!obs_key_combination_is_empty(combo));
 
 	QObject::connect(
@@ -332,11 +335,13 @@ void OBSHotkeyWidget::AddEdit(obs_key_combination combo, int idx)
 
 	auto add = new QPushButton;
 	add->setProperty("themeID", "addIconSmall");
-	add->setToolTip(QString::fromUtf8(obs_module_text("Add")));
+	add->setToolTip(
+		QString::fromUtf8(obs_frontend_get_locale_string("Add")));
 
 	auto remove = new QPushButton;
 	remove->setProperty("themeID", "removeIconSmall");
-	remove->setToolTip(QString::fromUtf8(obs_module_text("Remove")));
+	remove->setToolTip(
+		QString::fromUtf8(obs_frontend_get_locale_string("Remove")));
 	remove->setEnabled(removeButtons.size() > 0);
 
 	auto CurrentIndex = [&, remove] {
