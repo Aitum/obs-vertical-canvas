@@ -68,7 +68,7 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 		obs_source_t *s = nullptr;
 		do {
 			obs_source_release(s);
-			if (!NameDialog::AskForName(this, name)) {
+			if (!NameDialog::AskForName(this, QString::fromUtf8(obs_module_text("SceneName")), name)) {
 				break;
 			}
 			s = obs_get_source_by_name(name.c_str());

@@ -431,7 +431,10 @@ void CanvasDock::AddScene(QString duplicate)
 	}
 	do {
 		obs_source_release(s);
-		if (!NameDialog::AskForName(this, name)) {
+		if (!NameDialog::AskForName(
+			    this,
+			    QString::fromUtf8(obs_module_text("SceneName")),
+			    name)) {
 			break;
 		}
 		s = obs_get_source_by_name(name.c_str());
@@ -762,8 +765,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	connect(recordButton, SIGNAL(clicked()), this,
 		SLOT(RecordButtonClicked()));
 	buttonRow->addWidget(recordButton);
-
-	
 
 	replayButton = new QPushButton;
 	replayButton->setObjectName(QStringLiteral("canvasReplay"));
@@ -2419,6 +2420,31 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 
 	obs_source_t *source = obs_sceneitem_get_source(sceneItem);
 
+	popup->addAction(
+		QString::fromUtf8(obs_module_text("Rename")),
+		[this, sceneItem] {
+			obs_source_t *source = obs_source_get_ref(
+				obs_sceneitem_get_source(sceneItem));
+			if (!source)
+				return;
+			std::string name = obs_source_get_name(source);
+			obs_source_t *s = nullptr;
+			do {
+				obs_source_release(s);
+				if (!NameDialog::AskForName(
+					    this,
+					    QString::fromUtf8(obs_module_text(
+						    "SourceName")),
+					    name)) {
+					break;
+				}
+				s = obs_get_source_by_name(name.c_str());
+				if (s)
+					continue;
+				obs_source_set_name(source, name.c_str());
+			} while (s);
+			obs_source_release(source);
+		});
 	popup->addAction(
 		//removeButton->icon(),
 		QString::fromUtf8(obs_module_text("Remove")), this,

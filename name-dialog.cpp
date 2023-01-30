@@ -4,9 +4,9 @@
 
 #include "obs-module.h"
 
-NameDialog::NameDialog(QWidget *parent) : QDialog(parent)
+NameDialog::NameDialog(QWidget *parent, const QString &title) : QDialog(parent)
 {
-	setWindowTitle(QString::fromUtf8(obs_module_text("SceneName")));
+	setWindowTitle(title);
 	setModal(true);
 	setWindowModality(Qt::WindowModality::WindowModal);
 	setMinimumWidth(200);
@@ -38,9 +38,10 @@ static void CleanWhitespace(std::string &str)
 		str.erase(str.begin());
 }
 
-bool NameDialog::AskForName(QWidget *parent, std::string &name)
+bool NameDialog::AskForName(QWidget *parent, const QString &title,
+			    std::string &name)
 {
-	NameDialog dialog(parent);
+	NameDialog dialog(parent, title);
 	dialog.userText->setMaxLength(170);
 	dialog.userText->setText(QString::fromUtf8(name.c_str()));
 	dialog.userText->selectAll();
