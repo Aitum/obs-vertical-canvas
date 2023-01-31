@@ -337,7 +337,7 @@ bool obs_module_load(void)
 	obs_data_array_release(canvas);
 
 	if (!vendor)
-		vendor = obs_websocket_register_vendor("vertical-canvas");
+		vendor = obs_websocket_register_vendor("aitum-vertical-canvas");
 	if (!vendor)
 		return true;
 	obs_websocket_vendor_register_request(vendor, "version",
