@@ -258,6 +258,7 @@ private:
 	void SetLinkedScene(obs_source_t *scene, const QString &linkedScene);
 	bool HasScene(QString scene) const;
 	void CheckReplayBuffer(bool start = false);
+	void SendVendorEvent(const char * e);
 	QListWidget *GetGlobalScenesList();
 
 	static bool DrawSelectedOverflow(obs_scene_t *scene,
@@ -346,6 +347,7 @@ public:
 	obs_data_t *SaveSettings();
 
 	obs_scene_t* GetCurrentScene();
+	std::vector<QString> GetScenes();
 	bool StreamingActive();
 	bool RecordingActive();
 	bool BacktrackActive();
