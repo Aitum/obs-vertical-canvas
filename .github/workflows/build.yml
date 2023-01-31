@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [universal]
+        arch: [x86_64, arm64, universal]
     outputs:
       commitHash: ${{ steps.setup.outputs.commitHash }}
     env:
