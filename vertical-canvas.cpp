@@ -448,7 +448,7 @@ QListWidget *CanvasDock::GetGlobalScenesList()
 	return scenesDock->findChild<QListWidget *>(QStringLiteral("scenes"));
 }
 
-void CanvasDock::AddScene(QString duplicate)
+void CanvasDock::AddScene(QString duplicate, bool ask_name)
 {
 	std::string name = duplicate.isEmpty()
 				   ? obs_module_text("VerticalScene")
@@ -465,7 +465,8 @@ void CanvasDock::AddScene(QString duplicate)
 	}
 	do {
 		obs_source_release(s);
-		if (!NameDialog::AskForName(
+		if (ask_name &&
+		    !NameDialog::AskForName(
 			    this,
 			    QString::fromUtf8(obs_module_text("SceneName")),
 			    name)) {
@@ -536,7 +537,7 @@ void CanvasDock::AddScene(QString duplicate)
 				}
 			}
 		}
-	} while (s);
+	} while (ask_name && s);
 }
 
 void CanvasDock::RemoveScene(const QString &sceneName)
@@ -869,9 +870,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	obs_leave_graphics();
 
-	LoadScenes();
-	SwitchScene(QString::fromUtf8(
-		obs_data_get_string(settings, "current_scene")));
+	currentSceneName = QString::fromUtf8(
+		obs_data_get_string(settings, "current_scene"));
 
 	auto sh = obs_get_signal_handler();
 	signal_handler_connect(sh, "source_rename", source_rename, this);
@@ -5401,8 +5401,12 @@ void CanvasDock::LoadScenes()
 		obs_data_release(settings);
 	}
 	obs_frontend_source_list_free(&scenes);
-	if (scenesDock && scenesDock->sceneList->currentRow() < 0 &&
-	    scenesDock->sceneList->count())
+	if ((scenesDock && scenesDock->sceneList->count() == 0) ||
+	    (scenesCombo && scenesCombo->count() == 0)) {
+		AddScene("", false);
+	}
+
+	if (scenesDock && scenesDock->sceneList->currentRow() < 0)
 		scenesDock->sceneList->setCurrentRow(0);
 }
 
@@ -5595,61 +5599,53 @@ void CanvasDock::source_save(void *data, calldata_t *calldata)
 
 void CanvasDock::FinishLoading()
 {
-	if (first_time) {
-		if (!action->isChecked())
-			action->trigger();
-		auto main = ((QMainWindow *)parentWidget());
+	if (!first_time)
+		return;
+	if (!action->isChecked())
+		action->trigger();
+	auto main = ((QMainWindow *)parentWidget());
 
-		main->addDockWidget(Qt::RightDockWidgetArea, this);
-		setFloating(false);
+	main->addDockWidget(Qt::RightDockWidgetArea, this);
+	setFloating(false);
 
-		if (!scenesDockAction->isChecked())
-			scenesDockAction->trigger();
-		auto sd = main->findChild<QDockWidget *>(
-			QStringLiteral("scenesDock"));
-		if (sd) {
-			auto area = main->dockWidgetArea(sd);
-			if (area == Qt::NoDockWidgetArea) {
-				main->addDockWidget(Qt::RightDockWidgetArea,
-						    scenesDock);
-				main->splitDockWidget(this, scenesDock,
-						      Qt::Horizontal);
-			} else {
-				main->addDockWidget(area, scenesDock);
-				main->splitDockWidget(sd, scenesDock,
-						      Qt::Vertical);
-			}
-		} else {
+	if (!scenesDockAction->isChecked())
+		scenesDockAction->trigger();
+	auto sd = main->findChild<QDockWidget *>(QStringLiteral("scenesDock"));
+	if (sd) {
+		auto area = main->dockWidgetArea(sd);
+		if (area == Qt::NoDockWidgetArea) {
 			main->addDockWidget(Qt::RightDockWidgetArea,
 					    scenesDock);
 			main->splitDockWidget(this, scenesDock, Qt::Horizontal);
-		}
-		scenesDock->setFloating(false);
-
-		if (!sourcesDockAction->isChecked())
-			sourcesDockAction->trigger();
-		sd = main->findChild<QDockWidget *>(
-			QStringLiteral("sourcesDock"));
-		if (sd) {
-			auto area = main->dockWidgetArea(sd);
-			if (area == Qt::NoDockWidgetArea) {
-				main->addDockWidget(Qt::RightDockWidgetArea,
-						    sourcesDock);
-				main->splitDockWidget(this, sourcesDock,
-						      Qt::Horizontal);
-			} else {
-				main->addDockWidget(area, sourcesDock);
-				main->splitDockWidget(sd, sourcesDock,
-						      Qt::Vertical);
-			}
 		} else {
+			main->addDockWidget(area, scenesDock);
+			main->splitDockWidget(sd, scenesDock, Qt::Vertical);
+		}
+	} else {
+		main->addDockWidget(Qt::RightDockWidgetArea, scenesDock);
+		main->splitDockWidget(this, scenesDock, Qt::Horizontal);
+	}
+	scenesDock->setFloating(false);
+
+	if (!sourcesDockAction->isChecked())
+		sourcesDockAction->trigger();
+	sd = main->findChild<QDockWidget *>(QStringLiteral("sourcesDock"));
+	if (sd) {
+		auto area = main->dockWidgetArea(sd);
+		if (area == Qt::NoDockWidgetArea) {
 			main->addDockWidget(Qt::RightDockWidgetArea,
 					    sourcesDock);
 			main->splitDockWidget(this, sourcesDock,
 					      Qt::Horizontal);
+		} else {
+			main->addDockWidget(area, sourcesDock);
+			main->splitDockWidget(sd, sourcesDock, Qt::Vertical);
 		}
-		sourcesDock->setFloating(false);
+	} else {
+		main->addDockWidget(Qt::RightDockWidgetArea, sourcesDock);
+		main->splitDockWidget(this, sourcesDock, Qt::Horizontal);
 	}
+	sourcesDock->setFloating(false);
 }
 
 void CanvasDock::OnRecordStart()

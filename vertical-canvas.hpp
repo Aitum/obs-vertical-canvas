@@ -253,7 +253,7 @@ private:
 	void DestroyVideo();
 
 	void CreateScenesRow();
-	void AddScene(QString duplicate = "");
+	void AddScene(QString duplicate = "", bool ask_name = true);
 	void RemoveScene(const QString &sceneName);
 	void SetLinkedScene(obs_source_t *scene, const QString &linkedScene);
 	bool HasScene(QString scene) const;
