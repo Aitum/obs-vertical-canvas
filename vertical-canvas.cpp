@@ -288,6 +288,12 @@ void vendor_request_invoke(obs_data_t *request_data, obs_data_t *response_data,
 
 bool obs_module_load(void)
 {
+	if (obs_get_version() < MAKE_SEMANTIC_VERSION(29, 0, 0)) {
+		blog(LOG_ERROR,
+		     "[Vertical Canvas] loading version %s failed, OBS version %s is to low",
+		     PROJECT_VERSION, obs_get_version_string());
+		return false;
+	}
 	blog(LOG_INFO, "[Vertical Canvas] loaded version %s", PROJECT_VERSION);
 	obs_frontend_add_event_callback(frontend_event, nullptr);
 
@@ -299,15 +305,16 @@ bool obs_module_load(void)
 		config_save(profile_config);
 	}
 
-	std::string path = obs_module_config_path("config.json");
-	obs_data_t *config =
-		obs_data_create_from_json_file_safe(path.c_str(), "bak");
+	const auto path = obs_module_config_path("config.json");
+	obs_data_t *config = obs_data_create_from_json_file_safe(path, "bak");
+	bfree(path);
 	if (!config)
 		config = obs_data_create();
 
 	const auto main_window =
 		static_cast<QMainWindow *>(obs_frontend_get_main_window());
 	auto canvas = obs_data_get_array(config, "canvas");
+	obs_data_release(config);
 	if (!canvas)
 		canvas = obs_data_array_create();
 	const auto count = obs_data_array_count(canvas);
@@ -328,9 +335,9 @@ bool obs_module_load(void)
 		canvas_docks.push_back(dock);
 	}
 	obs_data_array_release(canvas);
-	obs_data_release(config);
 
-	vendor = obs_websocket_register_vendor("vertical-canvas");
+	if (!vendor)
+		vendor = obs_websocket_register_vendor("vertical-canvas");
 	if (!vendor)
 		return true;
 	obs_websocket_vendor_register_request(vendor, "version",
