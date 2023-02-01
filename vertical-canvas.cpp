@@ -109,37 +109,56 @@ void frontend_event(obs_frontend_event event, void *private_data)
 		}
 	} else if (event == OBS_FRONTEND_EVENT_SCENE_CHANGED) {
 		for (const auto &it : canvas_docks) {
-			it->MainSceneChanged();
+			QMetaObject::invokeMethod(it, "MainSceneChanged");
 		}
 	} else if (event == OBS_FRONTEND_EVENT_STREAMING_STARTING ||
 		   event == OBS_FRONTEND_EVENT_STREAMING_STARTED) {
 		for (const auto &it : canvas_docks) {
-			it->MainStreamStart();
+			QMetaObject::invokeMethod(it, "MainStreamStart",
+						  Qt::QueuedConnection);
 		}
 	} else if (event == OBS_FRONTEND_EVENT_STREAMING_STOPPING ||
 		   event == OBS_FRONTEND_EVENT_STREAMING_STOPPED) {
 		for (const auto &it : canvas_docks) {
-			it->MainStreamStop();
+			QMetaObject::invokeMethod(it, "MainStreamStop",
+						  Qt::QueuedConnection);
+			QTimer::singleShot(200, it, [it] {
+				QMetaObject::invokeMethod(it, "MainStreamStop",
+							  Qt::QueuedConnection);
+			});
 		}
 	} else if (event == OBS_FRONTEND_EVENT_RECORDING_STARTING ||
 		   event == OBS_FRONTEND_EVENT_RECORDING_STARTED) {
 		for (const auto &it : canvas_docks) {
-			it->MainRecordStart();
+			QMetaObject::invokeMethod(it, "MainRecordStart",
+						  Qt::QueuedConnection);
 		}
 	} else if (event == OBS_FRONTEND_EVENT_RECORDING_STOPPING ||
 		   event == OBS_FRONTEND_EVENT_RECORDING_STOPPED) {
 		for (const auto &it : canvas_docks) {
-			it->MainRecordStop();
+			QMetaObject::invokeMethod(it, "MainRecordStop",
+						  Qt::QueuedConnection);
+			QTimer::singleShot(200, it, [it] {
+				QMetaObject::invokeMethod(it, "MainRecordStop",
+							  Qt::QueuedConnection);
+			});
 		}
 
 	} else if (event == OBS_FRONTEND_EVENT_VIRTUALCAM_STARTED) {
 		for (const auto &it : canvas_docks) {
-			it->MainVirtualCamStart();
+			QMetaObject::invokeMethod(it, "MainVirtualCamStart",
+						  Qt::QueuedConnection);
 		}
 
 	} else if (event == OBS_FRONTEND_EVENT_VIRTUALCAM_STOPPED) {
 		for (const auto &it : canvas_docks) {
-			it->MainVirtualCamStop();
+			QMetaObject::invokeMethod(it, "MainVirtualCamStop",
+						  Qt::QueuedConnection);
+			QTimer::singleShot(200, it, [it] {
+				QMetaObject::invokeMethod(it,
+							  "MainVirtualCamStop",
+							  Qt::QueuedConnection);
+			});
 		}
 	}
 }
@@ -958,6 +977,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	obs_transition_set_size(fade, canvas_width, canvas_height);
 	transitions.push_back(fade.Get());
 	source = obs_source_get_weak_source(fade);
+	obs_source_inc_showing(fade);
 }
 
 CanvasDock::~CanvasDock()
@@ -4400,7 +4420,7 @@ void CanvasDock::virtual_cam_output_stop(void *data, calldata_t *calldata)
 	signal_handler_disconnect(signal, "stop", virtual_cam_output_stop, d);
 	obs_output_release(d->virtualCamOutput);
 	d->virtualCamOutput = nullptr;
-	d->DestroyVideo();
+	QMetaObject::invokeMethod(d, "DestroyVideo", Qt::QueuedConnection);
 }
 
 void CanvasDock::OnVirtualCamStart()
@@ -4750,7 +4770,7 @@ void CanvasDock::record_output_stop(void *data, calldata_t *calldata)
 	d->SendVendorEvent("recording_stopped");
 	QMetaObject::invokeMethod(d, "OnRecordStop", Q_ARG(int, code),
 				  Q_ARG(QString, arg_last_error));
-	d->DestroyVideo();
+	QMetaObject::invokeMethod(d, "DestroyVideo", Qt::QueuedConnection);
 }
 
 void CanvasDock::record_output_stopping(void *data, calldata_t *calldata)
@@ -4911,7 +4931,7 @@ void CanvasDock::replay_output_stop(void *data, calldata_t *calldata)
 {
 	UNUSED_PARAMETER(calldata);
 	auto d = static_cast<CanvasDock *>(data);
-	d->DestroyVideo();
+	QMetaObject::invokeMethod(d, "DestroyVideo", Qt::QueuedConnection);
 	d->SendVendorEvent("backtrack_stopped");
 	QMetaObject::invokeMethod(d, "OnReplayBufferStop");
 }
@@ -5229,7 +5249,7 @@ void CanvasDock::stream_output_stop(void *data, calldata_t *calldata)
 	QString arg_last_error = QString::fromUtf8(last_error);
 	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
-	d->DestroyVideo();
+	QMetaObject::invokeMethod(d, "DestroyVideo", Qt::QueuedConnection);
 	d->SendVendorEvent("streaming_stopped");
 	QMetaObject::invokeMethod(d, "OnStreamStop", Q_ARG(int, code),
 				  Q_ARG(QString, arg_last_error));

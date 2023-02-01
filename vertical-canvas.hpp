@@ -206,7 +206,7 @@ private:
 	QIcon GetGroupIcon() const;
 	QIcon GetSceneIcon() const;
 
-	obs_scene_item *GetSelectedItem(obs_scene_t* scene = nullptr);
+	obs_scene_item *GetSelectedItem(obs_scene_t *scene = nullptr);
 
 	bool SelectedAtPos(obs_scene_t *scene, const vec2 &pos);
 	void DrawOverflow(float scale);
@@ -250,15 +250,13 @@ private:
 
 	bool StartVideo();
 
-	void DestroyVideo();
-
 	void CreateScenesRow();
 	void AddScene(QString duplicate = "", bool ask_name = true);
 	void RemoveScene(const QString &sceneName);
 	void SetLinkedScene(obs_source_t *scene, const QString &linkedScene);
 	bool HasScene(QString scene) const;
 	void CheckReplayBuffer(bool start = false);
-	void SendVendorEvent(const char * e);
+	void SendVendorEvent(const char *e);
 	QListWidget *GetGlobalScenesList();
 
 	static bool DrawSelectedOverflow(obs_scene_t *scene,
@@ -330,6 +328,14 @@ private slots:
 	void AddSceneItem(OBSSceneItem item);
 	void RefreshSources(OBSScene scene);
 	void ReorderSources(OBSScene scene);
+	void DestroyVideo();
+	void MainSceneChanged();
+	void MainStreamStart();
+	void MainStreamStop();
+	void MainRecordStart();
+	void MainRecordStop();
+	void MainVirtualCamStart();
+	void MainVirtualCamStop();
 
 public:
 	CanvasDock(obs_data_t *settings, QWidget *parent = nullptr);
@@ -338,7 +344,6 @@ public:
 	void ClearScenes();
 	void LoadScenes();
 	void FinishLoading();
-	void MainSceneChanged();
 	void setAction(QAction *action);
 	CanvasScenesDock *GetScenesDock();
 	inline uint32_t GetCanvasWidth() const { return canvas_width; }
@@ -346,19 +351,12 @@ public:
 
 	obs_data_t *SaveSettings();
 
-	obs_scene_t* GetCurrentScene();
+	obs_scene_t *GetCurrentScene();
 	std::vector<QString> GetScenes();
 	bool StreamingActive();
 	bool RecordingActive();
 	bool BacktrackActive();
 	bool VirtualCameraActive();
-
-	void MainStreamStart();
-	void MainStreamStop();
-	void MainRecordStart();
-	void MainRecordStop();
-	void MainVirtualCamStart();
-	void MainVirtualCamStop();
 };
 
 class LockedCheckBox : public QCheckBox {
