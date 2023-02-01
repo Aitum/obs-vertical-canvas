@@ -90,8 +90,10 @@ void frontend_event(obs_frontend_event event, void *private_data)
 			obs_data_release(s);
 		}
 		obs_data_set_array(config, "canvas", canvas);
+		obs_data_array_release(canvas);
 		obs_data_save_json_safe(config, path, "tmp", "bak");
 		clear_canvas_docks();
+		obs_data_release(config);
 	} else if (event == OBS_FRONTEND_EVENT_SCENE_COLLECTION_CLEANUP) {
 		for (const auto &it : canvas_docks) {
 			it->ClearScenes();
@@ -960,6 +962,9 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 CanvasDock::~CanvasDock()
 {
+	obs_hotkey_pair_unregister(virtual_cam_hotkey);
+	obs_hotkey_pair_unregister(record_hotkey);
+	obs_hotkey_pair_unregister(stream_hotkey);
 	obs_display_remove_draw_callback(preview->GetDisplay(), DrawPreview,
 					 this);
 	delete action;
