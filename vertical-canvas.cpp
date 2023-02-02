@@ -5851,6 +5851,8 @@ void CanvasDock::OnReplayBufferStop()
 	replayButton->setStyleSheet(QString::fromUtf8(""));
 	if (!replayStatusResetTimer.isActive())
 		replayStatusResetTimer.start();
+	CheckReplayBuffer(true);
+	QTimer::singleShot(500, this, [this] { CheckReplayBuffer(true); });
 }
 
 void CanvasDock::MainSceneChanged()

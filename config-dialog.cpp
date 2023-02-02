@@ -542,14 +542,24 @@ void OBSBasicSettings::SaveSettings()
 		}
 	}
 
-	canvasDock->startReplay = backtrackClip->isChecked();
-	if (canvasDock->startReplay) {
-		canvasDock->CheckReplayBuffer(true);
-	} else {
-		canvasDock->StopReplayBuffer();
+	auto startReplay = backtrackClip->isChecked();
+	auto duration = (uint32_t)backtrackDuration->value();
+	std::string replayPath = backtrackPath->text().toUtf8().constData();
+	if (duration != canvasDock->replayDuration ||
+	    replayPath != canvasDock->replayPath ||
+	    canvasDock->startReplay != startReplay) {
+		canvasDock->replayDuration = duration;
+		canvasDock->replayPath = replayPath;
+		canvasDock->startReplay = startReplay;
+		if (canvasDock->startReplay) {
+			canvasDock->StopReplayBuffer();
+			QTimer::singleShot(500, this, [this] {
+				canvasDock->CheckReplayBuffer(true);
+			});
+		} else {
+			canvasDock->StopReplayBuffer();
+		}
 	}
-	canvasDock->replayDuration = (uint32_t)backtrackDuration->value();
-	canvasDock->replayPath = backtrackPath->text().toUtf8().constData();
 
 	std::string sk = key->text().toUtf8().constData();
 	std::string ss = server->currentText().toUtf8().constData();
