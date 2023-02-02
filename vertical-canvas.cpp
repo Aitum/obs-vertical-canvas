@@ -144,6 +144,24 @@ void frontend_event(obs_frontend_event event, void *private_data)
 			});
 		}
 
+	} else if (event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTING ||
+		   event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTED) {
+		for (const auto &it : canvas_docks) {
+			QMetaObject::invokeMethod(it, "MainReplayBufferStart",
+						  Qt::QueuedConnection);
+		}
+	} else if (event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STOPPING ||
+		   event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STOPPED) {
+		for (const auto &it : canvas_docks) {
+			QMetaObject::invokeMethod(it, "MainReplayBufferStop",
+						  Qt::QueuedConnection);
+			QTimer::singleShot(200, it, [it] {
+				QMetaObject::invokeMethod(
+					it, "MainReplayBufferStop",
+					Qt::QueuedConnection);
+			});
+		}
+
 	} else if (event == OBS_FRONTEND_EVENT_VIRTUALCAM_STARTED) {
 		for (const auto &it : canvas_docks) {
 			QMetaObject::invokeMethod(it, "MainVirtualCamStart",
@@ -6034,6 +6052,16 @@ void CanvasDock::MainRecordStart()
 }
 
 void CanvasDock::MainRecordStop()
+{
+	CheckReplayBuffer();
+}
+
+void CanvasDock::MainReplayBufferStart()
+{
+	StartReplayBuffer();
+}
+
+void CanvasDock::MainReplayBufferStop()
 {
 	CheckReplayBuffer();
 }

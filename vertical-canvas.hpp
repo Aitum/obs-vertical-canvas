@@ -334,6 +334,8 @@ private slots:
 	void MainStreamStop();
 	void MainRecordStart();
 	void MainRecordStop();
+	void MainReplayBufferStart();
+	void MainReplayBufferStop();
 	void MainVirtualCamStart();
 	void MainVirtualCamStop();
 
