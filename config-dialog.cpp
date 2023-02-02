@@ -453,10 +453,13 @@ void OBSBasicSettings::LoadSettings()
 		!obs_output_active(canvasDock->streamOutput) &&
 		!obs_output_active(canvasDock->virtualCamOutput));
 	showScenes->setChecked(!canvasDock->hideScenes);
-	videoBitrate->setValue(canvasDock->videoBitrate);
+	videoBitrate->setValue(
+		canvasDock->videoBitrate ? canvasDock->videoBitrate : 6000);
 	for (int i = 0; i < audioBitrate->count(); i++) {
 		if (audioBitrate->itemData(i).toUInt() ==
-		    canvasDock->audioBitrate) {
+				    canvasDock->audioBitrate
+			    ? canvasDock->audioBitrate
+			    : 160) {
 			audioBitrate->setCurrentIndex(i);
 		}
 	}
