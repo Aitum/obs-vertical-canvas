@@ -134,7 +134,6 @@ jobs:
           path: ${{ github.workspace }}/plugin/release/${{ env.PLUGIN_NAME }}-*-macos-${{ matrix.arch }}.pkg
   linux-in-tree:
     name: 'Linux'
-    if: ${{ false }}
     runs-on: ${{ matrix.ubuntu }}
     strategy:
       fail-fast: false
