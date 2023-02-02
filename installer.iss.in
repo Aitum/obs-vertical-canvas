@@ -127,10 +127,33 @@ end;
 
 /////////////////////////////////////////////////////////////////////
 function NextButtonClick(PageId: Integer): Boolean;
+var
+    ObsFileName: string;
+    ObsMS, ObsLS: Cardinal;
+    ObsMajorVersion, ObsMinorVersion: Cardinal;
 begin
     Result := True;
-    if (PageId = wpSelectDir) and not FileExists(ExpandConstant('{app}\bin\64bit\obs64.exe')) then begin
+    if not (PageId = wpSelectDir) then begin
+        exit;
+    end;
+    ObsFileName := ExpandConstant('{app}\bin\64bit\obs64.exe');
+    if not FileExists(ObsFileName) then begin
         MsgBox('OBS Studio (bin\64bit\obs64.exe) does not seem to be installed in that folder.  Please select the correct folder.', mbError, MB_OK);
+        Result := False;
+        exit;
+    end;
+    Result := GetVersionNumbers(ObsFileName, ObsMS, ObsLS);
+    if not Result then begin
+        MsgBox('Failed to read version from OBS Studio (bin\64bit\obs64.exe).', mbError, MB_OK);
+        Result := False;
+        exit;
+    end;
+    { shift 16 bits to the right to get major version }
+    ObsMajorVersion := ObsMS shr 16; 
+    { select only low 16 bits }
+    ObsMinorVersion := ObsMS and $FFFF;
+    if ObsMajorVersion < 29 then begin
+        MsgBox('Version of OBS Studio (bin\64bit\obs64.exe) is lower than the version 29 required.', mbError, MB_OK);
         Result := False;
         exit;
     end;
