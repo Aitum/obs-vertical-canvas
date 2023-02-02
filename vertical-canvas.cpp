@@ -666,6 +666,10 @@ bool CanvasDock::HasScene(QString scene) const
 
 void CanvasDock::CheckReplayBuffer(bool start)
 {
+	if (replayAlwaysOn) {
+		StartReplayBuffer();
+		return;
+	}
 	struct check_output {
 		obs_output_t *output;
 		bool found;
@@ -749,6 +753,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	videoBitrate = (uint32_t)obs_data_get_int(settings, "video_bitrate");
 	audioBitrate = (uint32_t)obs_data_get_int(settings, "audio_bitrate");
 	startReplay = obs_data_get_bool(settings, "backtrack");
+	replayAlwaysOn = obs_data_get_bool(settings, "backtrack_always");
 	replayDuration =
 		(uint32_t)obs_data_get_int(settings, "backtrack_seconds");
 	replayPath = obs_data_get_string(settings, "backtrack_path");
@@ -4808,7 +4813,8 @@ void CanvasDock::replay_saved(void *data, calldata_t *calldata)
 
 void CanvasDock::StartReplayBuffer()
 {
-	if (!startReplay || obs_output_active(replayOutput))
+	if ((!startReplay && !replayAlwaysOn) ||
+	    obs_output_active(replayOutput))
 		return;
 
 	obs_output_t *replay_output = obs_frontend_get_replay_buffer_output();
@@ -5344,6 +5350,7 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_int(data, "video_bitrate", videoBitrate);
 	obs_data_set_int(data, "audio_bitrate", audioBitrate);
 	obs_data_set_bool(data, "backtrack", startReplay);
+	obs_data_set_bool(data, "backtrack_always", replayAlwaysOn);
 	obs_data_set_int(data, "backtrack_seconds", replayDuration);
 	obs_data_set_string(data, "backtrack_path", replayPath.c_str());
 	if (replayOutput) {
@@ -5642,6 +5649,7 @@ void CanvasDock::source_save(void *data, calldata_t *calldata)
 
 void CanvasDock::FinishLoading()
 {
+	CheckReplayBuffer(true);
 	if (!first_time)
 		return;
 	if (!action->isChecked())

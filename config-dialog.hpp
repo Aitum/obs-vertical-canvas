@@ -30,6 +30,7 @@ private:
 	QSpinBox *videoBitrate;
 	QComboBox *audioBitrate;
 	QCheckBox *backtrackClip;
+	QCheckBox *backtrackAlwaysOn;
 	QSpinBox *backtrackDuration;
 	QLineEdit *backtrackPath;
 

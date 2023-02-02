@@ -157,6 +157,7 @@ private:
 	uint32_t videoBitrate;
 	uint32_t audioBitrate;
 	bool startReplay;
+	bool replayAlwaysOn;
 	uint32_t replayDuration;
 	std::string replayPath;
 

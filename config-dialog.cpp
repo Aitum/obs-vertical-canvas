@@ -134,6 +134,10 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	backtrackLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
 	backtrackGroup->setLayout(backtrackLayout);
 
+	backtrackAlwaysOn = new QCheckBox(
+		QString::fromUtf8(obs_module_text("BacktrackAlwaysOn")));
+	backtrackLayout->addWidget(backtrackAlwaysOn);
+
 	backtrackClip = new QCheckBox(
 		QString::fromUtf8(obs_module_text("BacktrackEnable")));
 	backtrackLayout->addWidget(backtrackClip);
@@ -464,6 +468,7 @@ void OBSBasicSettings::LoadSettings()
 		}
 	}
 	backtrackClip->setChecked(canvasDock->startReplay);
+	backtrackAlwaysOn->setChecked(canvasDock->replayAlwaysOn);
 	backtrackDuration->setValue(canvasDock->replayDuration);
 	backtrackPath->setText(QString::fromUtf8(canvasDock->replayPath));
 
@@ -543,19 +548,26 @@ void OBSBasicSettings::SaveSettings()
 	}
 
 	auto startReplay = backtrackClip->isChecked();
+	auto replayAlwaysOn = backtrackAlwaysOn->isChecked();
 	auto duration = (uint32_t)backtrackDuration->value();
 	std::string replayPath = backtrackPath->text().toUtf8().constData();
 	if (duration != canvasDock->replayDuration ||
 	    replayPath != canvasDock->replayPath ||
-	    canvasDock->startReplay != startReplay) {
+	    canvasDock->startReplay != startReplay ||
+	    replayAlwaysOn != canvasDock->replayAlwaysOn) {
 		canvasDock->replayDuration = duration;
 		canvasDock->replayPath = replayPath;
 		canvasDock->startReplay = startReplay;
-		if (canvasDock->startReplay) {
-			canvasDock->StopReplayBuffer();
-			QTimer::singleShot(500, this, [this] {
+		canvasDock->replayAlwaysOn = replayAlwaysOn;
+		if (replayAlwaysOn || startReplay) {
+			if (obs_output_active(canvasDock->replayOutput)) {
+				canvasDock->StopReplayBuffer();
+				QTimer::singleShot(500, this, [this] {
+					canvasDock->CheckReplayBuffer(true);
+				});
+			} else {
 				canvasDock->CheckReplayBuffer(true);
-			});
+			}
 		} else {
 			canvasDock->StopReplayBuffer();
 		}
