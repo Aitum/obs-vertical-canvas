@@ -1004,8 +1004,11 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	source = obs_source_get_weak_source(fade);
 	obs_source_inc_showing(fade);
 	obs_source_inc_active(fade);
-	transitionAudioWrapper = obs_source_create_private("transition_audio_wrapper_source","transition_audio_wrapper_source", nullptr);
-	auto aw = (struct audio_wrapper_info*)obs_obj_get_data(transitionAudioWrapper);
+	transitionAudioWrapper = obs_source_create_private(
+		"transition_audio_wrapper_source",
+		"transition_audio_wrapper_source", nullptr);
+	auto aw = (struct audio_wrapper_info *)obs_obj_get_data(
+		transitionAudioWrapper);
 	aw->target = source;
 }
 
@@ -4496,10 +4499,13 @@ void CanvasDock::StartVirtualCam()
 	obs_output_set_media(output, video, obs_get_audio());
 	SendVendorEvent("virtual_camera_starting");
 	const bool success = obs_output_start(output);
-	if (!success && started_video) {
-		obs_view_remove(view);
-		obs_view_set_source(view, 0, nullptr);
-		video = nullptr;
+	if (!success) {
+		QMetaObject::invokeMethod(this, "OnVirtualCamStop");
+		if (started_video) {
+			obs_view_remove(view);
+			obs_view_set_source(view, 0, nullptr);
+			video = nullptr;
+		}
 	}
 }
 
@@ -4759,15 +4765,17 @@ void CanvasDock::StartRecord()
 
 	SendVendorEvent("recording_starting");
 	const bool success = obs_output_start(recordOutput);
-	if (!success && started_video) {
-		const char *error = obs_output_get_last_error(recordOutput);
-		QString error_reason = QString::fromUtf8(
-			error ? error
-			      : obs_frontend_get_locale_string(
-					"Output.StartFailedGeneric"));
-		obs_view_remove(view);
-		obs_view_set_source(view, 0, nullptr);
-		video = nullptr;
+	if (!success) {
+		QMetaObject::invokeMethod(
+			this, "OnRecordStop", Q_ARG(int, OBS_OUTPUT_ERROR),
+			Q_ARG(QString,
+			      QString::fromUtf8(obs_output_get_last_error(
+				      recordOutput))));
+		if (started_video) {
+			obs_view_remove(view);
+			obs_view_set_source(view, 0, nullptr);
+			video = nullptr;
+		}
 	}
 }
 
@@ -4930,11 +4938,19 @@ void CanvasDock::StartReplayBuffer()
 	SendVendorEvent("backtrack_starting");
 
 	const bool success = obs_output_start(replayOutput);
-	if (!success && started_video) {
-		obs_view_remove(view);
-		obs_view_set_source(view, 0, nullptr);
-		video = nullptr;
-	} else if (success) {
+	if (!success) {
+		QMetaObject::invokeMethod(
+			this, "OnReplayBufferStop",
+			Q_ARG(int, OBS_OUTPUT_ERROR),
+			Q_ARG(QString,
+			      QString::fromUtf8(obs_output_get_last_error(
+				      replayOutput))));
+		if (started_video) {
+			obs_view_remove(view);
+			obs_view_set_source(view, 0, nullptr);
+			video = nullptr;
+		}
+	} else {
 		QMetaObject::invokeMethod(this, "OnReplayBufferStart");
 	}
 }
@@ -4959,11 +4975,14 @@ void CanvasDock::replay_output_start(void *data, calldata_t *calldata)
 
 void CanvasDock::replay_output_stop(void *data, calldata_t *calldata)
 {
-	UNUSED_PARAMETER(calldata);
+	const char *last_error =
+		(const char *)calldata_ptr(calldata, "last_error");
+	QString arg_last_error = QString::fromUtf8(last_error);
+	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
-	QMetaObject::invokeMethod(d, "DestroyVideo", Qt::QueuedConnection);
 	d->SendVendorEvent("backtrack_stopped");
-	QMetaObject::invokeMethod(d, "OnReplayBufferStop");
+	QMetaObject::invokeMethod(d, "OnReplayBufferStop", Q_ARG(int, code),
+				  Q_ARG(QString, arg_last_error));
 }
 
 void CanvasDock::StreamButtonClicked()
@@ -5246,10 +5265,17 @@ void CanvasDock::StartStream()
 	obs_output_set_audio_encoder(streamOutput, audio_encoder, 0);
 	SendVendorEvent("streaming_starting");
 	const bool success = obs_output_start(streamOutput);
-	if (!success && started_video) {
-		obs_view_remove(view);
-		obs_view_set_source(view, 0, nullptr);
-		video = nullptr;
+	if (!success) {
+		QMetaObject::invokeMethod(
+			this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_ERROR),
+			Q_ARG(QString,
+			      QString::fromUtf8(obs_output_get_last_error(
+				      streamOutput))));
+		if (started_video) {
+			obs_view_remove(view);
+			obs_view_set_source(view, 0, nullptr);
+			video = nullptr;
+		}
 	}
 }
 
@@ -5718,6 +5744,11 @@ void CanvasDock::OnRecordStop(int code, QString last_error)
 	recordButton->setChecked(false);
 	recordButton->setIcon(recordInactiveIcon);
 	recordButton->setStyleSheet(QString::fromUtf8(""));
+	HandleRecordError(code, last_error);
+}
+
+void CanvasDock::HandleRecordError(int code, QString last_error)
+{
 	if (code == OBS_OUTPUT_UNSUPPORTED && isVisible()) {
 		QMessageBox::critical(
 			this,
@@ -5859,14 +5890,18 @@ void CanvasDock::OnReplayBufferStart()
 		QString::fromUtf8("background: rgb(26,87,255);"));
 }
 
-void CanvasDock::OnReplayBufferStop()
+void CanvasDock::OnReplayBufferStop(int code, QString last_error)
 {
 	replayButton->setIcon(replayInactiveIcon);
 	replayButton->setStyleSheet(QString::fromUtf8(""));
 	if (!replayStatusResetTimer.isActive())
 		replayStatusResetTimer.start();
-	CheckReplayBuffer(true);
-	QTimer::singleShot(500, this, [this] { CheckReplayBuffer(true); });
+	HandleRecordError(code, last_error);
+	if (code == OBS_OUTPUT_SUCCESS) {
+		CheckReplayBuffer(true);
+		QTimer::singleShot(500, this,
+				   [this] { CheckReplayBuffer(true); });
+	}
 }
 
 void CanvasDock::MainSceneChanged()

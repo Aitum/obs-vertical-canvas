@@ -251,6 +251,7 @@ private:
 	void AddSourceToScene(obs_source_t *source);
 
 	bool StartVideo();
+	void HandleRecordError(int code, QString last_error);
 
 	void CreateScenesRow();
 	void AddScene(QString duplicate = "", bool ask_name = true);
@@ -317,7 +318,7 @@ private slots:
 	void OnStreamStart();
 	void OnStreamStop(int code, QString last_error);
 	void OnReplayBufferStart();
-	void OnReplayBufferStop();
+	void OnReplayBufferStop(int code, QString last_error);
 	void SwitchScene(const QString &scene_name);
 	void StartVirtualCam();
 	void StopVirtualCam();
