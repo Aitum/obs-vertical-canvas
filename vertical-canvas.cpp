@@ -5749,6 +5749,16 @@ void CanvasDock::OnRecordStop(int code, QString last_error)
 
 void CanvasDock::HandleRecordError(int code, QString last_error)
 {
+	if (code != OBS_OUTPUT_SUCCESS) {
+		if (!last_error.isEmpty()) {
+			blog(LOG_WARNING,
+			     "[vertical-canvas] record stop error %s",
+			     last_error.toUtf8().constData());
+		} else {
+			blog(LOG_WARNING,
+			     "[vertical-canvas] record stop error %i", code);
+		}
+	}
 	if (code == OBS_OUTPUT_UNSUPPORTED && isVisible()) {
 		QMessageBox::critical(
 			this,
@@ -5853,7 +5863,16 @@ void CanvasDock::OnStreamStop(int code, QString last_error)
 		errorDescription = obs_frontend_get_locale_string(
 			"Output.ConnectFail.Disconnected");
 	}
-
+	if (code != OBS_OUTPUT_SUCCESS) {
+		if (use_last_error && !last_error.isEmpty()) {
+			blog(LOG_WARNING,
+			     "[vertical-canvas] stream stop error %s",
+			     last_error.toUtf8().constData());
+		} else {
+			blog(LOG_WARNING,
+			     "[vertical-canvas] stream stop error %i", code);
+		}
+	}
 	if (encode_error) {
 		QString msg =
 			last_error.isEmpty()
