@@ -4874,20 +4874,20 @@ void CanvasDock::StartReplayBuffer()
 	bool changed_format = false;
 	std::string format = obs_data_get_string(settings, "format");
 	size_t start_pos = format.find("Replay");
-	if(start_pos != std::string::npos){
+	if (start_pos != std::string::npos) {
 		format.replace(start_pos, 6, "Backtrack");
 		changed_format = true;
 	}
 	start_pos = format.find("replay");
-	if(start_pos != std::string::npos){
+	if (start_pos != std::string::npos) {
 		format.replace(start_pos, 6, "backtrack");
 		changed_format = true;
 	}
-	if(!changed_format){
+	if (!changed_format) {
 		format += "-backtrack";
 		changed_format = true;
 	}
-	if(changed_format){
+	if (changed_format) {
 		const auto s = obs_output_get_settings(replayOutput);
 		obs_data_set_string(s, "format", format.c_str());
 		obs_data_release(s);
@@ -5853,11 +5853,20 @@ void CanvasDock::OnStreamStop(int code, QString last_error)
 
 	case OBS_OUTPUT_CONNECT_FAILED:
 		use_last_error = true;
+		if (stream_server.find("tiktok") != std::string::npos) {
+			last_error = QString::fromUtf8(
+				obs_module_text("tiktokError"));
+		}
 		errorDescription = obs_frontend_get_locale_string(
 			"Output.ConnectFail.ConnectFailed");
 		break;
 
 	case OBS_OUTPUT_INVALID_STREAM:
+		if (stream_server.find("tiktok") != std::string::npos) {
+			use_last_error = true;
+			last_error = QString::fromUtf8(
+				obs_module_text("tiktokError"));
+		}
 		errorDescription = obs_frontend_get_locale_string(
 			"Output.ConnectFail.InvalidStream");
 		break;
@@ -6230,7 +6239,8 @@ void CanvasDock::SendVendorEvent(const char *event_name)
 	obs_data_release(d);
 }
 
-void CanvasDock::ResizeScenes(){
+void CanvasDock::ResizeScenes()
+{
 	if (scenesCombo) {
 		for (int i = 0; i < scenesCombo->count(); i++) {
 			ResizeScene(scenesCombo->itemText(i));
@@ -6243,13 +6253,14 @@ void CanvasDock::ResizeScenes(){
 	}
 }
 
-void CanvasDock::ResizeScene(QString scene_name){
-	if(scene_name.isEmpty())
+void CanvasDock::ResizeScene(QString scene_name)
+{
+	if (scene_name.isEmpty())
 		return;
 	auto s = obs_get_source_by_name(scene_name.toUtf8().constData());
-	if(!s)
+	if (!s)
 		return;
-	if(!obs_source_is_scene(s)){
+	if (!obs_source_is_scene(s)) {
 		obs_source_release(s);
 		return;
 	}
