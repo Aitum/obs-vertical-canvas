@@ -6,7 +6,7 @@ else()
   cmake_minimum_required(VERSION 3.18)
 endif()
 
-project(vertical-canvas VERSION 1.0.4)
+project(vertical-canvas VERSION 1.0.5)
 set(PROJECT_FULL_NAME "Vertical Canvas")
 
 # Set new UUIDs when you start to create a new plugin.
@@ -28,6 +28,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	config-dialog.cpp
 	hotkey-edit.cpp
 	name-dialog.cpp
+	audio-wrapper-source.c
 	resources.qrc
 	vertical-canvas.hpp
 	scenes-dock.hpp
@@ -38,6 +39,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	config-dialog.hpp
 	hotkey-edit.hpp
 	name-dialog.hpp
+	audio-wrapper-source.h
 	obs-websocket-api.h)
 
 if(BUILD_OUT_OF_TREE)

@@ -26,6 +26,7 @@
 #include "name-dialog.hpp"
 #include "obs-websocket-api.h"
 #include "sources-dock.hpp"
+#include "audio-wrapper-source.h"
 #include "media-io/video-frame.h"
 #include "util/config-file.h"
 #include "util/dstr.h"
@@ -336,6 +337,7 @@ bool obs_module_load(void)
 	blog(LOG_INFO, "[Vertical Canvas] loaded version %s", PROJECT_VERSION);
 	obs_frontend_add_event_callback(frontend_event, nullptr);
 
+	obs_register_source(&audio_wrapper_source);
 	const auto profile_config = obs_frontend_get_profile_config();
 	if (!config_get_bool(profile_config, "AdvOut", "RecRB") ||
 	    !config_get_bool(profile_config, "SimpleOutput", "RecRB")) {
@@ -1001,6 +1003,10 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	transitions.push_back(fade.Get());
 	source = obs_source_get_weak_source(fade);
 	obs_source_inc_showing(fade);
+	obs_source_inc_active(fade);
+	transitionAudioWrapper = obs_source_create_private("transition_audio_wrapper_source","transition_audio_wrapper_source", nullptr);
+	auto aw = (struct audio_wrapper_info*)obs_obj_get_data(transitionAudioWrapper);
+	aw->target = source;
 }
 
 CanvasDock::~CanvasDock()

@@ -75,6 +75,7 @@ private:
 	QVBoxLayout *mainLayout;
 	OBSQTDisplay *preview;
 	OBSWeakSource source;
+	OBSSourceAutoRelease transitionAudioWrapper;
 	std::vector<OBSSource> transitions;
 	std::unique_ptr<OBSEventFilter> eventFilter;
 
