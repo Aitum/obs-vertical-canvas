@@ -10,6 +10,7 @@ const char *audio_wrapper_get_name(void *type_data)
 
 void *audio_wrapper_create(obs_data_t *settings, obs_source_t *source)
 {
+	UNUSED_PARAMETER(settings);
 	struct audio_wrapper_info *audio_wrapper =
 		bzalloc(sizeof(struct audio_wrapper_info));
 	audio_wrapper->source = source;
