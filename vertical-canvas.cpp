@@ -4741,13 +4741,13 @@ void CanvasDock::StartRecord()
 	signal_handler_connect(signal, "stopping", record_output_stopping,
 			       this);
 
-	const char *filenameFormat =
+	std::string filenameFormat =
 		config_get_string(config, "Output", "FilenameFormatting");
-
+	filenameFormat += "-vertical";
 	obs_data_t *ps = obs_data_create();
 	char path[512];
 	char *filename = os_generate_formatted_filename(
-		ffmpegOutput ? "avi" : format, true, filenameFormat);
+		ffmpegOutput ? "avi" : format, true, filenameFormat.c_str());
 	if (recordPath.empty() && dir) {
 		recordPath = dir;
 	} else {
@@ -4853,7 +4853,6 @@ void CanvasDock::StartReplayBuffer()
 		obs_frontend_replay_buffer_stop();
 	}
 	obs_output_update(replayOutput, settings);
-	bool changedSettings = false;
 	if (!replayDuration) {
 		replayDuration = obs_data_get_int(settings, "max_time_sec");
 		if (!replayDuration)
@@ -4863,7 +4862,6 @@ void CanvasDock::StartReplayBuffer()
 		const auto s = obs_output_get_settings(replayOutput);
 		obs_data_set_int(s, "max_time_sec", replayDuration);
 		obs_data_release(s);
-		changedSettings = true;
 	}
 	if (replayPath.empty()) {
 		replayPath = obs_data_get_string(settings, "directory");
@@ -4872,11 +4870,30 @@ void CanvasDock::StartReplayBuffer()
 		const auto s = obs_output_get_settings(replayOutput);
 		obs_data_set_string(s, "directory", replayPath.c_str());
 		obs_data_release(s);
-		changedSettings = true;
+	}
+	bool changed_format = false;
+	std::string format = obs_data_get_string(settings, "format");
+	size_t start_pos = format.find("Replay");
+	if(start_pos != std::string::npos){
+		format.replace(start_pos, 6, "Backtrack");
+		changed_format = true;
+	}
+	start_pos = format.find("replay");
+	if(start_pos != std::string::npos){
+		format.replace(start_pos, 6, "backtrack");
+		changed_format = true;
+	}
+	if(!changed_format){
+		format += "-backtrack";
+		changed_format = true;
+	}
+	if(changed_format){
+		const auto s = obs_output_get_settings(replayOutput);
+		obs_data_set_string(s, "format", format.c_str());
+		obs_data_release(s);
 	}
 	obs_data_release(settings);
-	if (changedSettings)
-		obs_output_update(replayOutput, nullptr);
+	obs_output_update(replayOutput, nullptr);
 
 	obs_encoder_t *video_encoder =
 		obs_output_get_video_encoder(replayOutput);
