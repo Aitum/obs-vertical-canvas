@@ -6213,6 +6213,38 @@ void CanvasDock::SendVendorEvent(const char *event_name)
 	obs_data_release(d);
 }
 
+void CanvasDock::ResizeScenes(){
+	if (scenesCombo) {
+		for (int i = 0; i < scenesCombo->count(); i++) {
+			ResizeScene(scenesCombo->itemText(i));
+		}
+	}
+	if (scenesDock) {
+		for (int i = 0; i < scenesDock->sceneList->count(); i++) {
+			ResizeScene(scenesDock->sceneList->item(i)->text());
+		}
+	}
+}
+
+void CanvasDock::ResizeScene(QString scene_name){
+	if(scene_name.isEmpty())
+		return;
+	auto s = obs_get_source_by_name(scene_name.toUtf8().constData());
+	if(!s)
+		return;
+	if(!obs_source_is_scene(s)){
+		obs_source_release(s);
+		return;
+	}
+	obs_source_save(s);
+	auto data = obs_source_get_settings(s);
+	obs_data_set_int(data, "cx", canvas_width);
+	obs_data_set_int(data, "cy", canvas_height);
+	obs_source_load(s);
+	obs_data_release(data);
+	obs_source_release(s);
+}
+
 LockedCheckBox::LockedCheckBox() {}
 
 LockedCheckBox::LockedCheckBox(QWidget *parent) : QCheckBox(parent) {}

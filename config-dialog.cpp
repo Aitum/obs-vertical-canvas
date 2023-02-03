@@ -504,15 +504,18 @@ void OBSBasicSettings::SaveSettings()
 			obs_output_stop(canvasDock->replayOutput);
 		canvasDock->DestroyVideo();
 
-		canvasDock->SwitchScene("");
-
 		canvasDock->canvas_width = width;
 		canvasDock->canvas_height = height;
 
-		const QString name = "CanvasDock" +
-				     QString::number(canvasDock->canvas_width) +
-				     "x" +
-				     QString::number(canvasDock->canvas_height);
+		canvasDock->ResizeScenes();
+		auto t = obs_weak_source_get_source(canvasDock->source);
+		if (obs_source_get_type(t) == OBS_SOURCE_TYPE_TRANSITION) {
+			obs_transition_set_size(t, width, height);
+		}
+		obs_source_release(t);
+
+		const QString name = "CanvasDock" + QString::number(width) +
+				     "x" + QString::number(height);
 		canvasDock->setObjectName(name);
 
 		if (canvasDock->scenesDock)

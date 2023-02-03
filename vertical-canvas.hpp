@@ -261,6 +261,8 @@ private:
 	void CheckReplayBuffer(bool start = false);
 	void SendVendorEvent(const char *e);
 	QListWidget *GetGlobalScenesList();
+	void ResizeScenes();
+	void ResizeScene(QString scene_name);
 
 	static bool DrawSelectedOverflow(obs_scene_t *scene,
 					 obs_sceneitem_t *item, void *param);
