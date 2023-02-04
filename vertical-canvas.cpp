@@ -4268,9 +4268,17 @@ bool CanvasDock::add_sources_of_type_to_menu(void *param, obs_source_t *source)
 	auto idUtf8 = t.toUtf8();
 	const char *id = idUtf8.constData();
 	if (strcmp(obs_source_get_unversioned_id(source), id) == 0) {
-		auto na = menu->addAction(
-			QString::fromUtf8(obs_source_get_name(source)), cd,
+		auto name = QString::fromUtf8(obs_source_get_name(source));
+		QList<QAction *> actions = menu->actions();
+		QAction *before = nullptr;
+		for (QAction *menuAction : actions) {
+			if (menuAction->text().compare(name) >= 0)
+				before = menuAction;
+		}
+		auto na = new QAction(name, menu);
+		connect(na, &QAction::triggered,
 			[cd, source] { cd->AddSourceToScene(source); });
+		menu->insertAction(before, na);
 		struct descendant_info info = {false, cd->source,
 					       obs_scene_get_source(cd->scene)};
 		obs_source_enum_full_tree(source, check_descendant, &info);
@@ -4285,13 +4293,20 @@ void CanvasDock::LoadSourceTypeMenu(QMenu *menu, const char *type)
 	if (strcmp(type, "scene") == 0) {
 		obs_enum_scenes(add_sources_of_type_to_menu, menu);
 	} else {
-		auto popupItem = menu->addAction(QString::fromUtf8(
-			obs_frontend_get_locale_string("New")));
+		obs_enum_sources(add_sources_of_type_to_menu, menu);
+
+		auto popupItem = new QAction(
+			QString::fromUtf8(
+				obs_frontend_get_locale_string("New")),
+			menu);
 		popupItem->setData(QString::fromUtf8(type));
 		connect(popupItem, SIGNAL(triggered(bool)), this,
 			SLOT(AddSourceFromAction()));
-		menu->addSeparator();
-		obs_enum_sources(add_sources_of_type_to_menu, menu);
+
+		QList<QAction *> actions = menu->actions();
+		QAction *first = actions.size() ? actions.first() : nullptr;
+		menu->insertAction(first, popupItem);
+		menu->insertSeparator(first);
 	}
 }
 
