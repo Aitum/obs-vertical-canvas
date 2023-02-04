@@ -76,25 +76,30 @@ static void ensure_directory(char *path)
 #endif
 }
 
+static void save_canvas()
+{
+	char path[512];
+	strcpy(path, obs_module_config_path("config.json"));
+	ensure_directory(path);
+	obs_data_t *config = obs_data_create();
+	const auto canvas = obs_data_array_create();
+	for (const auto &it : canvas_docks) {
+		obs_data_t *s = it->SaveSettings();
+		obs_data_array_push_back(canvas, s);
+		obs_data_release(s);
+	}
+	obs_data_set_array(config, "canvas", canvas);
+	obs_data_array_release(canvas);
+	obs_data_save_json_safe(config, path, "tmp", "bak");
+	obs_data_release(config);
+}
+
 void frontend_event(obs_frontend_event event, void *private_data)
 {
 	UNUSED_PARAMETER(private_data);
 	if (event == OBS_FRONTEND_EVENT_EXIT) {
-		char path[512];
-		strcpy(path, obs_module_config_path("config.json"));
-		ensure_directory(path);
-		obs_data_t *config = obs_data_create();
-		const auto canvas = obs_data_array_create();
-		for (const auto &it : canvas_docks) {
-			obs_data_t *s = it->SaveSettings();
-			obs_data_array_push_back(canvas, s);
-			obs_data_release(s);
-		}
-		obs_data_set_array(config, "canvas", canvas);
-		obs_data_array_release(canvas);
-		obs_data_save_json_safe(config, path, "tmp", "bak");
+		save_canvas();
 		clear_canvas_docks();
-		obs_data_release(config);
 	} else if (event == OBS_FRONTEND_EVENT_SCENE_COLLECTION_CLEANUP) {
 		for (const auto &it : canvas_docks) {
 			it->ClearScenes();
@@ -4528,6 +4533,7 @@ void CanvasDock::ConfigButtonClicked()
 	}
 	configDialog->LoadSettings();
 	configDialog->exec();
+	save_canvas();
 }
 
 void CanvasDock::ReplayButtonClicked()

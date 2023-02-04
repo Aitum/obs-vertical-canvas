@@ -460,10 +460,10 @@ void OBSBasicSettings::LoadSettings()
 	videoBitrate->setValue(
 		canvasDock->videoBitrate ? canvasDock->videoBitrate : 6000);
 	for (int i = 0; i < audioBitrate->count(); i++) {
-		if (audioBitrate->itemData(i).toUInt() ==
+		if (audioBitrate->itemData(i).toUInt() == (
 				    canvasDock->audioBitrate
 			    ? canvasDock->audioBitrate
-			    : 160) {
+			    : 160)) {
 			audioBitrate->setCurrentIndex(i);
 		}
 	}
