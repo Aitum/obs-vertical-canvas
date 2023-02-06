@@ -4877,8 +4877,38 @@ void CanvasDock::StartReplayBuffer()
 		return;
 
 	obs_output_t *replay_output = obs_frontend_get_replay_buffer_output();
-	if (!replay_output)
+	if (!replay_output) {
+		config_t *config = obs_frontend_get_profile_config();
+		const char *mode = config_get_string(config, "Output", "Mode");
+		if (astrcmpi(mode, "Advanced") == 0) {
+			const char *recType =
+				config_get_string(config, "AdvOut", "RecType");
+			if (astrcmpi(recType, "FFmpeg") == 0) {
+				blog(LOG_WARNING,
+				     "[vertical-canvas] error starting backtrack: custom ffmpeg");
+				if (isVisible()) {
+					QMessageBox::warning(
+						this,
+						QString::fromUtf8(obs_module_text(
+							"backtrackStartFail")),
+						QString::fromUtf8(obs_module_text(
+							"backtrackCustomFfmpeg")));
+				}
+				return;
+			}
+		}
+		if (isVisible()) {
+			blog(LOG_WARNING,
+			     "[vertical-canvas] error starting backtrack: no replay buffer found");
+			QMessageBox::warning(
+				this,
+				QString::fromUtf8(
+					obs_module_text("backtrackStartFail")),
+				QString::fromUtf8(obs_module_text(
+					"backtrackNoReplayBuffer")));
+		}
 		return;
+	}
 	obs_encoder_t *enc = obs_output_get_video_encoder(replay_output);
 	if (!enc) {
 		obs_frontend_replay_buffer_start();
@@ -4887,6 +4917,8 @@ void CanvasDock::StartReplayBuffer()
 	}
 	if (!enc) {
 		obs_output_release(replay_output);
+		blog(LOG_WARNING,
+		     "[vertical-canvas] error starting backtrack: no video encoder found");
 		return;
 	}
 
