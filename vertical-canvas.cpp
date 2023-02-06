@@ -94,7 +94,7 @@ static void save_canvas()
 	obs_data_release(config);
 }
 
-void transition_start(void *, calldata_t *data)
+void transition_start(void *, calldata_t *)
 {
 	for (const auto &it : canvas_docks) {
 		QMetaObject::invokeMethod(it, "MainSceneChanged");
