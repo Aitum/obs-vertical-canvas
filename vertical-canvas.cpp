@@ -795,6 +795,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	recordPath = obs_data_get_string(settings, "record_path");
 
+	preview_disabled = obs_data_get_bool(settings, "preview_disabled");
+
 	const QString title = QString::fromUtf8(obs_module_text("Vertical"));
 	setWindowTitle(title);
 
@@ -850,7 +852,28 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	};
 	preview->show();
 	connect(preview, &OBSQTDisplay::DisplayCreated, addDrawCallback);
+	preview->setVisible(!preview_disabled);
+	obs_display_set_enabled(preview->GetDisplay(), !preview_disabled);
 	mainLayout->addWidget(preview, 1);
+
+	previewDisabledWidget = new QFrame;
+	auto l = new QVBoxLayout;
+
+	auto enablePreviewButton = new QPushButton(
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.Main.PreviewConextMenu.Enable")));
+	connect(enablePreviewButton, &QPushButton::clicked, [this] {
+		preview_disabled = false;
+		obs_display_set_enabled(preview->GetDisplay(), true);
+		preview->setVisible(true);
+		previewDisabledWidget->setVisible(false);
+	});
+	l->addWidget(enablePreviewButton);
+
+	previewDisabledWidget->setLayout(l);
+
+	previewDisabledWidget->setVisible(preview_disabled);
+	mainLayout->addWidget(previewDisabledWidget, 1);
 
 	QSizePolicy sp2;
 	sp2.setHeightForWidth(true);
@@ -2794,6 +2817,18 @@ bool CanvasDock::HandleMouseReleaseEvent(QMouseEvent *event)
 	if (!mouseDown && event->button() == Qt::RightButton) {
 		QMenu popup(this);
 		QAction *action = popup.addAction(
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"Basic.Main.Preview.Disable")),
+			[this] {
+				preview_disabled = !preview_disabled;
+				obs_display_set_enabled(preview->GetDisplay(),
+							!preview_disabled);
+				preview->setVisible(!preview_disabled);
+				previewDisabledWidget->setVisible(
+					preview_disabled);
+			});
+
+		action = popup.addAction(
 			QString::fromUtf8(obs_frontend_get_locale_string(
 				"Basic.MainMenu.Edit.LockPreview")),
 			this, [this] { locked = !locked; });
@@ -5473,6 +5508,7 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_int(data, "width", canvas_width);
 	obs_data_set_int(data, "height", canvas_height);
 	obs_data_set_bool(data, "show_scenes", !hideScenes);
+	obs_data_set_bool(data, "preview_disabled", preview_disabled);
 	obs_data_set_int(data, "video_bitrate", videoBitrate);
 	obs_data_set_int(data, "audio_bitrate", audioBitrate);
 	obs_data_set_bool(data, "backtrack", startReplay);

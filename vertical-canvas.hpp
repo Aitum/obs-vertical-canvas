@@ -40,7 +40,6 @@ enum class ItemHandle : uint32_t {
 	Rot = ITEM_ROT
 };
 
-
 typedef std::function<bool(QObject *, QEvent *)> EventFilterFunc;
 
 class OBSEventFilter : public QObject {
@@ -74,6 +73,8 @@ private:
 	QPointer<QAction> action;
 	QVBoxLayout *mainLayout;
 	OBSQTDisplay *preview;
+	bool preview_disabled = false;
+	QFrame *previewDisabledWidget;
 	OBSWeakSource source;
 	OBSSourceAutoRelease transitionAudioWrapper;
 	std::vector<OBSSource> transitions;
