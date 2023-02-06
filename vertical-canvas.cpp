@@ -5575,6 +5575,8 @@ void CanvasDock::SwitchScene(const QString &scene_name)
 	if (!source || obs_weak_source_references_source(source, oldSource)) {
 		obs_weak_source_release(source);
 		source = obs_source_get_weak_source(s);
+		if (video && view)
+			obs_view_set_source(view, 0, s);
 	} else {
 		oldSource = obs_weak_source_get_source(source);
 		if (oldSource) {
