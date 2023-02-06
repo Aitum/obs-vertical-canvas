@@ -94,6 +94,13 @@ static void save_canvas()
 	obs_data_release(config);
 }
 
+void transition_start(void *, calldata_t *data)
+{
+	for (const auto &it : canvas_docks) {
+		QMetaObject::invokeMethod(it, "MainSceneChanged");
+	}
+}
+
 void frontend_event(obs_frontend_event event, void *private_data)
 {
 	UNUSED_PARAMETER(private_data);
@@ -105,10 +112,28 @@ void frontend_event(obs_frontend_event event, void *private_data)
 			it->ClearScenes();
 		}
 	} else if (event == OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGED) {
+		struct obs_frontend_source_list transitions = {};
+		obs_frontend_get_transitions(&transitions);
+		for (size_t i = 0; i < transitions.sources.num; i++) {
+			auto sh = obs_source_get_signal_handler(
+				transitions.sources.array[i]);
+			signal_handler_connect(sh, "transition_start",
+					       transition_start, nullptr);
+		}
+		obs_frontend_source_list_free(&transitions);
 		for (const auto &it : canvas_docks) {
 			it->LoadScenes();
 		}
 	} else if (event == OBS_FRONTEND_EVENT_FINISHED_LOADING) {
+		struct obs_frontend_source_list transitions = {};
+		obs_frontend_get_transitions(&transitions);
+		for (size_t i = 0; i < transitions.sources.num; i++) {
+			auto sh = obs_source_get_signal_handler(
+				transitions.sources.array[i]);
+			signal_handler_connect(sh, "transition_start",
+					       transition_start, nullptr);
+		}
+		obs_frontend_source_list_free(&transitions);
 		for (const auto &it : canvas_docks) {
 			it->LoadScenes();
 			it->FinishLoading();
@@ -1000,10 +1025,9 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		obs_data_release(settings);
 	}
 	hide();
-	auto fadeName = name + "Fade";
-	OBSSourceAutoRelease fade = obs_source_create(
-		"fade_transition", fadeName.toUtf8().constData(), nullptr,
-		nullptr);
+	OBSSourceAutoRelease fade = obs_source_create_private(
+		"fade_transition",
+		obs_source_get_display_name("fade_transition"), nullptr);
 	obs_transition_set_size(fade, canvas_width, canvas_height);
 	transitions.push_back(fade.Get());
 	source = obs_source_get_weak_source(fade);
