@@ -94,6 +94,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	resolution->setEditable(true);
 	resolution->addItem("720x1280");
 	resolution->addItem("1080x1920");
+	resolution->addItem("1080x1350");
 	generalLayout->addRow(QString::fromUtf8(obs_module_text("Resolution")),
 			      resolution);
 
