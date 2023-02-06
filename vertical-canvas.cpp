@@ -5594,11 +5594,15 @@ void CanvasDock::SwitchScene(const QString &scene_name)
 			} else {
 				obs_weak_source_release(source);
 				source = obs_source_get_weak_source(s);
+				if (video && view)
+					obs_view_set_source(view, 0, s);
 			}
 			obs_source_release(oldSource);
 		} else {
 			obs_weak_source_release(source);
 			source = obs_source_get_weak_source(s);
+			if (video && view)
+				obs_view_set_source(view, 0, s);
 		}
 	}
 	scene = obs_scene_from_source(s);
@@ -5616,8 +5620,6 @@ void CanvasDock::SwitchScene(const QString &scene_name)
 	auto oldName = currentSceneName;
 	if (!scene_name.isEmpty())
 		currentSceneName = scene_name;
-	if (video && view)
-		obs_view_set_source(view, 0, s);
 	if (scenesCombo && scenesCombo->currentText() != scene_name) {
 		scenesCombo->setCurrentText(scene_name);
 	}
