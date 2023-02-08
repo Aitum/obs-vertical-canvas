@@ -142,7 +142,7 @@ void frontend_event(obs_frontend_event event, void *private_data)
 		for (const auto &it : canvas_docks) {
 			QMetaObject::invokeMethod(it, "MainSceneChanged");
 		}
-	} else if (event == OBS_FRONTEND_EVENT_STREAMING_STARTING ||
+	} else if (//event == OBS_FRONTEND_EVENT_STREAMING_STARTING ||
 		   event == OBS_FRONTEND_EVENT_STREAMING_STARTED) {
 		for (const auto &it : canvas_docks) {
 			QMetaObject::invokeMethod(it, "MainStreamStart",
@@ -158,7 +158,7 @@ void frontend_event(obs_frontend_event event, void *private_data)
 							  Qt::QueuedConnection);
 			});
 		}
-	} else if (event == OBS_FRONTEND_EVENT_RECORDING_STARTING ||
+	} else if (//event == OBS_FRONTEND_EVENT_RECORDING_STARTING ||
 		   event == OBS_FRONTEND_EVENT_RECORDING_STARTED) {
 		for (const auto &it : canvas_docks) {
 			QMetaObject::invokeMethod(it, "MainRecordStart",
@@ -175,7 +175,7 @@ void frontend_event(obs_frontend_event event, void *private_data)
 			});
 		}
 
-	} else if (event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTING ||
+	} else if (//event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTING ||
 		   event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTED) {
 		for (const auto &it : canvas_docks) {
 			QMetaObject::invokeMethod(it, "MainReplayBufferStart",
