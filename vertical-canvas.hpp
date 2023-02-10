@@ -102,6 +102,8 @@ private:
 	float scalingAmount = 1.0f;
 	float groupRot = 0.0f;
 
+	float previewScale = 1.0f;
+
 	bool changed{};
 	obs_sceneitem_crop startCrop{};
 	vec2 startItemPos{};

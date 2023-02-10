@@ -1333,6 +1333,8 @@ void CanvasDock::DrawPreview(void *data, uint32_t cx, uint32_t cy)
 	float scale;
 
 	GetScaleAndCenterPos(sourceCX, sourceCY, cx, cy, x, y, scale);
+	if (window->previewScale != scale)
+		window->previewScale = scale;
 	auto newCX = scale * float(sourceCX);
 	auto newCY = scale * float(sourceCY);
 
@@ -3599,7 +3601,7 @@ vec3 CanvasDock::GetSnapOffset(const vec3 &tl, const vec3 &br)
 
 	const float clampDist = config_get_double(
 		obs_frontend_get_global_config(), "BasicWindow",
-		"SnapDistance") /* / main->previewScale */;
+		"SnapDistance")  / previewScale;
 	const float centerX = br.x - (br.x - tl.x) / 2.0f;
 	const float centerY = br.y - (br.y - tl.y) / 2.0f;
 
@@ -3822,7 +3824,7 @@ void CanvasDock::SnapItemMovement(vec2 &offset)
 
 	const float clampDist = config_get_double(
 		obs_frontend_get_global_config(), "BasicWindow",
-		"SnapDistance") /* /	main->previewScale */;
+		"SnapDistance") / previewScale;
 
 	OffsetData offsetData;
 	offsetData.clampDist = clampDist;
@@ -4153,10 +4155,7 @@ void CanvasDock::GetStretchHandleData(const vec2 &pos, bool ignoreGroup)
 	if (!scene)
 		return;
 
-	float scale = /*main->previewScale / */ GetDevicePixelRatio();
-	vec2 scaled_pos = pos;
-	vec2_divf(&scaled_pos, &scaled_pos, scale);
-	HandleFindData data(scaled_pos, scale);
+	HandleFindData data(pos, previewScale);
 	obs_scene_enum_items(scene, FindHandleAtPos, &data);
 
 	stretchItem = std::move(data.item);
