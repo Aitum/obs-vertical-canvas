@@ -933,7 +933,7 @@ void OBSBasicSettings::SaveSettings()
 	}
 	canvasDock->stream_advanced_settings = !streamingUseMain->isChecked();
 
-	for (int i = 0; i < streamingAudioTracks.size(); i++) {
+	for (int i = 0; i < (int)streamingAudioTracks.size(); i++) {
 		if (streamingAudioTracks[i]->isChecked()) {
 			canvasDock->stream_audio_track = i + 1;
 			break;
