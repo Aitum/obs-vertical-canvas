@@ -9,6 +9,8 @@
 #include <QGroupBox>
 #include <qlistwidget.h>
 #include <qspinbox.h>
+#include <QFormLayout>
+#include <QRadioButton>
 
 #include "hotkey-edit.hpp"
 
@@ -36,8 +38,22 @@ private:
 
 	QComboBox *server;
 	QLineEdit *key;
+	QCheckBox *streamingUseMain;
+	std::vector<QRadioButton *> streamingAudioTracks;
+	QComboBox *streamingEncoder;
+	obs_properties_t *stream_encoder_properties = nullptr;
+	std::map<obs_property_t *, QWidget *> stream_encoder_property_widgets;
 
 	QLineEdit *recordPath;
+	QLineEdit *recordFileFormat;
+
+	QCheckBox *recordingUseMain;
+	QLineEdit *filenameFormat;
+	QComboBox *fileFormat;
+	std::vector<QCheckBox *> recordingAudioTracks;
+	QComboBox *recordingEncoder;
+	obs_properties_t *record_encoder_properties = nullptr;
+	std::map<obs_property_t *, QWidget *> record_encoder_property_widgets;
 
 	std::vector<OBSHotkeyWidget *> hotkeys;
 
@@ -57,6 +73,12 @@ private:
 	obs_hotkey_t *GetHotkeyByName(QString name);
 
 	void SetEncoderBitrate(obs_encoder_t *obs_encoder);
+	void AddProperty(obs_property_t *property, obs_data_t *settings,
+			 QFormLayout *layout);
+	void LoadProperty(obs_property_t *property, obs_data_t *settings,
+			  QWidget *widget);
+	void SaveProperty(obs_property_t *property, obs_data_t *settings,
+			  QWidget *widget);
 
 private slots:
 	void SetGeneralIcon(const QIcon &icon);

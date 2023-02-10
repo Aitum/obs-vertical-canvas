@@ -166,7 +166,21 @@ private:
 	std::string stream_key;
 	std::string stream_server;
 
+	bool stream_advanced_settings;
+	int stream_audio_track;
+	std::string stream_encoder;
+	obs_data_t *stream_encoder_settings;
+
 	std::string recordPath;
+
+	bool record_advanced_settings;
+	std::string filename_formatting;
+	std::string file_format;
+	long long record_audio_tracks;
+	std::string record_encoder;
+	obs_data_t *record_encoder_settings;
+
+
 
 	QString currentSceneName;
 	bool first_time = false;
@@ -325,6 +339,10 @@ private slots:
 	void SwitchScene(const QString &scene_name);
 	void StartVirtualCam();
 	void StopVirtualCam();
+	void SetRecordAudioEncoders(obs_output_t *output);
+	obs_encoder_t *GetRecordVideoEncoder();
+	obs_encoder_t *GetStreamVideoEncoder();
+	void ShowNoReplayOutputError();
 	void StartRecord();
 	void StopRecord();
 	void StartReplayBuffer();

@@ -142,8 +142,8 @@ void frontend_event(obs_frontend_event event, void *private_data)
 		for (const auto &it : canvas_docks) {
 			QMetaObject::invokeMethod(it, "MainSceneChanged");
 		}
-	} else if (//event == OBS_FRONTEND_EVENT_STREAMING_STARTING ||
-		   event == OBS_FRONTEND_EVENT_STREAMING_STARTED) {
+	} else if ( //event == OBS_FRONTEND_EVENT_STREAMING_STARTING ||
+		event == OBS_FRONTEND_EVENT_STREAMING_STARTED) {
 		for (const auto &it : canvas_docks) {
 			QMetaObject::invokeMethod(it, "MainStreamStart",
 						  Qt::QueuedConnection);
@@ -158,8 +158,8 @@ void frontend_event(obs_frontend_event event, void *private_data)
 							  Qt::QueuedConnection);
 			});
 		}
-	} else if (//event == OBS_FRONTEND_EVENT_RECORDING_STARTING ||
-		   event == OBS_FRONTEND_EVENT_RECORDING_STARTED) {
+	} else if ( //event == OBS_FRONTEND_EVENT_RECORDING_STARTING ||
+		event == OBS_FRONTEND_EVENT_RECORDING_STARTED) {
 		for (const auto &it : canvas_docks) {
 			QMetaObject::invokeMethod(it, "MainRecordStart",
 						  Qt::QueuedConnection);
@@ -175,8 +175,8 @@ void frontend_event(obs_frontend_event event, void *private_data)
 			});
 		}
 
-	} else if (//event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTING ||
-		   event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTED) {
+	} else if ( //event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTING ||
+		event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTED) {
 		for (const auto &it : canvas_docks) {
 			QMetaObject::invokeMethod(it, "MainReplayBufferStart",
 						  Qt::QueuedConnection);
@@ -793,7 +793,24 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	stream_server = obs_data_get_string(settings, "stream_server");
 	stream_key = obs_data_get_string(settings, "stream_key");
 
+	stream_advanced_settings =
+		obs_data_get_bool(settings, "stream_advanced_settings");
+	stream_audio_track = obs_data_get_int(settings, "stream_audio_track");
+	stream_encoder = obs_data_get_string(settings, "stream_encoder");
+	stream_encoder_settings =
+		obs_data_get_obj(settings, "stream_encoder_settings");
+	if (!stream_encoder_settings)
+		stream_encoder_settings = obs_data_create();
+
 	recordPath = obs_data_get_string(settings, "record_path");
+	record_advanced_settings =
+		obs_data_get_bool(settings, "record_advanced_settings");
+	record_audio_tracks = obs_data_get_int(settings, "record_audio_tracks");
+	record_encoder = obs_data_get_string(settings, "record_encoder");
+	record_encoder_settings =
+		obs_data_get_obj(settings, "record_encoder_settings");
+	if (!record_encoder_settings)
+		record_encoder_settings = obs_data_create();
 
 	preview_disabled = obs_data_get_bool(settings, "preview_disabled");
 
@@ -1048,6 +1065,11 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		obs_data_release(settings);
 	}
 	hide();
+
+	stream_service = obs_service_create("rtmp_custom",
+					    "vertical_canvas_stream_service",
+					    nullptr, nullptr);
+
 	OBSSourceAutoRelease fade = obs_source_create_private(
 		"fade_transition",
 		obs_source_get_display_name("fade_transition"), nullptr);
@@ -1095,6 +1117,10 @@ CanvasDock::~CanvasDock()
 	if (obs_output_active(streamOutput))
 		obs_output_stop(streamOutput);
 	obs_output_release(streamOutput);
+
+	obs_data_release(stream_encoder_settings);
+	obs_data_release(record_encoder_settings);
+	obs_service_release(stream_service);
 
 	if (video) {
 		obs_view_remove(view);
@@ -4698,38 +4724,47 @@ void CanvasDock::StartRecord()
 	if (obs_output_active(recordOutput))
 		return;
 
-	obs_output_t *replay_output = obs_frontend_get_replay_buffer_output();
-	if (replay_output) {
-		obs_encoder_t *ve = obs_output_get_video_encoder(replay_output);
-		if (!ve) {
-			obs_frontend_replay_buffer_start();
-			obs_frontend_replay_buffer_stop();
+	if (record_advanced_settings) {
+		if (!recordOutput)
+			recordOutput = obs_output_create(
+				"ffmpeg_muxer", "vertical_canvas_record",
+				nullptr, nullptr);
+	} else {
+		obs_output_t *replay_output =
+			obs_frontend_get_replay_buffer_output();
+		if (!replay_output) {
+			ShowNoReplayOutputError();
+			return;
 		}
-		obs_output_release(replay_output);
-	}
-	obs_output_t *output = obs_frontend_get_recording_output();
-	if (!recordOutput)
-		recordOutput = obs_output_create(obs_output_get_id(output),
-						 "vertical_canvas_record",
-						 nullptr, nullptr);
 
-	obs_output_set_mixers(recordOutput, obs_output_get_mixers(output));
-	obs_data_t *settings = obs_output_get_settings(output);
-	obs_output_update(recordOutput, settings);
-	obs_data_release(settings);
+		obs_output_t *output = obs_frontend_get_recording_output();
+		if (!recordOutput)
+			recordOutput = obs_output_create(
+				obs_output_get_id(output),
+				"vertical_canvas_record", nullptr, nullptr);
+
+		obs_data_t *settings = obs_output_get_settings(output);
+		obs_output_update(recordOutput, settings);
+		obs_data_release(settings);
+		obs_output_release(output);
+	}
+
+	SetRecordAudioEncoders(recordOutput);
 
 	config_t *config = obs_frontend_get_profile_config();
 	const char *mode = config_get_string(config, "Output", "Mode");
 	const char *dir = nullptr;
 	const char *format = nullptr;
 	bool ffmpegOutput = false;
-	bool useStreamEncoder = false;
-	if (strcmp(mode, "Advanced") == 0) {
+
+	if (record_advanced_settings) {
+		if (file_format.empty())
+			file_format = "mkv";
+		format = file_format.c_str();
+		dir = recordPath.c_str();
+	} else if (strcmp(mode, "Advanced") == 0) {
 		const char *recType =
 			config_get_string(config, "AdvOut", "RecType");
-		const char *recordEncoder =
-			config_get_string(config, "AdvOut", "RecEncoder");
-		useStreamEncoder = astrcmpi(recordEncoder, "none") == 0;
 
 		if (strcmp(recType, "FFmpeg") == 0) {
 			ffmpegOutput = true;
@@ -4749,67 +4784,16 @@ void CanvasDock::StartRecord()
 		format = config_get_string(config, "SimpleOutput", "RecFormat");
 		const char *quality =
 			config_get_string(config, "SimpleOutput", "RecQuality");
-		if (strcmp(quality, "Stream") == 0) {
-			useStreamEncoder = true;
-		} else if (strcmp(quality, "Lossless") == 0) {
+		if (strcmp(quality, "Lossless") == 0) {
 			ffmpegOutput = true;
 		}
 	}
 
-	obs_encoder_t *enc = obs_output_get_video_encoder(output);
-	obs_encoder_t *video_encoder =
-		obs_output_get_video_encoder(recordOutput);
-	if (!video_encoder && useStreamEncoder && streamOutput) {
-		video_encoder = obs_output_get_video_encoder(streamOutput);
-	}
-	if (!video_encoder || strcmp(obs_encoder_get_id(video_encoder),
-				     obs_encoder_get_id(enc)) != 0)
-		video_encoder = obs_output_get_video_encoder(replayOutput);
-	if (!video_encoder || strcmp(obs_encoder_get_id(video_encoder),
-				     obs_encoder_get_id(enc)) != 0) {
-		video_encoder = obs_video_encoder_create(
-			obs_encoder_get_id(enc),
-			"vertical_canvas_record_video_encoder", nullptr,
-			nullptr);
-	}
-
-	switch (video_output_get_format(video)) {
-	case VIDEO_FORMAT_I420:
-	case VIDEO_FORMAT_NV12:
-	case VIDEO_FORMAT_I010:
-	case VIDEO_FORMAT_P010:
-		break;
-	default:
-		obs_encoder_set_preferred_video_format(video_encoder,
-						       VIDEO_FORMAT_NV12);
-	}
-
-	obs_data_t *d = obs_encoder_get_settings(enc);
-	obs_encoder_update(video_encoder, d);
-	if (!videoBitrate) {
-		videoBitrate = (uint32_t)obs_data_get_int(d, "bitrate");
-	} else {
-		auto s = obs_encoder_get_settings(video_encoder);
-		if (videoBitrate != obs_data_get_int(s, "bitrate")) {
-			obs_data_set_int(s, "bitrate", videoBitrate);
-			obs_encoder_update(video_encoder, nullptr);
-		}
-		obs_data_release(s);
-	}
-
-	obs_data_release(d);
-
-	obs_output_set_video_encoder(recordOutput, video_encoder);
-
-	for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
-		obs_encoder_t *audio_encoder =
-			obs_output_get_audio_encoder(output, i);
-		obs_output_set_audio_encoder(recordOutput, audio_encoder, i);
-	}
-
-	obs_output_release(output);
-
 	const bool started_video = StartVideo();
+
+	obs_output_set_video_encoder(recordOutput, GetRecordVideoEncoder());
+
+	SetRecordAudioEncoders(recordOutput);
 
 	signal_handler_t *signal = obs_output_get_signal_handler(recordOutput);
 	signal_handler_disconnect(signal, "start", record_output_start, this);
@@ -4821,9 +4805,14 @@ void CanvasDock::StartRecord()
 	signal_handler_connect(signal, "stopping", record_output_stopping,
 			       this);
 
-	std::string filenameFormat =
-		config_get_string(config, "Output", "FilenameFormatting");
-	filenameFormat += "-vertical";
+	std::string filenameFormat;
+	if (record_advanced_settings) {
+		filenameFormat = filename_formatting;
+	} else {
+		filenameFormat = config_get_string(config, "Output",
+						   "FilenameFormatting");
+		filenameFormat += "-vertical";
+	}
 	obs_data_t *ps = obs_data_create();
 	char path[512];
 	char *filename = os_generate_formatted_filename(
@@ -4840,7 +4829,6 @@ void CanvasDock::StartRecord()
 	obs_output_update(recordOutput, ps);
 	obs_data_release(ps);
 
-	obs_encoder_set_video(video_encoder, video);
 	obs_output_set_media(recordOutput, video, obs_get_audio());
 
 	SendVendorEvent("recording_starting");
@@ -4905,164 +4893,219 @@ void CanvasDock::replay_saved(void *data, calldata_t *calldata)
 	QMetaObject::invokeMethod(d, "OnReplaySaved");
 }
 
+void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
+{
+	if (record_advanced_settings) {
+		obs_output_set_mixers(output, record_audio_tracks);
+		size_t idx = 0;
+		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
+			if ((record_audio_tracks & (1ll << i)) == 0)
+				continue;
+			obs_encoder_t *aet =
+				obs_output_get_audio_encoder(replayOutput, idx);
+			if (!aet && recordOutput)
+				aet = obs_output_get_audio_encoder(recordOutput,
+								   idx);
+			if (aet &&
+			    strcmp(obs_encoder_get_id(aet), "ffmpeg_aac") != 0)
+				aet = nullptr;
+			if (!aet) {
+				std::string name = "vertical";
+				name += std::to_string(idx);
+				aet = obs_audio_encoder_create("ffmpeg_aac",
+							       name.c_str(),
+							       nullptr, i,
+							       nullptr);
+				obs_encoder_set_audio(aet, obs_get_audio());
+			}
+			obs_output_set_audio_encoder(output, aet, idx);
+			idx++;
+		}
+		while (idx < MAX_OUTPUT_AUDIO_ENCODERS) {
+			obs_output_set_audio_encoder(output, nullptr, idx);
+			idx++;
+		}
+	} else {
+		obs_output_t *replay_output =
+			obs_frontend_get_replay_buffer_output();
+		obs_output_set_mixers(output,
+				      obs_output_get_mixers(replay_output));
+		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
+			obs_encoder_t *aef =
+				obs_output_get_audio_encoder(replay_output, i);
+			if (aef) {
+				obs_encoder_t *aet =
+					obs_output_get_audio_encoder(
+						replayOutput, i);
+				if (!aet && recordOutput)
+					aet = obs_output_get_audio_encoder(
+						recordOutput, i);
+				if (aet && strcmp(obs_encoder_get_id(aef),
+						  obs_encoder_get_id(aet)) != 0)
+					aet = nullptr;
+				if (!aet) {
+					std::string name =
+						obs_encoder_get_name(aef);
+					name += "_vertical";
+					aet = obs_audio_encoder_create(
+						obs_encoder_get_id(aef),
+						name.c_str(), nullptr, i,
+						nullptr);
+					obs_encoder_set_audio(aet,
+							      obs_get_audio());
+				}
+				auto s = obs_encoder_get_settings(aef);
+				obs_encoder_update(aet, s);
+				obs_data_release(s);
+				obs_output_set_audio_encoder(output, aet, i);
+			} else {
+				obs_output_set_audio_encoder(output, nullptr,
+							     i);
+			}
+		}
+		obs_output_release(replay_output);
+	}
+}
+
+void CanvasDock::ShowNoReplayOutputError()
+{
+	config_t *config = obs_frontend_get_profile_config();
+	const char *mode = config_get_string(config, "Output", "Mode");
+	if (astrcmpi(mode, "Advanced") == 0) {
+		const char *recType =
+			config_get_string(config, "AdvOut", "RecType");
+		if (astrcmpi(recType, "FFmpeg") == 0) {
+			blog(LOG_WARNING,
+			     "[vertical-canvas] error starting backtrack: custom ffmpeg");
+			if (isVisible()) {
+				QMessageBox::warning(
+					this,
+					QString::fromUtf8(obs_module_text(
+						"backtrackStartFail")),
+					QString::fromUtf8(obs_module_text(
+						"backtrackCustomFfmpeg")));
+			}
+			return;
+		}
+	}
+	if (isVisible()) {
+		blog(LOG_WARNING,
+		     "[vertical-canvas] error starting backtrack: no replay buffer found");
+		QMessageBox::warning(this,
+				     QString::fromUtf8(obs_module_text(
+					     "backtrackStartFail")),
+				     QString::fromUtf8(obs_module_text(
+					     "backtrackNoReplayBuffer")));
+	}
+}
+
 void CanvasDock::StartReplayBuffer()
 {
 	if ((!startReplay && !replayAlwaysOn) ||
 	    obs_output_active(replayOutput))
 		return;
 
-	obs_output_t *replay_output = obs_frontend_get_replay_buffer_output();
-	if (!replay_output) {
-		config_t *config = obs_frontend_get_profile_config();
-		const char *mode = config_get_string(config, "Output", "Mode");
-		if (astrcmpi(mode, "Advanced") == 0) {
-			const char *recType =
-				config_get_string(config, "AdvOut", "RecType");
-			if (astrcmpi(recType, "FFmpeg") == 0) {
-				blog(LOG_WARNING,
-				     "[vertical-canvas] error starting backtrack: custom ffmpeg");
-				if (isVisible()) {
-					QMessageBox::warning(
-						this,
-						QString::fromUtf8(obs_module_text(
-							"backtrackStartFail")),
-						QString::fromUtf8(obs_module_text(
-							"backtrackCustomFfmpeg")));
-				}
-				return;
-			}
-		}
-		if (isVisible()) {
-			blog(LOG_WARNING,
-			     "[vertical-canvas] error starting backtrack: no replay buffer found");
-			QMessageBox::warning(
-				this,
-				QString::fromUtf8(
-					obs_module_text("backtrackStartFail")),
-				QString::fromUtf8(obs_module_text(
-					"backtrackNoReplayBuffer")));
-		}
-		return;
-	}
-	obs_encoder_t *enc = obs_output_get_video_encoder(replay_output);
-	if (!enc) {
-		obs_frontend_replay_buffer_start();
-		obs_frontend_replay_buffer_stop();
-		enc = obs_output_get_video_encoder(replay_output);
-	}
-	if (!enc) {
-		obs_output_release(replay_output);
-		blog(LOG_WARNING,
-		     "[vertical-canvas] error starting backtrack: no video encoder found");
-		return;
-	}
-
-	obs_output_set_mixers(replayOutput,
-			      obs_output_get_mixers(replay_output));
-	obs_data_t *settings = obs_output_get_settings(replay_output);
-	if (!strlen(obs_data_get_string(settings, "directory"))) {
-		obs_frontend_replay_buffer_start();
-		obs_frontend_replay_buffer_stop();
-	}
-	obs_output_update(replayOutput, settings);
-	if (!replayDuration) {
-		replayDuration = obs_data_get_int(settings, "max_time_sec");
+	if (record_advanced_settings) {
 		if (!replayDuration)
 			replayDuration = 5;
-	} else if (obs_data_get_int(settings, "max_time_sec") !=
-		   replayDuration) {
-		const auto s = obs_output_get_settings(replayOutput);
+		auto s = obs_data_create();
 		obs_data_set_int(s, "max_time_sec", replayDuration);
-		obs_data_release(s);
-	}
-	if (replayPath.empty()) {
-		replayPath = obs_data_get_string(settings, "directory");
-	} else if (strcmp(replayPath.c_str(),
-			  obs_data_get_string(settings, "directory")) != 0) {
-		const auto s = obs_output_get_settings(replayOutput);
+		obs_data_set_int(s, "max_size_mb", 0);
+		if (filename_formatting.empty())
+			filename_formatting = "%CCYY-%MM-%DD %hh-%mm-%ss";
+		obs_data_set_string(s, "format", filename_formatting.c_str());
+		if (file_format.empty())
+			file_format = "mkv";
+		obs_data_set_string(s, "extension", file_format.c_str());
+		//allow_spaces
 		obs_data_set_string(s, "directory", replayPath.c_str());
+		obs_output_update(replayOutput, s);
 		obs_data_release(s);
-	}
-	bool changed_format = false;
-	std::string format = obs_data_get_string(settings, "format");
-	size_t start_pos = format.find("Replay");
-	if (start_pos != std::string::npos) {
-		format.replace(start_pos, 6, "Backtrack");
-		changed_format = true;
-	}
-	start_pos = format.find("replay");
-	if (start_pos != std::string::npos) {
-		format.replace(start_pos, 6, "backtrack");
-		changed_format = true;
-	}
-	if (!changed_format) {
-		format += "-backtrack";
-		changed_format = true;
-	}
-	if (changed_format) {
-		const auto s = obs_output_get_settings(replayOutput);
-		obs_data_set_string(s, "format", format.c_str());
-		obs_data_release(s);
-	}
-	obs_data_release(settings);
-	obs_output_update(replayOutput, nullptr);
-
-	obs_encoder_t *video_encoder =
-		obs_output_get_video_encoder(replayOutput);
-	if (!video_encoder || strcmp(obs_encoder_get_id(video_encoder),
-				     obs_encoder_get_id(enc)) != 0)
-		video_encoder = obs_output_get_video_encoder(recordOutput);
-	if (!video_encoder || strcmp(obs_encoder_get_id(video_encoder),
-				     obs_encoder_get_id(enc)) != 0) {
-		video_encoder = obs_video_encoder_create(
-			obs_encoder_get_id(enc),
-			"vertical_canvas_record_video_encoder", nullptr,
-			nullptr);
-	}
-
-	switch (video_output_get_format(video)) {
-	case VIDEO_FORMAT_I420:
-	case VIDEO_FORMAT_NV12:
-	case VIDEO_FORMAT_I010:
-	case VIDEO_FORMAT_P010:
-		break;
-	default:
-		obs_encoder_set_preferred_video_format(video_encoder,
-						       VIDEO_FORMAT_NV12);
-	}
-
-	obs_data_t *d = obs_encoder_get_settings(enc);
-	obs_encoder_update(video_encoder, d);
-	if (!videoBitrate) {
-		videoBitrate = (uint32_t)obs_data_get_int(d, "bitrate");
 	} else {
-		auto s = obs_encoder_get_settings(video_encoder);
-		if (videoBitrate != obs_data_get_int(s, "bitrate")) {
-			obs_data_set_int(s, "bitrate", videoBitrate);
-			obs_encoder_update(video_encoder, nullptr);
+		obs_output_t *replay_output =
+			obs_frontend_get_replay_buffer_output();
+		if (!replay_output) {
+			ShowNoReplayOutputError();
+			return;
 		}
-		obs_data_release(s);
+		obs_encoder_t *enc =
+			obs_output_get_video_encoder(replay_output);
+		if (!enc) {
+			obs_frontend_replay_buffer_start();
+			obs_frontend_replay_buffer_stop();
+			enc = obs_output_get_video_encoder(replay_output);
+		}
+		if (!enc) {
+			obs_output_release(replay_output);
+			blog(LOG_WARNING,
+			     "[vertical-canvas] error starting backtrack: no video encoder found");
+			return;
+		}
+
+		auto settings = obs_output_get_settings(replay_output);
+		obs_output_release(replay_output);
+		if (!strlen(obs_data_get_string(settings, "directory"))) {
+			obs_frontend_replay_buffer_start();
+			obs_frontend_replay_buffer_stop();
+		}
+		if (!replayDuration) {
+			replayDuration =
+				obs_data_get_int(settings, "max_time_sec");
+			if (!replayDuration)
+				replayDuration = 5;
+		}
+		if (replayPath.empty())
+			replayPath = obs_data_get_string(settings, "directory");
+		obs_output_update(replayOutput, settings);
+		if (obs_data_get_int(settings, "max_time_sec") !=
+		    replayDuration) {
+			const auto s = obs_output_get_settings(replayOutput);
+			obs_data_set_int(s, "max_time_sec", replayDuration);
+			obs_data_release(s);
+		}
+		if (strcmp(replayPath.c_str(),
+			   obs_data_get_string(settings, "directory")) != 0) {
+			const auto s = obs_output_get_settings(replayOutput);
+			obs_data_set_string(s, "directory", replayPath.c_str());
+			obs_data_release(s);
+		}
+		bool changed_format = false;
+		std::string format = obs_data_get_string(settings, "format");
+		size_t start_pos = format.find("Replay");
+		if (start_pos != std::string::npos) {
+			format.replace(start_pos, 6, "Backtrack");
+			changed_format = true;
+		}
+		start_pos = format.find("replay");
+		if (start_pos != std::string::npos) {
+			format.replace(start_pos, 6, "backtrack");
+			changed_format = true;
+		}
+		if (!changed_format) {
+			format += "-backtrack";
+			changed_format = true;
+		}
+		if (changed_format) {
+			const auto s = obs_output_get_settings(replayOutput);
+			obs_data_set_string(s, "format", format.c_str());
+			obs_data_release(s);
+		}
+		obs_data_release(settings);
+		obs_output_update(replayOutput, nullptr);
 	}
-	obs_data_release(d);
 
-	obs_output_set_video_encoder(replayOutput, video_encoder);
-
-	for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
-		obs_encoder_t *audio_encoder =
-			obs_output_get_audio_encoder(replay_output, i);
-		obs_output_set_audio_encoder(replayOutput, audio_encoder, i);
-	}
-
-	obs_output_release(replay_output);
+	SetRecordAudioEncoders(replayOutput);
 
 	bool started_video = StartVideo();
+
+	obs_output_set_video_encoder(replayOutput, GetRecordVideoEncoder());
+
 	signal_handler_t *signal = obs_output_get_signal_handler(replayOutput);
 	signal_handler_disconnect(signal, "start", replay_output_start, this);
 	signal_handler_disconnect(signal, "stop", replay_output_stop, this);
 	signal_handler_connect(signal, "start", replay_output_start, this);
 	signal_handler_connect(signal, "stop", replay_output_stop, this);
 
-	obs_encoder_set_video(video_encoder, video);
 	obs_output_set_media(replayOutput, video, obs_get_audio());
 	SendVendorEvent("backtrack_starting");
 
@@ -5081,45 +5124,6 @@ void CanvasDock::StartReplayBuffer()
 		}
 	} else {
 		QMetaObject::invokeMethod(this, "OnReplayBufferStart");
-	}
-}
-
-void CanvasDock::StopReplayBuffer()
-{
-	QMetaObject::invokeMethod(this, "OnReplayBufferStop");
-	if (obs_output_active(replayOutput)) {
-		SendVendorEvent("backtrack_stopping");
-		obs_output_stop(replayOutput);
-	}
-}
-
-void CanvasDock::replay_output_start(void *data, calldata_t *calldata)
-{
-	UNUSED_PARAMETER(calldata);
-	UNUSED_PARAMETER(data);
-	auto d = static_cast<CanvasDock *>(data);
-	d->SendVendorEvent("backtrack_started");
-	QMetaObject::invokeMethod(d, "OnReplayBufferStart");
-}
-
-void CanvasDock::replay_output_stop(void *data, calldata_t *calldata)
-{
-	const char *last_error =
-		(const char *)calldata_ptr(calldata, "last_error");
-	QString arg_last_error = QString::fromUtf8(last_error);
-	const int code = (int)calldata_int(calldata, "code");
-	auto d = static_cast<CanvasDock *>(data);
-	d->SendVendorEvent("backtrack_stopped");
-	QMetaObject::invokeMethod(d, "OnReplayBufferStop", Q_ARG(int, code),
-				  Q_ARG(QString, arg_last_error));
-}
-
-void CanvasDock::StreamButtonClicked()
-{
-	if (obs_output_active(streamOutput)) {
-		StopStream();
-	} else {
-		StartStream();
 	}
 }
 
@@ -5179,71 +5183,36 @@ const char *get_simple_output_encoder(const char *encoder)
 	return "obs_x264";
 }
 
-void CanvasDock::StartStream()
+obs_encoder_t *CanvasDock::GetStreamVideoEncoder()
 {
-	StartReplayBuffer();
-	if (obs_output_active(streamOutput))
-		return;
-
-	const bool started_video = StartVideo();
-
-	if (!stream_service)
-		stream_service = obs_service_create(
-			"rtmp_custom", "vertical_canvas_stream_service",
-			nullptr, nullptr);
-
-	auto s = obs_data_create();
-	obs_data_set_string(s, "server", stream_server.c_str());
-	obs_data_set_string(s, "key", stream_key.c_str());
-	//use_auth
-	//username
-	//password
-	obs_service_update(stream_service, s);
-	obs_data_release(s);
-
-	if (!streamOutput) {
-		const char *type = obs_service_get_output_type(stream_service);
-		if (!type) {
-			type = "rtmp_output";
-			const char *url = obs_service_get_url(stream_service);
-			if (url != NULL && strncmp(url, "ftl", 3) == 0) {
-				type = "ftl_output";
-			} else if (url != NULL &&
-				   strncmp(url, "rtmp", 4) != 0) {
-				type = "ffmpeg_mpegts_muxer";
-			}
-		}
-
-		streamOutput = obs_output_create(type, "vertical_canvas_stream",
-						 nullptr, nullptr);
-		obs_output_set_service(streamOutput, stream_service);
-	}
-
-	signal_handler_t *signal = obs_output_get_signal_handler(streamOutput);
-	signal_handler_disconnect(signal, "start", stream_output_start, this);
-	signal_handler_disconnect(signal, "stop", stream_output_stop, this);
-	signal_handler_connect(signal, "start", stream_output_start, this);
-	signal_handler_connect(signal, "stop", stream_output_stop, this);
-
-	obs_data_t *video_settings;
-	//"bitrate"
-	//"keyint_sec"
-	//"lookahead"
-
-	const auto audio_settings = obs_data_create();
+	obs_encoder_t *video_encoder = nullptr;
+	const char *enc_id = nullptr;
+	obs_data_t *video_settings = nullptr;
+	bool useRecordEncoder = false;
 
 	config_t *config = obs_frontend_get_profile_config();
 	const char *mode = config_get_string(config, "Output", "Mode");
-	bool useRecordEncoder = false;
-	const char *enc_id;
-	if (strcmp(mode, "Advanced") == 0) {
 
+	if (stream_advanced_settings) {
+		video_settings = stream_encoder_settings;
+		obs_data_addref(video_settings);
+		enc_id = stream_encoder.c_str();
+		if (record_advanced_settings) {
+			useRecordEncoder = record_encoder.empty();
+		} else if (strcmp(mode, "Advanced") == 0) {
+			const char *recordEncoder = config_get_string(
+				config, "AdvOut", "RecEncoder");
+			useRecordEncoder = astrcmpi(recordEncoder, "none") == 0;
+		} else {
+			const char *quality = config_get_string(
+				config, "SimpleOutput", "RecQuality");
+			if (strcmp(quality, "Stream") == 0) {
+				useRecordEncoder = true;
+			}
+		}
+	} else if (strcmp(mode, "Advanced") == 0) {
 		video_settings = GetDataFromJsonFile("streamEncoder.json");
 		enc_id = config_get_string(config, "AdvOut", "Encoder");
-
-		obs_service_apply_encoder_settings(
-			stream_service, video_settings, audio_settings);
-
 		const char *recordEncoder =
 			config_get_string(config, "AdvOut", "RecEncoder");
 		useRecordEncoder = astrcmpi(recordEncoder, "none") == 0;
@@ -5253,23 +5222,6 @@ void CanvasDock::StartStream()
 		} else {
 			obs_data_set_int(video_settings, "bitrate",
 					 videoBitrate);
-		}
-		if (!audioBitrate) {
-			uint64_t streamTrack =
-				config_get_uint(config, "AdvOut", "TrackIndex");
-			static const char *trackNames[] = {
-				"Track1Bitrate", "Track2Bitrate",
-				"Track3Bitrate", "Track4Bitrate",
-				"Track5Bitrate", "Track6Bitrate",
-			};
-			const int advAudioBitrate = (int)config_get_uint(
-				config, "AdvOut", trackNames[streamTrack - 1]);
-			obs_data_set_int(audio_settings, "bitrate",
-					 advAudioBitrate);
-			audioBitrate = advAudioBitrate;
-		} else {
-			obs_data_set_int(audio_settings, "bitrate",
-					 audioBitrate);
 		}
 	} else {
 		video_settings = obs_data_create();
@@ -5331,18 +5283,6 @@ void CanvasDock::StartStream()
 			obs_data_set_string(video_settings, "x264opts", custom);
 		}
 
-		obs_data_set_string(audio_settings, "rate_control", "CBR");
-		if (!audioBitrate) {
-			const int sAudioBitrate = (int)config_get_uint(
-				config, "SimpleOutput", "ABitrate");
-			obs_data_set_int(audio_settings, "bitrate",
-					 sAudioBitrate);
-			audioBitrate = sAudioBitrate;
-		} else {
-			obs_data_set_int(audio_settings, "bitrate",
-					 audioBitrate);
-		}
-
 		const char *quality =
 			config_get_string(config, "SimpleOutput", "RecQuality");
 		if (strcmp(quality, "Stream") == 0) {
@@ -5350,24 +5290,30 @@ void CanvasDock::StartStream()
 		}
 	}
 
-	obs_service_apply_encoder_settings(stream_service, video_settings,
-					   audio_settings);
-
-	obs_encoder_t *video_encoder =
-		obs_output_get_video_encoder(streamOutput);
+	obs_encoder_t *se = obs_output_get_video_encoder(streamOutput);
+	if (se && strcmp(enc_id, obs_encoder_get_id(se)) == 0) {
+		video_encoder = se;
+	}
 	if (!video_encoder && useRecordEncoder && recordOutput) {
-		video_encoder = obs_output_get_video_encoder(streamOutput);
+		auto re = obs_output_get_video_encoder(recordOutput);
+		if (re && strcmp(enc_id, obs_encoder_get_id(re)) == 0) {
+			video_encoder = re;
+		}
 	}
 	if (!video_encoder && useRecordEncoder && replayOutput) {
-		video_encoder = obs_output_get_video_encoder(replayOutput);
+		auto re = obs_output_get_video_encoder(replayOutput);
+		if (re && strcmp(enc_id, obs_encoder_get_id(re)) == 0) {
+			video_encoder = re;
+		}
 	}
-	if (!video_encoder ||
-	    strcmp(obs_encoder_get_id(video_encoder), enc_id) != 0) {
+	if (!video_encoder) {
 		video_encoder = obs_video_encoder_create(
 			enc_id, "vertical_canvas_video_encoder", nullptr,
 			nullptr);
 	}
+
 	obs_encoder_update(video_encoder, video_settings);
+	obs_data_release(video_settings);
 
 	switch (video_output_get_format(video)) {
 	case VIDEO_FORMAT_I420:
@@ -5379,19 +5325,269 @@ void CanvasDock::StartStream()
 		obs_encoder_set_preferred_video_format(video_encoder,
 						       VIDEO_FORMAT_NV12);
 	}
-	obs_data_release(video_settings);
-
 	obs_encoder_set_video(video_encoder, video);
-	obs_output_set_video_encoder(streamOutput, video_encoder);
+	return video_encoder;
+}
 
-	obs_encoder_t *audio_encoder = obs_audio_encoder_create(
-		"ffmpeg_aac", "vertical_canvas_audio_encoder", audio_settings,
-		0, nullptr);
+obs_encoder_t *CanvasDock::GetRecordVideoEncoder()
+{
+	obs_encoder_t *video_encoder = nullptr;
+	const char *enc_id = nullptr;
+	obs_data_t *settings = nullptr;
+	if (record_advanced_settings) {
+		if (record_encoder.empty()) {
+			return GetStreamVideoEncoder();
+		} else {
+			enc_id = record_encoder.c_str();
+			settings = record_encoder_settings;
+			obs_data_addref(settings);
+		}
+	} else {
+		config_t *config = obs_frontend_get_profile_config();
+		const char *mode = config_get_string(config, "Output", "Mode");
+		if (strcmp(mode, "Advanced") == 0) {
+			if (astrcmpi(config_get_string(config, "AdvOut",
+						       "RecEncoder"),
+				     "none") == 0)
+				return GetStreamVideoEncoder();
+			enc_id = config_get_string(config, "AdvOut",
+						   "RecEncoder");
+		} else {
+			if (strcmp(config_get_string(config, "SimpleOutput",
+						     "RecQuality"),
+				   "Stream") == 0)
+				return GetStreamVideoEncoder();
+			enc_id = get_simple_output_encoder(config_get_string(
+				config, "SimpleOutput", "RecEncoder"));
+		}
+	}
 
+	if (!video_encoder && replayOutput) {
+		auto re = obs_output_get_video_encoder(replayOutput);
+		if (re && strcmp(enc_id, obs_encoder_get_id(re)) == 0) {
+			video_encoder = re;
+		}
+	}
+	if (!video_encoder && recordOutput) {
+		auto re = obs_output_get_video_encoder(recordOutput);
+		if (re && strcmp(enc_id, obs_encoder_get_id(re)) == 0) {
+			video_encoder = re;
+		}
+	}
+	if (!video_encoder) {
+		video_encoder = obs_video_encoder_create(
+			enc_id, "vertical_canvas_record_video_encoder", nullptr,
+			nullptr);
+	}
+
+	obs_encoder_update(video_encoder, settings);
+	obs_data_release(settings);
+
+	if (!record_advanced_settings) {
+		obs_output_t *replay_output =
+			obs_frontend_get_replay_buffer_output();
+		auto enc = obs_output_get_video_encoder(replay_output);
+		obs_output_release(replay_output);
+		obs_data_t *d = obs_encoder_get_settings(enc);
+		obs_encoder_update(video_encoder, d);
+		if (!videoBitrate) {
+			videoBitrate = (uint32_t)obs_data_get_int(d, "bitrate");
+		} else {
+			auto s = obs_encoder_get_settings(video_encoder);
+			if (videoBitrate != obs_data_get_int(s, "bitrate")) {
+				obs_data_set_int(s, "bitrate", videoBitrate);
+				obs_encoder_update(video_encoder, nullptr);
+			}
+			obs_data_release(s);
+		}
+		obs_data_release(d);
+	}
+
+	switch (video_output_get_format(video)) {
+	case VIDEO_FORMAT_I420:
+	case VIDEO_FORMAT_NV12:
+	case VIDEO_FORMAT_I010:
+	case VIDEO_FORMAT_P010:
+		break;
+	default:
+		obs_encoder_set_preferred_video_format(video_encoder,
+						       VIDEO_FORMAT_NV12);
+	}
+	obs_encoder_set_video(video_encoder, video);
+	return video_encoder;
+}
+
+void CanvasDock::StopReplayBuffer()
+{
+	QMetaObject::invokeMethod(this, "OnReplayBufferStop");
+	if (obs_output_active(replayOutput)) {
+		SendVendorEvent("backtrack_stopping");
+		obs_output_stop(replayOutput);
+	}
+}
+
+void CanvasDock::replay_output_start(void *data, calldata_t *calldata)
+{
+	UNUSED_PARAMETER(calldata);
+	UNUSED_PARAMETER(data);
+	auto d = static_cast<CanvasDock *>(data);
+	d->SendVendorEvent("backtrack_started");
+	QMetaObject::invokeMethod(d, "OnReplayBufferStart");
+}
+
+void CanvasDock::replay_output_stop(void *data, calldata_t *calldata)
+{
+	const char *last_error =
+		(const char *)calldata_ptr(calldata, "last_error");
+	QString arg_last_error = QString::fromUtf8(last_error);
+	const int code = (int)calldata_int(calldata, "code");
+	auto d = static_cast<CanvasDock *>(data);
+	d->SendVendorEvent("backtrack_stopped");
+	QMetaObject::invokeMethod(d, "OnReplayBufferStop", Q_ARG(int, code),
+				  Q_ARG(QString, arg_last_error));
+}
+
+void CanvasDock::StreamButtonClicked()
+{
+	if (obs_output_active(streamOutput)) {
+		StopStream();
+	} else {
+		StartStream();
+	}
+}
+
+void CanvasDock::StartStream()
+{
+	StartReplayBuffer();
+	if (obs_output_active(streamOutput))
+		return;
+
+	const bool started_video = StartVideo();
+
+	auto s = obs_data_create();
+	obs_data_set_string(s, "server", stream_server.c_str());
+	obs_data_set_string(s, "key", stream_key.c_str());
+	//use_auth
+	//username
+	//password
+	obs_service_update(stream_service, s);
+	obs_data_release(s);
+
+	if (!streamOutput) {
+		const char *type = obs_service_get_output_type(stream_service);
+		if (!type) {
+			type = "rtmp_output";
+			const char *url = obs_service_get_url(stream_service);
+			if (url != NULL && strncmp(url, "ftl", 3) == 0) {
+				type = "ftl_output";
+			} else if (url != NULL &&
+				   strncmp(url, "rtmp", 4) != 0) {
+				type = "ffmpeg_mpegts_muxer";
+			}
+		}
+
+		streamOutput = obs_output_create(type, "vertical_canvas_stream",
+						 nullptr, nullptr);
+		obs_output_set_service(streamOutput, stream_service);
+	}
+
+	signal_handler_t *signal = obs_output_get_signal_handler(streamOutput);
+	signal_handler_disconnect(signal, "start", stream_output_start, this);
+	signal_handler_disconnect(signal, "stop", stream_output_stop, this);
+	signal_handler_connect(signal, "start", stream_output_start, this);
+	signal_handler_connect(signal, "stop", stream_output_stop, this);
+
+	const auto audio_settings = obs_data_create();
+
+	config_t *config = obs_frontend_get_profile_config();
+	const char *mode = config_get_string(config, "Output", "Mode");
+	size_t mix_idx = 0;
+
+	if (stream_advanced_settings) {
+		if (stream_audio_track > 0)
+			mix_idx = stream_audio_track - 1;
+
+		if (record_advanced_settings) {
+			obs_data_set_int(audio_settings, "bitrate",
+					 audioBitrate);
+		} else if (strcmp(mode, "Advanced") == 0) {
+			if (!audioBitrate) {
+				uint64_t streamTrack = config_get_uint(
+					config, "AdvOut", "TrackIndex");
+				static const char *trackNames[] = {
+					"Track1Bitrate", "Track2Bitrate",
+					"Track3Bitrate", "Track4Bitrate",
+					"Track5Bitrate", "Track6Bitrate",
+				};
+				const int advAudioBitrate =
+					(int)config_get_uint(
+						config, "AdvOut",
+						trackNames[streamTrack - 1]);
+				obs_data_set_int(audio_settings, "bitrate",
+						 advAudioBitrate);
+				audioBitrate = advAudioBitrate;
+			} else {
+				obs_data_set_int(audio_settings, "bitrate",
+						 audioBitrate);
+			}
+		} else {
+			if (!audioBitrate) {
+				const int sAudioBitrate = (int)config_get_uint(
+					config, "SimpleOutput", "ABitrate");
+				obs_data_set_int(audio_settings, "bitrate",
+						 sAudioBitrate);
+				audioBitrate = sAudioBitrate;
+			} else {
+				obs_data_set_int(audio_settings, "bitrate",
+						 audioBitrate);
+			}
+		}
+	} else if (strcmp(mode, "Advanced") == 0) {
+		mix_idx = config_get_uint(config, "AdvOut", "TrackIndex") - 1;
+		if (!audioBitrate) {
+			static const char *trackNames[] = {
+				"Track1Bitrate", "Track2Bitrate",
+				"Track3Bitrate", "Track4Bitrate",
+				"Track5Bitrate", "Track6Bitrate",
+			};
+			const int advAudioBitrate = (int)config_get_uint(
+				config, "AdvOut", trackNames[mix_idx]);
+			obs_data_set_int(audio_settings, "bitrate",
+					 advAudioBitrate);
+			audioBitrate = advAudioBitrate;
+		} else {
+			obs_data_set_int(audio_settings, "bitrate",
+					 audioBitrate);
+		}
+	} else {
+		obs_data_set_string(audio_settings, "rate_control", "CBR");
+		if (!audioBitrate) {
+			const int sAudioBitrate = (int)config_get_uint(
+				config, "SimpleOutput", "ABitrate");
+			obs_data_set_int(audio_settings, "bitrate",
+					 sAudioBitrate);
+			audioBitrate = sAudioBitrate;
+		} else {
+			obs_data_set_int(audio_settings, "bitrate",
+					 audioBitrate);
+		}
+	}
+
+	obs_output_set_video_encoder(streamOutput, GetStreamVideoEncoder());
+
+	obs_encoder_t *audio_encoder =
+		obs_output_get_audio_encoder(streamOutput, 0);
+	if (!audio_encoder) {
+		audio_encoder = obs_audio_encoder_create(
+			"ffmpeg_aac", "vertical_canvas_audio_encoder",
+			audio_settings, mix_idx, nullptr);
+		obs_encoder_set_audio(audio_encoder, obs_get_audio());
+		obs_output_set_audio_encoder(streamOutput, audio_encoder, 0);
+	} else {
+		obs_encoder_update(audio_encoder, audio_settings);
+	}
 	obs_data_release(audio_settings);
 
-	obs_encoder_set_audio(audio_encoder, obs_get_audio());
-	obs_output_set_audio_encoder(streamOutput, audio_encoder, 0);
 	SendVendorEvent("streaming_starting");
 	const bool success = obs_output_start(streamOutput);
 	if (!success) {
@@ -5524,7 +5720,20 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_string(data, "stream_server", stream_server.c_str());
 	obs_data_set_string(data, "stream_key", stream_key.c_str());
 
+	obs_data_set_bool(data, "stream_advanced_settings",
+			  stream_advanced_settings);
+	obs_data_set_int(data, "stream_audio_track", stream_audio_track);
+	obs_data_set_string(data, "stream_encoder", stream_encoder.c_str());
+	obs_data_set_obj(data, "stream_encoder_settings",
+			 stream_encoder_settings);
+
 	obs_data_set_string(data, "record_path", recordPath.c_str());
+	obs_data_set_bool(data, "record_advanced_settings",
+			  record_advanced_settings);
+	obs_data_set_int(data, "record_audio_tracks", record_audio_tracks);
+	obs_data_set_string(data, "record_encoder", record_encoder.c_str());
+	obs_data_set_obj(data, "record_encoder_settings",
+			 record_encoder_settings);
 
 	obs_data_array_t *start_hotkey = nullptr;
 	obs_data_array_t *stop_hotkey = nullptr;
