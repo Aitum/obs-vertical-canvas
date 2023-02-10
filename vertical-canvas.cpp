@@ -4921,7 +4921,7 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 			obs_output_set_audio_encoder(output, aet, idx);
 			idx++;
 		}
-		while (idx < MAX_OUTPUT_AUDIO_ENCODERS) {
+		while (idx < MAX_AUDIO_MIXES) {
 			obs_output_set_audio_encoder(output, nullptr, idx);
 			idx++;
 		}
