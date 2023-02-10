@@ -22,6 +22,7 @@
 #include "obs-module.h"
 #include "version.h"
 #include "vertical-canvas.hpp"
+#include <util/dstr.h>
 
 OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	: QDialog(parent), canvasDock(canvas_dock)
@@ -374,7 +375,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 			     OBS_ENCODER_CAP_INTERNAL)) != 0)
 			continue;
 		const char *codec = obs_get_encoder_codec(type);
-		if (strcmpi(codec, "h264") != 0 && strcmpi(codec, "hevc") != 0)
+		if (astrcmpi(codec, "h264") != 0 && astrcmpi(codec, "hevc") != 0)
 			continue;
 		streamingEncoder->addItem(
 			QString::fromUtf8(obs_encoder_get_display_name(type)),
