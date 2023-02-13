@@ -29,6 +29,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	hotkey-edit.cpp
 	name-dialog.cpp
 	audio-wrapper-source.c
+	file-updater.c
 	resources.qrc
 	vertical-canvas.hpp
 	scenes-dock.hpp
@@ -40,11 +41,13 @@ target_sources(${PROJECT_NAME} PRIVATE
 	hotkey-edit.hpp
 	name-dialog.hpp
 	audio-wrapper-source.h
-	obs-websocket-api.h)
+	obs-websocket-api.h
+	file-updater.h)
 
 if(BUILD_OUT_OF_TREE)
   find_package(libobs REQUIRED)
   find_package(obs-frontend-api REQUIRED)
+  find_package(CURL REQUIRED)
   include(cmake/ObsPluginHelpers.cmake)
   set(OBS_FRONTEND_API_NAME "obs-frontend-api")
 else()
@@ -81,7 +84,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC O
 
 target_link_libraries(${PROJECT_NAME}
 		OBS::${OBS_FRONTEND_API_NAME}
-		OBS::file-updater
+		CURL::libcurl
 		Qt::Widgets
 		OBS::libobs)
 
