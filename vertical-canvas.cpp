@@ -5959,6 +5959,35 @@ void CanvasDock::source_rename(void *data, calldata_t *calldata)
 		QString::fromUtf8(calldata_string(calldata, "prev_name"));
 	const auto new_name =
 		QString::fromUtf8(calldata_string(calldata, "new_name"));
+	auto source = (obs_source_t *)calldata_ptr(calldata, "source");
+	if (!source || !obs_source_is_scene(source))
+		return;
+
+	struct obs_frontend_source_list scenes = {};
+	obs_frontend_get_scenes(&scenes);
+	for (size_t i = 0; i < scenes.sources.num; i++) {
+		const obs_source_t *src = scenes.sources.array[i];
+		auto ss = obs_source_get_settings(src);
+		auto c = obs_data_get_array(ss, "canvas");
+		obs_data_release(ss);
+		if (!c)
+			continue;
+		const auto count = obs_data_array_count(c);
+		for (size_t i = 0; i < count; i++) {
+			auto item = obs_data_array_item(c, i);
+			auto n = QString::fromUtf8(
+				obs_data_get_string(item, "scene"));
+			if (n == prev_name) {
+				obs_data_set_string(
+					item, "scene",
+					calldata_string(calldata, "new_name"));
+			}
+			obs_data_release(item);
+		}
+		obs_data_array_release(c);
+	}
+	obs_frontend_source_list_free(&scenes);
+
 	if (d->scenesDock) {
 		for (int i = 0; i < d->scenesDock->sceneList->count(); i++) {
 			const auto item = d->scenesDock->sceneList->item(i);
