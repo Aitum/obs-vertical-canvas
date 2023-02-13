@@ -29,8 +29,14 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 				  QSizePolicy::Expanding);
 	sourceList->setFrameShape(QFrame::NoFrame);
 	sourceList->setFrameShadow(QFrame::Plain);
-	sourceList->setSelectionMode(QAbstractItemView::SingleSelection);
+	sourceList->setSelectionMode(QAbstractItemView::ExtendedSelection);
 	sourceList->setContextMenuPolicy(Qt::CustomContextMenu);
+	
+	sourceList->setDropIndicatorShown(true);
+	sourceList->setDragEnabled(true);
+	sourceList->setDragDropMode(QAbstractItemView::InternalMove);
+	sourceList->setDefaultDropAction(Qt::TargetMoveAction);
+
 	connect(sourceList, &SourceTree::customContextMenuRequested,
 		[this] { ShowSourcesContextMenu(GetCurrentSceneItem()); });
 
