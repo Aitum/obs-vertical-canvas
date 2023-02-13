@@ -281,6 +281,9 @@ private:
 	void ResizeScenes();
 	void ResizeScene(QString scene_name);
 
+	enum class MoveDir { Up, Down, Left, Right };
+	void Nudge(int dist, MoveDir dir);
+
 	static bool DrawSelectedOverflow(obs_scene_t *scene,
 					 obs_sceneitem_t *item, void *param);
 	static bool FindSelected(obs_scene_t *scene, obs_sceneitem_t *item,
@@ -364,6 +367,15 @@ private slots:
 	void MainReplayBufferStop();
 	void MainVirtualCamStart();
 	void MainVirtualCamStop();
+
+	void NudgeUp();
+	void NudgeDown();
+	void NudgeLeft();
+	void NudgeRight();
+	void NudgeUpFar();
+	void NudgeDownFar();
+	void NudgeLeftFar();
+	void NudgeRightFar();
 
 public:
 	CanvasDock(obs_data_t *settings, QWidget *parent = nullptr);

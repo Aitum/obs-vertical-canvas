@@ -375,7 +375,8 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 			     OBS_ENCODER_CAP_INTERNAL)) != 0)
 			continue;
 		const char *codec = obs_get_encoder_codec(type);
-		if (astrcmpi(codec, "h264") != 0 && astrcmpi(codec, "hevc") != 0)
+		if (astrcmpi(codec, "h264") != 0 &&
+		    astrcmpi(codec, "hevc") != 0)
 			continue;
 		streamingEncoder->addItem(
 			QString::fromUtf8(obs_encoder_get_display_name(type)),
@@ -842,8 +843,9 @@ void OBSBasicSettings::SaveSettings()
 	const auto res = resolution->currentText();
 	uint32_t width, height;
 	if (sscanf(res.toUtf8().constData(), "%dx%d", &width, &height) == 2 &&
-	    width && height && (width != canvasDock->canvas_width ||
-	    height != canvasDock->canvas_height)) {
+	    width && height &&
+	    (width != canvasDock->canvas_width ||
+	     height != canvasDock->canvas_height)) {
 		if (obs_output_active(canvasDock->replayOutput))
 			obs_output_stop(canvasDock->replayOutput);
 		canvasDock->DestroyVideo();
