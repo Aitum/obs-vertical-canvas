@@ -32,6 +32,9 @@
 #include "util/dstr.h"
 #include "util/platform.h"
 #include "util/util.hpp"
+extern "C" {
+#include <file-updater/file-updater.h>
+}
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_AUTHOR("Aitum");
@@ -356,6 +359,40 @@ void vendor_request_invoke(obs_data_t *request_data, obs_data_t *response_data,
 	obs_data_set_bool(response_data, "success", false);
 }
 
+update_info_t *verison_update_info = nullptr;
+
+bool version_info_downloaded(void *param, struct file_download_data *file)
+{
+	if (!file || !file->buffer.num)
+		return true;
+	auto d = obs_data_create_from_json((const char *)file->buffer.array);
+	if (!d)
+		return true;
+	auto data = obs_data_get_obj(d, "data");
+	obs_data_release(d);
+	if (!data)
+		return true;
+	auto version = QString::fromUtf8(obs_data_get_string(data, "version"));
+	QStringList pieces = version.split(".");
+	if (pieces.count() > 2) {
+		auto major = pieces[0].toInt();
+		auto minor = pieces[1].toInt();
+		auto patch = pieces[2].toInt();
+		auto sv = MAKE_SEMANTIC_VERSION(major, minor, patch);
+		if (sv > MAKE_SEMANTIC_VERSION(PROJECT_VERSION_MAJOR,
+					       PROJECT_VERSION_MINOR,
+					       PROJECT_VERSION_PATCH)) {
+			for (const auto &it : canvas_docks) {
+				QMetaObject::invokeMethod(
+					it, "NewerVersionAvailable",
+					Q_ARG(QString, version));
+			}
+		}
+	}
+	obs_data_release(data);
+	return true;
+}
+
 bool obs_module_load(void)
 {
 	if (obs_get_version() < MAKE_SEMANTIC_VERSION(29, 0, 0)) {
@@ -454,6 +491,10 @@ bool obs_module_load(void)
 	obs_websocket_vendor_register_request(vendor, "stop_virtual_camera",
 					      vendor_request_invoke,
 					      (void *)"StopVirtualCam");
+
+	verison_update_info = update_info_create_single(
+		"[vertical-canvas]", "OBS", "https://api.aitum.tv/vertical",
+		version_info_downloaded, nullptr);
 	return true;
 }
 
@@ -490,6 +531,7 @@ void obs_module_unload(void)
 							"stop_virtual_camera");
 	}
 	obs_frontend_remove_event_callback(frontend_event, nullptr);
+	update_info_destroy(verison_update_info);
 }
 
 MODULE_EXPORT const char *obs_module_description(void)
@@ -972,7 +1014,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		SLOT(VirtualCamButtonClicked()));
 	buttonRow->addWidget(virtualCamButton);
 
-	auto *configButton = new QPushButton(this);
+	configButton = new QPushButton(this);
 	configButton->setProperty("themeID", "configIconSmall");
 	configButton->setFlat(true);
 	configButton->setAutoDefault(false);
@@ -6738,6 +6780,13 @@ void CanvasDock::NudgeLeftFar()
 void CanvasDock::NudgeRightFar()
 {
 	Nudge(10, MoveDir::Right);
+}
+
+void CanvasDock::NewerVersionAvailable(QString version)
+{
+	newer_version_available = version;
+	configButton->setStyleSheet(
+		QString::fromUtf8("background: rgb(192,128,0);"));
 }
 
 LockedCheckBox::LockedCheckBox() {}

@@ -71,10 +71,12 @@ class CanvasDock : public QDockWidget {
 
 private:
 	QPointer<QAction> action;
+	QString newer_version_available;
 	QVBoxLayout *mainLayout;
 	OBSQTDisplay *preview;
 	bool preview_disabled = false;
 	QFrame *previewDisabledWidget;
+	QPushButton *configButton;
 	OBSWeakSource source;
 	OBSSourceAutoRelease transitionAudioWrapper;
 	std::vector<OBSSource> transitions;
@@ -181,8 +183,6 @@ private:
 	long long record_audio_tracks;
 	std::string record_encoder;
 	obs_data_t *record_encoder_settings;
-
-
 
 	QString currentSceneName;
 	bool first_time = false;
@@ -376,6 +376,8 @@ private slots:
 	void NudgeDownFar();
 	void NudgeLeftFar();
 	void NudgeRightFar();
+
+	void NewerVersionAvailable(QString version);
 
 public:
 	CanvasDock(obs_data_t *settings, QWidget *parent = nullptr);

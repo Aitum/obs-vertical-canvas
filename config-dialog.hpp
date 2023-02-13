@@ -26,6 +26,7 @@ class OBSBasicSettings : public QDialog {
 			   DESIGNABLE true)
 private:
 	CanvasDock *canvasDock;
+	QLabel *newVersion;
 	QListWidget *listWidget;
 	QComboBox *resolution;
 	QCheckBox *showScenes;

@@ -81,6 +81,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC O
 
 target_link_libraries(${PROJECT_NAME}
 		OBS::${OBS_FRONTEND_API_NAME}
+		OBS::file-updater
 		Qt::Widgets
 		OBS::libobs)
 
