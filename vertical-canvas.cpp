@@ -363,6 +363,7 @@ update_info_t *verison_update_info = nullptr;
 
 bool version_info_downloaded(void *param, struct file_download_data *file)
 {
+	UNUSED_PARAMETER(param);
 	if (!file || !file->buffer.num)
 		return true;
 	auto d = obs_data_create_from_json((const char *)file->buffer.array);
