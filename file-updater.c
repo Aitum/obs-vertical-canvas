@@ -47,10 +47,11 @@ void update_info_destroy(struct update_info *info)
 	bfree(info);
 }
 
-static size_t http_write(uint8_t *ptr, size_t size, size_t nmemb,
-			 struct update_info *info)
+static size_t http_write(void *ptr, size_t size, size_t nmemb, void *uinfo)
 {
 	size_t total = size * nmemb;
+	struct update_info *info = (struct update_info *)uinfo;
+
 	if (total)
 		da_push_back_array(info->file_data, ptr, total);
 
