@@ -33,7 +33,7 @@
 #include "util/platform.h"
 #include "util/util.hpp"
 extern "C" {
-#include <file-updater/file-updater.h>
+#include "file-updater.h"
 }
 
 OBS_DECLARE_MODULE()
