@@ -406,13 +406,6 @@ bool obs_module_load(void)
 	obs_frontend_add_event_callback(frontend_event, nullptr);
 
 	obs_register_source(&audio_wrapper_source);
-	const auto profile_config = obs_frontend_get_profile_config();
-	if (!config_get_bool(profile_config, "AdvOut", "RecRB") ||
-	    !config_get_bool(profile_config, "SimpleOutput", "RecRB")) {
-		config_set_bool(profile_config, "AdvOut", "RecRB", true);
-		config_set_bool(profile_config, "SimpleOutput", "RecRB", true);
-		config_save(profile_config);
-	}
 
 	const auto path = obs_module_config_path("config.json");
 	obs_data_t *config = obs_data_create_from_json_file_safe(path, "bak");
@@ -857,6 +850,17 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	preview_disabled = obs_data_get_bool(settings, "preview_disabled");
 
+	if (!record_advanced_settings && (replayAlwaysOn || startReplay)) {
+		const auto profile_config = obs_frontend_get_profile_config();
+		if (!config_get_bool(profile_config, "AdvOut", "RecRB") ||
+		    !config_get_bool(profile_config, "SimpleOutput", "RecRB")) {
+			config_set_bool(profile_config, "AdvOut", "RecRB",
+					true);
+			config_set_bool(profile_config, "SimpleOutput", "RecRB",
+					true);
+			config_save(profile_config);
+		}
+	}
 	const QString title = QString::fromUtf8(obs_module_text("Vertical"));
 	setWindowTitle(title);
 
