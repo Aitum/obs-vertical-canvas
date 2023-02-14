@@ -43,6 +43,7 @@ private:
 	std::vector<QRadioButton *> streamingAudioTracks;
 	QComboBox *streamingEncoder;
 	obs_properties_t *stream_encoder_properties = nullptr;
+	obs_data_t *stream_encoder_settings = nullptr;
 	std::map<obs_property_t *, QWidget *> stream_encoder_property_widgets;
 
 	QLineEdit *recordPath;
@@ -54,6 +55,7 @@ private:
 	std::vector<QCheckBox *> recordingAudioTracks;
 	QComboBox *recordingEncoder;
 	obs_properties_t *record_encoder_properties = nullptr;
+	obs_data_t *record_encoder_settings = nullptr;
 	std::map<obs_property_t *, QWidget *> record_encoder_property_widgets;
 
 	std::vector<OBSHotkeyWidget *> hotkeys;
@@ -75,11 +77,12 @@ private:
 
 	void SetEncoderBitrate(obs_encoder_t *obs_encoder);
 	void AddProperty(obs_property_t *property, obs_data_t *settings,
-			 QFormLayout *layout);
+			 QFormLayout *layout,
+			 std::map<obs_property_t *, QWidget *>* widgets);
 	void LoadProperty(obs_property_t *property, obs_data_t *settings,
 			  QWidget *widget);
-	void SaveProperty(obs_property_t *property, obs_data_t *settings,
-			  QWidget *widget);
+	void RefreshProperties(std::map<obs_property_t *, QWidget *> *widgets,
+			       QFormLayout *layout);
 
 private slots:
 	void SetGeneralIcon(const QIcon &icon);

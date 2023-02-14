@@ -398,8 +398,9 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 						      .toString()
 						      .toUtf8();
 			auto encoder = encoder_string.constData();
-			auto settings = obs_encoder_defaults(encoder);
-			obs_data_apply(settings,
+			obs_data_release(stream_encoder_settings);
+			stream_encoder_settings = obs_encoder_defaults(encoder);
+			obs_data_apply(stream_encoder_settings,
 				       canvasDock->stream_encoder_settings);
 			if (stream_encoder_properties)
 				obs_properties_destroy(
@@ -411,12 +412,11 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 			obs_property_t *property =
 				obs_properties_first(stream_encoder_properties);
 			while (property) {
-				AddProperty(property, settings,
-					    streamingAdvancedLayout);
+				AddProperty(property, stream_encoder_settings,
+					    streamingAdvancedLayout,
+					    &stream_encoder_property_widgets);
 				obs_property_next(&property);
 			}
-
-			obs_data_release(settings);
 			QMetaObject::invokeMethod(
 				streamingUseMain, "stateChanged",
 				Q_ARG(int, streamingUseMain->checkState()));
@@ -635,31 +635,32 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 			     i > row; i--) {
 				recordingAdvancedLayout->removeRow(i);
 			}
+			if (record_encoder_properties)
+				obs_properties_destroy(
+					record_encoder_properties);
+			record_encoder_properties = nullptr;
+			record_encoder_property_widgets.clear();
 			if (recordingEncoder->currentIndex() < 1)
 				return;
 			auto encoder_string = recordingEncoder->currentData()
 						      .toString()
 						      .toUtf8();
 			auto encoder = encoder_string.constData();
-			auto settings = obs_encoder_defaults(encoder);
-			obs_data_apply(settings,
+			obs_data_release(record_encoder_settings);
+			record_encoder_settings = obs_encoder_defaults(encoder);
+			obs_data_apply(record_encoder_settings,
 				       canvasDock->record_encoder_settings);
-			if (record_encoder_properties)
-				obs_properties_destroy(
-					record_encoder_properties);
-			record_encoder_property_widgets.clear();
 			record_encoder_properties =
 				obs_get_encoder_properties(encoder);
 
 			obs_property_t *property =
 				obs_properties_first(record_encoder_properties);
 			while (property) {
-				AddProperty(property, settings,
-					    recordingAdvancedLayout);
+				AddProperty(property, record_encoder_settings,
+					    recordingAdvancedLayout,
+					    &record_encoder_property_widgets);
 				obs_property_next(&property);
 			}
-
-			obs_data_release(settings);
 			QMetaObject::invokeMethod(
 				recordingUseMain, "stateChanged",
 				Q_ARG(int, recordingUseMain->checkState()));
@@ -729,6 +730,8 @@ OBSBasicSettings::~OBSBasicSettings()
 {
 	obs_properties_destroy(stream_encoder_properties);
 	obs_properties_destroy(record_encoder_properties);
+	obs_data_release(stream_encoder_settings);
+	obs_data_release(record_encoder_settings);
 }
 
 QIcon OBSBasicSettings::GetGeneralIcon() const
@@ -957,10 +960,8 @@ void OBSBasicSettings::SaveSettings()
 
 	canvasDock->stream_encoder =
 		streamingEncoder->currentData().toString().toUtf8().constData();
-	for (const auto &kv : stream_encoder_property_widgets) {
-		SaveProperty(kv.first, canvasDock->stream_encoder_settings,
-			     kv.second);
-	}
+	obs_data_apply(canvasDock->stream_encoder_settings,
+		       stream_encoder_settings);
 
 	canvasDock->recordPath = recordPath->text().toUtf8().constData();
 
@@ -968,7 +969,7 @@ void OBSBasicSettings::SaveSettings()
 	canvasDock->filename_formatting =
 		filenameFormat->text().toUtf8().constData();
 	canvasDock->file_format =
-		fileFormat->currentData().toString().toUtf8().constData();
+		fileFormat->currentText().toUtf8().constData();
 
 	long long tracks = 0;
 	for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
@@ -979,10 +980,8 @@ void OBSBasicSettings::SaveSettings()
 
 	canvasDock->record_encoder =
 		recordingEncoder->currentData().toString().toUtf8().constData();
-	for (const auto &kv : record_encoder_property_widgets) {
-		SaveProperty(kv.first, canvasDock->record_encoder_settings,
-			     kv.second);
-	}
+	obs_data_apply(canvasDock->record_encoder_settings,
+		       record_encoder_settings);
 }
 
 void OBSBasicSettings::SetEncoderBitrate(obs_encoder_t *encoder)
@@ -1100,22 +1099,36 @@ obs_hotkey_t *OBSBasicSettings::GetHotkeyByName(QString name)
 	return t.hotkey;
 }
 
-void OBSBasicSettings::AddProperty(obs_property_t *property,
-				   obs_data_t *settings, QFormLayout *layout)
+void OBSBasicSettings::AddProperty(
+	obs_property_t *property, obs_data_t *settings, QFormLayout *layout,
+	std::map<obs_property_t *, QWidget *> *widgets)
 {
-	if (!obs_property_visible(property))
-		return;
-
 	obs_property_type type = obs_property_get_type(property);
 	if (type == OBS_PROPERTY_BOOL) {
 		auto widget = new QCheckBox(
 			QString::fromUtf8(obs_property_description(property)));
-		widget->setCheckState(
-			obs_data_get_bool(settings, obs_property_name(property))
-				? Qt::Checked
-				: Qt::Unchecked);
+		widget->setChecked(obs_data_get_bool(
+			settings, obs_property_name(property)));
+		widget->setVisible(obs_property_visible(property));
 		layout->addWidget(widget);
-		stream_encoder_property_widgets.emplace(property, widget);
+		int row = 0;
+		layout->getWidgetPosition(widget, &row, nullptr);
+		auto item = layout->itemAt(row, QFormLayout::LabelRole);
+		if (item) {
+			auto w = item->widget();
+			if (w)
+				w->setVisible(obs_property_visible(property));
+		}
+		widgets->emplace(property, widget);
+		connect(widget, &QCheckBox::stateChanged,
+			[this, property, settings, widget, widgets, layout] {
+				obs_data_set_bool(settings,
+						  obs_property_name(property),
+						  widget->isChecked());
+				if (obs_property_modified(property, settings)) {
+					RefreshProperties(widgets, layout);
+				}
+			});
 	} else if (type == OBS_PROPERTY_INT) {
 		auto widget = new QSpinBox();
 		widget->setEnabled(obs_property_enabled(property));
@@ -1128,10 +1141,28 @@ void OBSBasicSettings::AddProperty(obs_property_t *property,
 			obs_property_long_description(property)));
 		widget->setSuffix(
 			QString::fromUtf8(obs_property_int_suffix(property)));
+		widget->setVisible(obs_property_visible(property));
 		layout->addRow(
 			QString::fromUtf8(obs_property_description(property)),
 			widget);
-		stream_encoder_property_widgets.emplace(property, widget);
+		int row = 0;
+		layout->getWidgetPosition(widget, &row, nullptr);
+		auto item = layout->itemAt(row, QFormLayout::LabelRole);
+		if (item) {
+			auto w = item->widget();
+			if (w)
+				w->setVisible(obs_property_visible(property));
+		}
+		widgets->emplace(property, widget);
+		connect(widget, &QSpinBox::valueChanged,
+			[this, property, settings, widget, widgets, layout] {
+				obs_data_set_int(settings,
+						 obs_property_name(property),
+						 widget->value());
+				if (obs_property_modified(property, settings)) {
+					RefreshProperties(widgets, layout);
+				}
+			});
 	} else if (type == OBS_PROPERTY_FLOAT) {
 		auto widget = new QDoubleSpinBox();
 		widget->setEnabled(obs_property_enabled(property));
@@ -1144,11 +1175,22 @@ void OBSBasicSettings::AddProperty(obs_property_t *property,
 			obs_property_long_description(property)));
 		widget->setSuffix(
 			QString::fromUtf8(obs_property_float_suffix(property)));
-		layout->addRow(
-			QString::fromUtf8(obs_property_description(property)),
-			widget);
-		stream_encoder_property_widgets.emplace(property, widget);
+		widget->setVisible(obs_property_visible(property));
+		auto label = new QLabel(
+			QString::fromUtf8(obs_property_description(property)));
+		label->setVisible(obs_property_visible(property));
+		layout->addRow(label, widget);
 
+		widgets->emplace(property, widget);
+		connect(widget, &QDoubleSpinBox::valueChanged,
+			[this, property, settings, widget, widgets, layout] {
+				obs_data_set_double(settings,
+						    obs_property_name(property),
+						    widget->value());
+				if (obs_property_modified(property, settings)) {
+					RefreshProperties(widgets, layout);
+				}
+			});
 	} else if (type == OBS_PROPERTY_TEXT) {
 		obs_text_type text_type = obs_property_text_type(property);
 		if (text_type == OBS_TEXT_MULTILINE) {
@@ -1160,24 +1202,55 @@ void OBSBasicSettings::AddProperty(obs_property_t *property,
 				QString::fromUtf8(obs_data_get_string(
 					settings,
 					obs_property_name(property))));
-			layout->addRow(
-				QString::fromUtf8(
-					obs_property_description(property)),
-				widget);
-			stream_encoder_property_widgets.emplace(property,
-								widget);
+			widget->setVisible(obs_property_visible(property));
+			auto label = new QLabel(QString::fromUtf8(
+				obs_property_description(property)));
+			label->setVisible(obs_property_visible(property));
+			layout->addRow(label, widget);
+			widgets->emplace(property, widget);
+			connect(widget, &QPlainTextEdit::textChanged,
+				[this, property, settings, widget, widgets,
+				 layout] {
+					obs_data_set_string(
+						settings,
+						obs_property_name(property),
+						widget->toPlainText().toUtf8());
+					if (obs_property_modified(property,
+								  settings)) {
+						RefreshProperties(widgets,
+								  layout);
+					}
+				});
 		} else {
 			auto widget = new QLineEdit();
 			widget->setText(QString::fromUtf8(obs_data_get_string(
 				settings, obs_property_name(property))));
 			if (text_type == OBS_TEXT_PASSWORD)
 				widget->setEchoMode(QLineEdit::Password);
-			layout->addRow(
-				QString::fromUtf8(
-					obs_property_description(property)),
-				widget);
-			stream_encoder_property_widgets.emplace(property,
-								widget);
+			widget->setVisible(obs_property_visible(property));
+			auto label = new QLabel(QString::fromUtf8(
+				obs_property_description(property)));
+			label->setVisible(obs_property_visible(property));
+			layout->addRow(label, widget);
+			widgets->emplace(property, widget);
+			if (text_type != OBS_TEXT_INFO) {
+				connect(widget, &QLineEdit::textChanged,
+					[this, property, settings, widget,
+					 widgets, layout] {
+						obs_data_set_string(
+							settings,
+							obs_property_name(
+								property),
+							widget->text().toUtf8());
+						if (obs_property_modified(
+							    property,
+							    settings)) {
+							RefreshProperties(
+								widgets,
+								layout);
+						}
+					});
+			}
 		}
 	} else if (type == OBS_PROPERTY_LIST) {
 		auto widget = new QComboBox();
@@ -1238,6 +1311,7 @@ void OBSBasicSettings::AddProperty(obs_property_t *property,
 			if (idx != -1)
 				widget->setCurrentIndex(idx);
 		}
+
 		if (obs_data_has_autoselect_value(settings, name)) {
 			switch (format) {
 			case OBS_COMBO_FORMAT_INT:
@@ -1272,10 +1346,88 @@ void OBSBasicSettings::AddProperty(obs_property_t *property,
 					combined.arg(selected).arg(actual));
 			}
 		}
-		layout->addRow(
-			QString::fromUtf8(obs_property_description(property)),
-			widget);
-		stream_encoder_property_widgets.emplace(property, widget);
+		widget->setVisible(obs_property_visible(property));
+		auto label = new QLabel(
+			QString::fromUtf8(obs_property_description(property)));
+		label->setVisible(obs_property_visible(property));
+		layout->addRow(label, widget);
+		widgets->emplace(property, widget);
+		switch (format) {
+		case OBS_COMBO_FORMAT_INT:
+			connect(widget, &QComboBox::currentIndexChanged,
+				[this, property, settings, widget, widgets,
+				 layout] {
+					obs_data_set_int(
+						settings,
+						obs_property_name(property),
+						widget->currentData().toInt());
+					if (obs_property_modified(property,
+								  settings)) {
+						RefreshProperties(widgets,
+								  layout);
+					}
+				});
+			break;
+		case OBS_COMBO_FORMAT_FLOAT:
+			connect(widget, &QComboBox::currentIndexChanged,
+				[this, property, settings, widget, widgets,
+				 layout] {
+					obs_data_set_double(
+						settings,
+						obs_property_name(property),
+						widget->currentData()
+							.toDouble());
+					if (obs_property_modified(property,
+								  settings)) {
+						RefreshProperties(widgets,
+								  layout);
+					}
+				});
+			break;
+		case OBS_COMBO_FORMAT_STRING:
+			if (list_type == OBS_COMBO_TYPE_EDITABLE) {
+				connect(widget, &QComboBox::currentTextChanged,
+					[this, property, settings, widget,
+					 widgets, layout] {
+						obs_data_set_string(
+							settings,
+							obs_property_name(
+								property),
+							widget->currentText()
+								.toUtf8()
+								.constData());
+						if (obs_property_modified(
+							    property,
+							    settings)) {
+							RefreshProperties(
+								widgets,
+								layout);
+						}
+					});
+			} else {
+				connect(widget, &QComboBox::currentIndexChanged,
+					[this, property, settings, widget,
+					 widgets, layout] {
+						obs_data_set_string(
+							settings,
+							obs_property_name(
+								property),
+							widget->currentData()
+								.toString()
+								.toUtf8()
+								.constData());
+						if (obs_property_modified(
+							    property,
+							    settings)) {
+							RefreshProperties(
+								widgets,
+								layout);
+						}
+					});
+			}
+			break;
+		default:;
+		}
 	} else {
 		// OBS_PROPERTY_PATH
 		// OBS_PROPERTY_COLOR
@@ -1286,6 +1438,7 @@ void OBSBasicSettings::AddProperty(obs_property_t *property,
 		// OBS_PROPERTY_GROUP
 		// OBS_PROPERTY_COLOR_ALPHA
 	}
+	obs_property_modified(property, settings);
 }
 
 void OBSBasicSettings::LoadProperty(obs_property_t *prop, obs_data_t *settings,
@@ -1358,59 +1511,50 @@ void OBSBasicSettings::LoadProperty(obs_property_t *prop, obs_data_t *settings,
 	}
 }
 
-void OBSBasicSettings::SaveProperty(obs_property_t *prop, obs_data_t *settings,
-				    QWidget *widget)
+void OBSBasicSettings::RefreshProperties(
+	std::map<obs_property_t *, QWidget *> *widgets, QFormLayout *layout)
 {
-	auto type = obs_property_get_type(prop);
-	if (type == OBS_PROPERTY_BOOL) {
-		obs_data_set_bool(settings, obs_property_name(prop),
-				  ((QCheckBox *)widget)->isChecked());
-	} else if (type == OBS_PROPERTY_INT) {
-		obs_data_set_int(settings, obs_property_name(prop),
-				 ((QSpinBox *)widget)->value());
-	} else if (type == OBS_PROPERTY_FLOAT) {
-		obs_data_set_double(settings, obs_property_name(prop),
-				    ((QDoubleSpinBox *)widget)->value());
-	} else if (type == OBS_PROPERTY_TEXT) {
-		obs_text_type text_type = obs_property_text_type(prop);
-		if (text_type == OBS_TEXT_MULTILINE) {
-			auto text = ((QPlainTextEdit *)widget)
-					    ->toPlainText()
-					    .toUtf8();
-			obs_data_set_string(settings, obs_property_name(prop),
-					    text.constData());
-		} else if (text_type != OBS_TEXT_INFO) {
-			auto text = ((QLineEdit *)widget)->text().toUtf8();
-			obs_data_set_string(settings, obs_property_name(prop),
-					    text.constData());
+	if (widgets == &stream_encoder_property_widgets) {
+		obs_property_t *property =
+			obs_properties_first(stream_encoder_properties);
+		while (property) {
+			auto widget = widgets->at(property);
+			auto visible = obs_property_visible(property);
+			if (widget->isVisible() != visible) {
+				widget->setVisible(visible);
+				int row = 0;
+				layout->getWidgetPosition(widget, &row,
+							  nullptr);
+				auto item = layout->itemAt(
+					row, QFormLayout::LabelRole);
+				if (item) {
+					widget = item->widget();
+					if (widget)
+						widget->setVisible(visible);
+				}
+			}
+			obs_property_next(&property);
 		}
-	} else if (type == OBS_PROPERTY_LIST) {
-		obs_combo_format format = obs_property_list_format(prop);
-		auto value = ((QComboBox *)widget)->currentData();
-		switch (format) {
-		case OBS_COMBO_FORMAT_INT:
-			obs_data_set_int(settings, obs_property_name(prop),
-					 value.toInt());
-			break;
-		case OBS_COMBO_FORMAT_FLOAT:
-			obs_data_set_double(settings, obs_property_name(prop),
-					    value.toDouble());
-			break;
-		case OBS_COMBO_FORMAT_STRING:
-			obs_data_set_string(
-				settings, obs_property_name(prop),
-				value.toString().toUtf8().constData());
-			break;
-		default:;
+	} else if (widgets == &record_encoder_property_widgets) {
+		obs_property_t *property =
+			obs_properties_first(record_encoder_properties);
+		while (property) {
+			auto widget = widgets->at(property);
+			auto visible = obs_property_visible(property);
+			if (widget->isVisible() != visible) {
+				widget->setVisible(visible);
+				int row = 0;
+				layout->getWidgetPosition(widget, &row,
+							  nullptr);
+				auto item = layout->itemAt(
+					row, QFormLayout::LabelRole);
+				if (item) {
+					widget = item->widget();
+					if (widget)
+						widget->setVisible(visible);
+				}
+			}
+			obs_property_next(&property);
 		}
-	} else {
-		// OBS_PROPERTY_PATH
-		// OBS_PROPERTY_COLOR
-		// OBS_PROPERTY_BUTTON
-		// OBS_PROPERTY_FONT
-		// OBS_PROPERTY_EDITABLE_LIST
-		// OBS_PROPERTY_FRAME_RATE
-		// OBS_PROPERTY_GROUP
-		// OBS_PROPERTY_COLOR_ALPHA
 	}
 }
