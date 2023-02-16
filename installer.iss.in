@@ -30,6 +30,7 @@ AllowNoIcons=yes
 OutputDir="package"
 OutputBaseFilename=@PROJECT_NAME@-installer
 DirExistsWarning=no
+DisableDirPage=no
 ; Wizard Information
 WizardStyle=modern
 WizardResizable=yes
