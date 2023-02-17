@@ -1149,6 +1149,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	auto aw = (struct audio_wrapper_info *)obs_obj_get_data(
 		transitionAudioWrapper);
 	aw->target = source;
+	StartVideo();
 }
 
 CanvasDock::~CanvasDock()
@@ -4623,7 +4624,6 @@ void CanvasDock::virtual_cam_output_stop(void *data, calldata_t *calldata)
 	signal_handler_disconnect(signal, "stop", virtual_cam_output_stop, d);
 	obs_output_release(d->virtualCamOutput);
 	d->virtualCamOutput = nullptr;
-	QMetaObject::invokeMethod(d, "DestroyVideo", Qt::QueuedConnection);
 }
 
 void CanvasDock::OnVirtualCamStart()
@@ -4941,7 +4941,6 @@ void CanvasDock::record_output_stop(void *data, calldata_t *calldata)
 	d->SendVendorEvent("recording_stopped");
 	QMetaObject::invokeMethod(d, "OnRecordStop", Q_ARG(int, code),
 				  Q_ARG(QString, arg_last_error));
-	QMetaObject::invokeMethod(d, "DestroyVideo", Qt::QueuedConnection);
 }
 
 void CanvasDock::record_output_stopping(void *data, calldata_t *calldata)
@@ -5696,7 +5695,6 @@ void CanvasDock::stream_output_stop(void *data, calldata_t *calldata)
 	QString arg_last_error = QString::fromUtf8(last_error);
 	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
-	QMetaObject::invokeMethod(d, "DestroyVideo", Qt::QueuedConnection);
 	d->SendVendorEvent("streaming_stopped");
 	QMetaObject::invokeMethod(d, "OnStreamStop", Q_ARG(int, code),
 				  Q_ARG(QString, arg_last_error));
@@ -5705,11 +5703,6 @@ void CanvasDock::stream_output_stop(void *data, calldata_t *calldata)
 void CanvasDock::DestroyVideo()
 {
 	if (!video)
-		return;
-	CheckReplayBuffer();
-	if (obs_output_active(virtualCamOutput) ||
-	    obs_output_active(recordOutput) ||
-	    obs_output_active(streamOutput) || obs_output_active(replayOutput))
 		return;
 	obs_view_remove(view);
 	obs_view_set_source(view, 0, nullptr);

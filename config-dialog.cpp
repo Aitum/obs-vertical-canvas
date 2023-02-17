@@ -888,6 +888,15 @@ void OBSBasicSettings::SaveSettings()
 							       "Sources");
 
 		canvasDock->LoadScenes();
+
+		if (canvasDock->video &&
+		    !obs_output_active(canvasDock->streamOutput) &&
+		    !obs_output_active(canvasDock->recordOutput) &&
+		    !obs_output_active(canvasDock->replayOutput) &&
+		    !obs_output_active(canvasDock->virtualCamOutput)) {
+			canvasDock->DestroyVideo();
+			canvasDock->StartVideo();
+		}
 	}
 	uint32_t bitrate = (uint32_t)videoBitrate->value();
 	if (bitrate != canvasDock->videoBitrate) {
