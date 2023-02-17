@@ -4634,6 +4634,7 @@ void CanvasDock::OnVirtualCamStart()
 void CanvasDock::OnVirtualCamStop()
 {
 	virtualCamButton->setChecked(false);
+	CheckReplayBuffer();
 }
 
 void CanvasDock::VirtualCamButtonClicked()
@@ -6176,6 +6177,7 @@ void CanvasDock::OnRecordStop(int code, QString last_error)
 	recordButton->setIcon(recordInactiveIcon);
 	recordButton->setStyleSheet(QString::fromUtf8(""));
 	HandleRecordError(code, last_error);
+	CheckReplayBuffer();
 }
 
 void CanvasDock::HandleRecordError(int code, QString last_error)
@@ -6340,6 +6342,7 @@ void CanvasDock::OnStreamStop(int code, QString last_error)
 						   last_error
 					 : QString::fromUtf8("")));
 	}
+	CheckReplayBuffer();
 }
 
 void CanvasDock::OnReplayBufferStart()
