@@ -368,15 +368,6 @@ private slots:
 	void MainVirtualCamStart();
 	void MainVirtualCamStop();
 
-	void NudgeUp();
-	void NudgeDown();
-	void NudgeLeft();
-	void NudgeRight();
-	void NudgeUpFar();
-	void NudgeDownFar();
-	void NudgeLeftFar();
-	void NudgeRightFar();
-
 	void NewerVersionAvailable(QString version);
 
 public:

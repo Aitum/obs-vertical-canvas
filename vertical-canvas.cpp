@@ -919,22 +919,26 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	preview->setVisible(!preview_disabled);
 	obs_display_set_enabled(preview->GetDisplay(), !preview_disabled);
 
-	auto addNudge = [this](const QKeySequence &seq, const char *s) {
+	auto addNudge = [this](const QKeySequence &seq, MoveDir direction,
+			       int distance) {
 		QAction *nudge = new QAction(preview);
 		nudge->setShortcut(seq);
 		nudge->setShortcutContext(Qt::WidgetShortcut);
 		preview->addAction(nudge);
-		connect(nudge, SIGNAL(triggered()), this, s);
+		connect(nudge, &QAction::triggered,
+			[this, distance, direction]() {
+				Nudge(distance, direction);
+			});
 	};
 
-	addNudge(Qt::Key_Up, SLOT(NudgeUp()));
-	addNudge(Qt::Key_Down, SLOT(NudgeDown()));
-	addNudge(Qt::Key_Left, SLOT(NudgeLeft()));
-	addNudge(Qt::Key_Right, SLOT(NudgeRight()));
-	addNudge(Qt::SHIFT | Qt::Key_Up, SLOT(NudgeUpFar()));
-	addNudge(Qt::SHIFT | Qt::Key_Down, SLOT(NudgeDownFar()));
-	addNudge(Qt::SHIFT | Qt::Key_Left, SLOT(NudgeLeftFar()));
-	addNudge(Qt::SHIFT | Qt::Key_Right, SLOT(NudgeRightFar()));
+	addNudge(Qt::Key_Up, MoveDir::Up, 1);
+	addNudge(Qt::Key_Down, MoveDir::Down, 1);
+	addNudge(Qt::Key_Left, MoveDir::Left, 1);
+	addNudge(Qt::Key_Right, MoveDir::Right, 1);
+	addNudge(Qt::SHIFT | Qt::Key_Up, MoveDir::Up, 10);
+	addNudge(Qt::SHIFT | Qt::Key_Down, MoveDir::Down, 10);
+	addNudge(Qt::SHIFT | Qt::Key_Left, MoveDir::Left, 10);
+	addNudge(Qt::SHIFT | Qt::Key_Right, MoveDir::Right, 10);
 
 	mainLayout->addWidget(preview, 1);
 
@@ -6748,39 +6752,6 @@ void CanvasDock::Nudge(int dist, MoveDir dir)
 	}
 
 	obs_scene_enum_items(scene, nudge_callback, &offset);
-}
-
-void CanvasDock::NudgeUp()
-{
-	Nudge(1, MoveDir::Up);
-}
-void CanvasDock::NudgeDown()
-{
-	Nudge(1, MoveDir::Down);
-}
-void CanvasDock::NudgeLeft()
-{
-	Nudge(1, MoveDir::Left);
-}
-void CanvasDock::NudgeRight()
-{
-	Nudge(1, MoveDir::Right);
-}
-void CanvasDock::NudgeUpFar()
-{
-	Nudge(10, MoveDir::Up);
-}
-void CanvasDock::NudgeDownFar()
-{
-	Nudge(10, MoveDir::Down);
-}
-void CanvasDock::NudgeLeftFar()
-{
-	Nudge(10, MoveDir::Left);
-}
-void CanvasDock::NudgeRightFar()
-{
-	Nudge(10, MoveDir::Right);
 }
 
 void CanvasDock::NewerVersionAvailable(QString version)
