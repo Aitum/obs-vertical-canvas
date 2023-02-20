@@ -4795,7 +4795,6 @@ void CanvasDock::RecordButtonClicked()
 
 void CanvasDock::StartRecord()
 {
-	StartReplayBuffer();
 	if (obs_output_active(recordOutput))
 		return;
 
@@ -5534,7 +5533,6 @@ void CanvasDock::StreamButtonClicked()
 
 void CanvasDock::StartStream()
 {
-	StartReplayBuffer();
 	if (obs_output_active(streamOutput))
 		return;
 
@@ -6185,6 +6183,7 @@ void CanvasDock::OnRecordStart()
 	recordButton->setIcon(recordActiveIcon);
 	recordButton->setStyleSheet(
 		QString::fromUtf8("background: rgb(255,0,0);"));
+	StartReplayBuffer();
 }
 
 void CanvasDock::OnRecordStop(int code, QString last_error)
@@ -6265,6 +6264,7 @@ void CanvasDock::OnStreamStart()
 	streamButton->setIcon(streamActiveIcon);
 	streamButton->setStyleSheet(
 		QString::fromUtf8("background: rgb(0,210,153);"));
+	StartReplayBuffer();
 }
 
 void CanvasDock::OnStreamStop(int code, QString last_error)
