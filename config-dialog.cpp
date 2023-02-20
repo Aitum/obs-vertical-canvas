@@ -868,7 +868,6 @@ void OBSBasicSettings::SaveSettings()
 	     height != canvasDock->canvas_height)) {
 		if (obs_output_active(canvasDock->replayOutput))
 			obs_output_stop(canvasDock->replayOutput);
-		canvasDock->DestroyVideo();
 
 		canvasDock->canvas_width = width;
 		canvasDock->canvas_height = height;
@@ -962,23 +961,81 @@ void OBSBasicSettings::SaveSettings()
 			//StartStream();
 		}
 	}
-	canvasDock->stream_advanced_settings = !streamingUseMain->isChecked();
+	auto sa = !streamingUseMain->isChecked();
+	auto se = streamingEncoder->currentData().toString().toUtf8();
+	if (canvasDock->stream_advanced_settings != sa ||
+	    canvasDock->stream_encoder != se.constData()) {
+		canvasDock->stream_advanced_settings = sa;
+		canvasDock->stream_encoder = se.constData();
+		if (canvasDock->streamOutput &&
+		    !obs_output_active(canvasDock->streamOutput)) {
+			auto enc = obs_output_get_video_encoder(
+				canvasDock->streamOutput);
+			obs_output_set_video_encoder(canvasDock->streamOutput,
+						     nullptr);
+			if (enc &&
+			    strcmp(obs_encoder_get_name(enc),
+				   "vertical_canvas_video_encoder") == 0) {
+				obs_encoder_release(enc);
+			}
+		}
+	}
 
-	for (int i = 0; i < (int)streamingAudioTracks.size(); i++) {
-		if (streamingAudioTracks[i]->isChecked()) {
-			canvasDock->stream_audio_track = i + 1;
+	for (int i = 1; i <= (int)streamingAudioTracks.size(); i++) {
+		if (streamingAudioTracks[i - 1]->isChecked()) {
+			if (canvasDock->stream_audio_track != i) {
+				if (canvasDock->streamOutput &&
+				    !obs_output_active(
+					    canvasDock->streamOutput))
+					obs_output_set_audio_encoder(
+						canvasDock->streamOutput,
+						nullptr, 0);
+				canvasDock->stream_audio_track = i;
+			}
 			break;
 		}
 	}
 
-	canvasDock->stream_encoder =
-		streamingEncoder->currentData().toString().toUtf8().constData();
 	obs_data_apply(canvasDock->stream_encoder_settings,
 		       stream_encoder_settings);
 
 	canvasDock->recordPath = recordPath->text().toUtf8().constData();
 
-	canvasDock->record_advanced_settings = !recordingUseMain->isChecked();
+	auto ra = !recordingUseMain->isChecked();
+	auto re = recordingEncoder->currentData().toString().toUtf8();
+
+	if (canvasDock->record_advanced_settings != ra ||
+	    canvasDock->record_encoder != re.constData()) {
+
+		canvasDock->record_advanced_settings = ra;
+		canvasDock->record_encoder = re.constData();
+
+		if ((canvasDock->recordOutput &&
+		     !obs_output_active(canvasDock->recordOutput)) ||
+		    (canvasDock->replayOutput &&
+		     !obs_output_active(canvasDock->replayOutput))) {
+			auto enc = canvasDock->recordOutput
+					   ? obs_output_get_video_encoder(
+						     canvasDock->recordOutput)
+					   : nullptr;
+			if (!enc && canvasDock->replayOutput) {
+				enc = obs_output_get_video_encoder(
+					canvasDock->replayOutput);
+			}
+			if (canvasDock->recordOutput)
+				obs_output_set_video_encoder(
+					canvasDock->recordOutput, nullptr);
+			if (canvasDock->replayOutput)
+				obs_output_set_video_encoder(
+					canvasDock->replayOutput, nullptr);
+			if (enc &&
+			    strcmp(obs_encoder_get_name(enc),
+				   "vertical_canvas_record_video_encoder") ==
+				    0) {
+				obs_encoder_release(enc);
+			}
+		}
+	}
 	canvasDock->filename_formatting =
 		filenameFormat->text().toUtf8().constData();
 	canvasDock->file_format =
@@ -989,10 +1046,37 @@ void OBSBasicSettings::SaveSettings()
 		if (recordingAudioTracks[i]->isChecked())
 			tracks += (1ll << i);
 	}
-	canvasDock->record_audio_tracks = tracks;
+	if (canvasDock->record_audio_tracks != tracks) {
+		canvasDock->record_audio_tracks = tracks;
+		if ((canvasDock->recordOutput &&
+		     !obs_output_active(canvasDock->recordOutput)) ||
+		    (canvasDock->replayOutput &&
+		     !obs_output_active(canvasDock->replayOutput))) {
+			for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
+				auto enc =
+					canvasDock->recordOutput
+						? obs_output_get_audio_encoder(
+							  canvasDock
+								  ->recordOutput,
+							  i)
+						: nullptr;
+				if (!enc && canvasDock->replayOutput) {
+					enc = obs_output_get_audio_encoder(
+						canvasDock->replayOutput, i);
+				}
+				if (canvasDock->recordOutput)
+					obs_output_set_audio_encoder(
+						canvasDock->recordOutput,
+						nullptr, i);
+				if (canvasDock->replayOutput)
+					obs_output_set_audio_encoder(
+						canvasDock->replayOutput,
+						nullptr, i);
+				obs_encoder_release(enc);
+			}
+		}
+	}
 
-	canvasDock->record_encoder =
-		recordingEncoder->currentData().toString().toUtf8().constData();
 	obs_data_apply(canvasDock->record_encoder_settings,
 		       record_encoder_settings);
 }
