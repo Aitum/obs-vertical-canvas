@@ -1122,15 +1122,17 @@ void OBSBasicSettings::AddProperty(
 			QString::fromUtf8(obs_property_description(property)));
 		widget->setChecked(obs_data_get_bool(
 			settings, obs_property_name(property)));
-		widget->setVisible(obs_property_visible(property));
 		layout->addWidget(widget);
-		int row = 0;
-		layout->getWidgetPosition(widget, &row, nullptr);
-		auto item = layout->itemAt(row, QFormLayout::LabelRole);
-		if (item) {
-			auto w = item->widget();
-			if (w)
-				w->setVisible(obs_property_visible(property));
+		if (!obs_property_visible(property)) {
+			widget->setVisible(false);
+			int row = 0;
+			layout->getWidgetPosition(widget, &row, nullptr);
+			auto item = layout->itemAt(row, QFormLayout::LabelRole);
+			if (item) {
+				auto w = item->widget();
+				if (w)
+					w->setVisible(false);
+			}
 		}
 		widgets->emplace(property, widget);
 		connect(widget, &QCheckBox::stateChanged,
@@ -1154,17 +1156,12 @@ void OBSBasicSettings::AddProperty(
 			obs_property_long_description(property)));
 		widget->setSuffix(
 			QString::fromUtf8(obs_property_int_suffix(property)));
-		widget->setVisible(obs_property_visible(property));
-		layout->addRow(
-			QString::fromUtf8(obs_property_description(property)),
-			widget);
-		int row = 0;
-		layout->getWidgetPosition(widget, &row, nullptr);
-		auto item = layout->itemAt(row, QFormLayout::LabelRole);
-		if (item) {
-			auto w = item->widget();
-			if (w)
-				w->setVisible(obs_property_visible(property));
+		auto label = new QLabel(
+			QString::fromUtf8(obs_property_description(property)));
+		layout->addRow(label, widget);
+		if (!obs_property_visible(property)) {
+			widget->setVisible(false);
+			label->setVisible(false);
 		}
 		widgets->emplace(property, widget);
 		connect(widget, &QSpinBox::valueChanged,
@@ -1188,12 +1185,13 @@ void OBSBasicSettings::AddProperty(
 			obs_property_long_description(property)));
 		widget->setSuffix(
 			QString::fromUtf8(obs_property_float_suffix(property)));
-		widget->setVisible(obs_property_visible(property));
 		auto label = new QLabel(
 			QString::fromUtf8(obs_property_description(property)));
-		label->setVisible(obs_property_visible(property));
 		layout->addRow(label, widget);
-
+		if (!obs_property_visible(property)) {
+			widget->setVisible(false);
+			label->setVisible(false);
+		}
 		widgets->emplace(property, widget);
 		connect(widget, &QDoubleSpinBox::valueChanged,
 			[this, property, settings, widget, widgets, layout] {
@@ -1215,11 +1213,13 @@ void OBSBasicSettings::AddProperty(
 				QString::fromUtf8(obs_data_get_string(
 					settings,
 					obs_property_name(property))));
-			widget->setVisible(obs_property_visible(property));
 			auto label = new QLabel(QString::fromUtf8(
 				obs_property_description(property)));
-			label->setVisible(obs_property_visible(property));
 			layout->addRow(label, widget);
+			if (!obs_property_visible(property)) {
+				widget->setVisible(false);
+				label->setVisible(false);
+			}
 			widgets->emplace(property, widget);
 			connect(widget, &QPlainTextEdit::textChanged,
 				[this, property, settings, widget, widgets,
@@ -1240,11 +1240,13 @@ void OBSBasicSettings::AddProperty(
 				settings, obs_property_name(property))));
 			if (text_type == OBS_TEXT_PASSWORD)
 				widget->setEchoMode(QLineEdit::Password);
-			widget->setVisible(obs_property_visible(property));
 			auto label = new QLabel(QString::fromUtf8(
 				obs_property_description(property)));
-			label->setVisible(obs_property_visible(property));
 			layout->addRow(label, widget);
+			if (!obs_property_visible(property)) {
+				widget->setVisible(false);
+				label->setVisible(false);
+			}
 			widgets->emplace(property, widget);
 			if (text_type != OBS_TEXT_INFO) {
 				connect(widget, &QLineEdit::textChanged,
@@ -1359,11 +1361,13 @@ void OBSBasicSettings::AddProperty(
 					combined.arg(selected).arg(actual));
 			}
 		}
-		widget->setVisible(obs_property_visible(property));
 		auto label = new QLabel(
 			QString::fromUtf8(obs_property_description(property)));
-		label->setVisible(obs_property_visible(property));
 		layout->addRow(label, widget);
+		if (!obs_property_visible(property)) {
+			widget->setVisible(false);
+			label->setVisible(false);
+		}
 		widgets->emplace(property, widget);
 		switch (format) {
 		case OBS_COMBO_FORMAT_INT:
