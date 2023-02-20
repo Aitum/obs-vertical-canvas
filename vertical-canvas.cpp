@@ -5548,19 +5548,23 @@ void CanvasDock::StartStream()
 	obs_service_update(stream_service, s);
 	obs_data_release(s);
 
-	if (!streamOutput) {
-		const char *type = obs_service_get_output_type(stream_service);
-		if (!type) {
-			type = "rtmp_output";
-			const char *url = obs_service_get_url(stream_service);
-			if (url != NULL && strncmp(url, "ftl", 3) == 0) {
-				type = "ftl_output";
-			} else if (url != NULL &&
-				   strncmp(url, "rtmp", 4) != 0) {
-				type = "ffmpeg_mpegts_muxer";
-			}
+	const char *type = obs_service_get_output_type(stream_service);
+	if (!type) {
+		type = "rtmp_output";
+		const char *url = obs_service_get_url(stream_service);
+		if (url != NULL && strncmp(url, "ftl", 3) == 0) {
+			type = "ftl_output";
+		} else if (url != NULL && strncmp(url, "rtmp", 4) != 0) {
+			type = "ffmpeg_mpegts_muxer";
 		}
-
+	}
+	if (!streamOutput ||
+	    strcmp(type, obs_output_get_id(streamOutput)) != 0) {
+		if (streamOutput) {
+			if (obs_output_active(streamOutput))
+				obs_output_stop(streamOutput);
+			obs_output_release(streamOutput);
+		}
 		streamOutput = obs_output_create(type, "vertical_canvas_stream",
 						 nullptr, nullptr);
 		obs_output_set_service(streamOutput, stream_service);
