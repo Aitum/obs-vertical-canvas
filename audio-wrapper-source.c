@@ -22,39 +22,88 @@ void audio_wrapper_destroy(void *data)
 	bfree(data);
 }
 
-static float mix_a(void *data, float t)
-{
-	UNUSED_PARAMETER(data);
-	return 1.0f - t;
-}
-
-static float mix_b(void *data, float t)
-{
-	UNUSED_PARAMETER(data);
-	return t;
-}
-
 bool audio_wrapper_render(void *data, uint64_t *ts_out,
-			     struct obs_source_audio_mix *audio,
-			     uint32_t mixers, size_t channels,
-			     size_t sample_rate){
+			  struct obs_source_audio_mix *audio, uint32_t mixers,
+			  size_t channels, size_t sample_rate)
+{
+	UNUSED_PARAMETER(sample_rate);
 	struct audio_wrapper_info *aw = (struct audio_wrapper_info *)data;
-	obs_source_t *source = obs_weak_source_get_source(aw->target);
-	if(!source)
+	obs_source_t *source = aw->target(aw->param);
+	if (!source)
 		return false;
 
-	bool result = obs_transition_audio_render(source, ts_out, audio, mixers,
-					   channels, sample_rate, mix_a, mix_b);
+	uint64_t timestamp = obs_source_get_audio_timestamp(source);
+	if (!timestamp) {
+		obs_source_release(source);
+		return false;
+	}
+	if (!aw->mixers) {
+		*ts_out = timestamp;
+		obs_source_release(source);
+		return true;
+	}
+	mixers &= aw->mixers(aw->param);
+	if (mixers == 0) {
+		*ts_out = timestamp;
+		obs_source_release(source);
+		return true;
+	}
+	struct obs_source_audio_mix child_audio;
+	obs_source_get_audio_mix(source, &child_audio);
+	for (size_t mix = 0; mix < MAX_AUDIO_MIXES; mix++) {
+		if ((mixers & (1 << mix)) == 0)
+			continue;
+
+		for (size_t ch = 0; ch < channels; ch++) {
+			float *out = audio->output[mix].data[ch];
+			float *in = child_audio.output[mix].data[ch];
+			float *end = in + AUDIO_OUTPUT_FRAMES;
+			while (in < end)
+				*(out++) += *(in++);
+		}
+	}
+	*ts_out = timestamp;
 	obs_source_release(source);
-	return result;
+	return true;
+}
+
+static void audio_wrapper_enum_sources(void *data,
+				       obs_source_enum_proc_t enum_callback,
+				       void *param, bool active)
+{
+	UNUSED_PARAMETER(active);
+	struct audio_wrapper_info *aw = (struct audio_wrapper_info *)data;
+	obs_source_t *source = aw->target(aw->param);
+	if (!source)
+		return;
+
+	enum_callback(aw->source, source, param);
+
+	obs_source_release(source);
+}
+
+void audio_wrapper_enum_active_sources(void *data,
+				       obs_source_enum_proc_t enum_callback,
+				       void *param)
+{
+	audio_wrapper_enum_sources(data, enum_callback, param, true);
+}
+
+void audio_wrapper_enum_all_sources(void *data,
+				    obs_source_enum_proc_t enum_callback,
+				    void *param)
+{
+	audio_wrapper_enum_sources(data, enum_callback, param, false);
 }
 
 struct obs_source_info audio_wrapper_source = {
-	.id = "transition_audio_wrapper_source",
-	.type = OBS_SOURCE_TYPE_INPUT,
-	.output_flags = OBS_SOURCE_AUDIO | OBS_SOURCE_CAP_DISABLED,
+	.id = "vertical_audio_wrapper_source",
+	.type = OBS_SOURCE_TYPE_SCENE,
+	.output_flags = OBS_SOURCE_COMPOSITE | OBS_SOURCE_CAP_DISABLED,
 	.get_name = audio_wrapper_get_name,
 	.create = audio_wrapper_create,
 	.destroy = audio_wrapper_destroy,
 	.audio_render = audio_wrapper_render,
+	.enum_active_sources = audio_wrapper_enum_active_sources,
+	.enum_all_sources = audio_wrapper_enum_all_sources,
 };

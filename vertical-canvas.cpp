@@ -1148,11 +1148,15 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	obs_source_inc_showing(fade);
 	obs_source_inc_active(fade);
 	transitionAudioWrapper = obs_source_create_private(
-		"transition_audio_wrapper_source",
-		"transition_audio_wrapper_source", nullptr);
+		"vertical_audio_wrapper_source",
+		"vertical_audio_wrapper_source", nullptr);
 	auto aw = (struct audio_wrapper_info *)obs_obj_get_data(
 		transitionAudioWrapper);
-	aw->target = source;
+	aw->param = this;
+	aw->target = [](void *param) {
+		CanvasDock *dock = reinterpret_cast<CanvasDock *>(param);
+		return obs_weak_source_get_source(dock->source);
+	};
 	StartVideo();
 }
 
@@ -5395,7 +5399,8 @@ obs_encoder_t *CanvasDock::GetStreamVideoEncoder()
 		obs_encoder_set_preferred_video_format(video_encoder,
 						       VIDEO_FORMAT_NV12);
 	}
-	obs_encoder_set_video(video_encoder, video);
+	if (!obs_encoder_active(video_encoder))
+		obs_encoder_set_video(video_encoder, video);
 	return video_encoder;
 }
 
@@ -5483,7 +5488,8 @@ obs_encoder_t *CanvasDock::GetRecordVideoEncoder()
 		obs_encoder_set_preferred_video_format(video_encoder,
 						       VIDEO_FORMAT_NV12);
 	}
-	obs_encoder_set_video(video_encoder, video);
+	if (!obs_encoder_active(video_encoder))
+		obs_encoder_set_video(video_encoder, video);
 	return video_encoder;
 }
 
@@ -5834,6 +5840,12 @@ void CanvasDock::ClearScenes()
 
 void CanvasDock::LoadScenes()
 {
+	for (uint32_t i = MAX_CHANNELS - 1; i > 0; i--) {
+		if (obs_get_output_source(i) == nullptr) {
+			obs_set_output_source(i, transitionAudioWrapper);
+			break;
+		}
+	}
 	auto sl = GetGlobalScenesList();
 	if (scenesCombo)
 		scenesCombo->clear();
