@@ -100,7 +100,8 @@ static void save_canvas()
 void transition_start(void *, calldata_t *)
 {
 	for (const auto &it : canvas_docks) {
-		QMetaObject::invokeMethod(it, "MainSceneChanged");
+		QMetaObject::invokeMethod(it, "MainSceneChanged",
+					  Qt::QueuedConnection);
 	}
 }
 
@@ -1163,6 +1164,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 CanvasDock::~CanvasDock()
 {
+	canvas_docks.remove(this);
 	obs_hotkey_pair_unregister(virtual_cam_hotkey);
 	obs_hotkey_pair_unregister(record_hotkey);
 	obs_hotkey_pair_unregister(stream_hotkey);
