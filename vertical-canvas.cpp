@@ -5004,11 +5004,36 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 	} else {
 		obs_output_t *replay_output =
 			obs_frontend_get_replay_buffer_output();
-		obs_output_set_mixers(output,
-				      obs_output_get_mixers(replay_output));
+		size_t mixers = obs_output_get_mixers(replay_output);
+		if (!mixers) {
+			obs_output_t *record_output =
+				obs_frontend_get_recording_output();
+			mixers = obs_output_get_mixers(record_output);
+			obs_output_release(record_output);
+			if (!mixers) {
+				config_t *config =
+					obs_frontend_get_profile_config();
+				const char *mode = config_get_string(
+					config, "Output", "Mode");
+				if (astrcmpi(mode, "Advanced") == 0) {
+					mixers = config_get_int(config,
+								"AdvOut",
+								"FFAudioMixes");
+				}
+				if (!mixers)
+					mixers = 1;
+			}
+		}
+		obs_output_set_mixers(output, mixers);
 		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
 			obs_encoder_t *aef =
 				obs_output_get_audio_encoder(replay_output, i);
+			if (!aef && i == 0) {
+				obs_frontend_replay_buffer_start();
+				obs_frontend_replay_buffer_stop();
+				aef = obs_output_get_audio_encoder(
+					replay_output, i);
+			}
 			if (aef) {
 				obs_encoder_t *aet =
 					obs_output_get_audio_encoder(
