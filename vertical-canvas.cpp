@@ -5163,6 +5163,11 @@ void CanvasDock::StartReplayBuffer()
 			obs_data_set_int(s, "max_time_sec", replayDuration);
 			obs_data_release(s);
 		}
+		if (obs_data_get_int(settings, "max_size_mb")) {
+			const auto s = obs_output_get_settings(replayOutput);
+			obs_data_set_int(s, "max_size_mb", 0);
+			obs_data_release(s);
+		}
 		if (strcmp(replayPath.c_str(),
 			   obs_data_get_string(settings, "directory")) != 0) {
 			const auto s = obs_output_get_settings(replayOutput);
