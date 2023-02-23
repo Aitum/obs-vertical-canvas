@@ -4862,6 +4862,18 @@ void CanvasDock::StartRecord()
 			ffmpegOutput = true;
 		}
 	}
+	if (recordPath.empty() && (!dir || !strlen(dir))) {
+		if (isVisible()) {
+			QMessageBox::warning(
+				this,
+				QString::fromUtf8(
+					obs_frontend_get_locale_string(
+						"Output.BadPath.Title")),
+				QString::fromUtf8(
+					obs_module_text("RecordPathError")));
+		}
+		return;
+	}
 
 	const bool started_video = StartVideo();
 
@@ -4881,6 +4893,14 @@ void CanvasDock::StartRecord()
 
 	std::string filenameFormat;
 	if (record_advanced_settings) {
+		if (filename_formatting.empty()) {
+			filename_formatting = config_get_string(
+				config, "Output", "FilenameFormatting");
+		}
+		if (filename_formatting.empty()) {
+			filename_formatting =
+				"%CCYY-%MM-%DD %hh-%mm-%ss-vertical";
+		}
 		filenameFormat = filename_formatting;
 	} else {
 		filenameFormat = config_get_string(config, "Output",
