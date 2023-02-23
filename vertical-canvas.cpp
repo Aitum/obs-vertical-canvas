@@ -2448,7 +2448,6 @@ bool CanvasDock::HandleMousePressEvent(QMouseEvent *event)
 	vec2_zero(&lastMoveOffset);
 
 	mousePos = startPos;
-	changed = false;
 
 	return true;
 }
@@ -3040,8 +3039,6 @@ bool CanvasDock::HandleMouseLeaveEvent(QMouseEvent *event)
 
 bool CanvasDock::HandleMouseMoveEvent(QMouseEvent *event)
 {
-	changed = true;
-
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 	QPointF qtPos = event->position();
 #else
@@ -5008,8 +5005,10 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 		if (!mixers) {
 			obs_output_t *record_output =
 				obs_frontend_get_recording_output();
-			mixers = obs_output_get_mixers(record_output);
-			obs_output_release(record_output);
+			if (record_output) {
+				mixers = obs_output_get_mixers(record_output);
+				obs_output_release(record_output);
+			}
 			if (!mixers) {
 				config_t *config =
 					obs_frontend_get_profile_config();
@@ -6208,6 +6207,7 @@ void CanvasDock::FinishLoading()
 		main->splitDockWidget(this, sourcesDock, Qt::Horizontal);
 	}
 	sourcesDock->setFloating(false);
+	save_canvas();
 }
 
 void CanvasDock::OnRecordStart()

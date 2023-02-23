@@ -106,7 +106,6 @@ private:
 
 	float previewScale = 1.0f;
 
-	bool changed{};
 	obs_sceneitem_crop startCrop{};
 	vec2 startItemPos{};
 	vec2 cropSize{};
