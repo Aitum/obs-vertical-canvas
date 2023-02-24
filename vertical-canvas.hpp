@@ -165,6 +165,7 @@ private:
 	bool replayAlwaysOn;
 	uint32_t replayDuration;
 	std::string replayPath;
+	std::string replayFilename;
 
 	std::string stream_key;
 	std::string stream_server;
@@ -327,7 +328,7 @@ private:
 private slots:
 	void AddSourceFromAction();
 	void VirtualCamButtonClicked();
-	void ReplayButtonClicked();
+	void ReplayButtonClicked(QString filename = "");
 	void RecordButtonClicked();
 	void StreamButtonClicked();
 	void ConfigButtonClicked();

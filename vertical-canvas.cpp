@@ -360,6 +360,25 @@ void vendor_request_invoke(obs_data_t *request_data, obs_data_t *response_data,
 	obs_data_set_bool(response_data, "success", false);
 }
 
+void vendor_request_save_replay(obs_data_t *request_data,
+				obs_data_t *response_data, void *p)
+{
+	const auto width = obs_data_get_int(request_data, "width");
+	const auto height = obs_data_get_int(request_data, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) ||
+		    (height && it->GetCanvasHeight() != height))
+			continue;
+		QMetaObject::invokeMethod(
+			it, "ReplayButtonClicked",
+			Q_ARG(QString, QString::fromUtf8(obs_data_get_string(
+					       request_data, "filename"))));
+		obs_data_set_bool(response_data, "success", true);
+		return;
+	}
+	obs_data_set_bool(response_data, "success", false);
+}
+
 update_info_t *verison_update_info = nullptr;
 
 bool version_info_downloaded(void *param, struct file_download_data *file)
@@ -477,9 +496,8 @@ bool obs_module_load(void)
 	obs_websocket_vendor_register_request(vendor, "stop_backtrack",
 					      vendor_request_invoke,
 					      (void *)"StopReplayBuffer");
-	obs_websocket_vendor_register_request(vendor, "save_backtrack",
-					      vendor_request_invoke,
-					      (void *)"ReplayButtonClicked");
+	obs_websocket_vendor_register_request(
+		vendor, "save_backtrack", vendor_request_save_replay, nullptr);
 	obs_websocket_vendor_register_request(vendor, "start_virtual_camera",
 					      vendor_request_invoke,
 					      (void *)"StartVirtualCam");
@@ -4711,14 +4729,24 @@ void CanvasDock::ConfigButtonClicked()
 	save_canvas();
 }
 
-void CanvasDock::ReplayButtonClicked()
+void CanvasDock::ReplayButtonClicked(QString filename)
 {
 	if (!obs_output_active(replayOutput))
 		return;
+	obs_data_t *s = obs_output_get_settings(replayOutput);
+	if (!filename.isEmpty()) {
+		if (replayFilename.empty())
+			replayFilename = obs_data_get_string(s, "format");
+		obs_data_set_string(s, "format", filename.toUtf8().constData());
+	} else if (!replayFilename.empty()) {
+		obs_data_set_string(s, "format", replayFilename.c_str());
+	}
+	obs_data_release(s);
 	calldata_t cd = {0};
 	proc_handler_t *ph = obs_output_get_proc_handler(replayOutput);
 	proc_handler_call(ph, "save", &cd);
 	calldata_free(&cd);
+
 	statusLabel->setText(QString::fromUtf8(obs_module_text("Saving")));
 	replayStatusResetTimer.start(10000);
 	SendVendorEvent("backtrack_saving");
@@ -5134,6 +5162,7 @@ void CanvasDock::StartReplayBuffer()
 		if (filename_formatting.empty())
 			filename_formatting = "%CCYY-%MM-%DD %hh-%mm-%ss";
 		obs_data_set_string(s, "format", filename_formatting.c_str());
+		replayFilename = filename_formatting;
 		if (file_format.empty())
 			file_format = "mkv";
 		obs_data_set_string(s, "extension", file_format.c_str());
@@ -5210,6 +5239,7 @@ void CanvasDock::StartReplayBuffer()
 			format += "-backtrack";
 			changed_format = true;
 		}
+		replayFilename = format;
 		if (changed_format) {
 			const auto s = obs_output_get_settings(replayOutput);
 			obs_data_set_string(s, "format", format.c_str());
