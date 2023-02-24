@@ -48,6 +48,11 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	listwidgetitem->setText(
 		QString::fromUtf8(obs_module_text("Recording")));
 
+	listwidgetitem = new QListWidgetItem(listWidget);
+	listwidgetitem->setIcon(
+		canvasDock->GetIconFromType(OBS_ICON_TYPE_UNKNOWN));
+	listwidgetitem->setText(QString::fromUtf8(obs_module_text("Help")));
+
 	listWidget->setCurrentRow(0);
 
 	auto settingsPages = new QStackedWidget;
@@ -74,6 +79,14 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	auto recordingPage = new QWidget;
 	scrollArea = new QScrollArea;
 	scrollArea->setWidget(recordingPage);
+	scrollArea->setWidgetResizable(true);
+	scrollArea->setLineWidth(0);
+	scrollArea->setFrameShape(QFrame::NoFrame);
+	settingsPages->addWidget(scrollArea);
+
+	auto helpPage = new QWidget;
+	scrollArea = new QScrollArea;
+	scrollArea->setWidget(helpPage);
 	scrollArea->setWidgetResizable(true);
 	scrollArea->setLineWidth(0);
 	scrollArea->setFrameShape(QFrame::NoFrame);
@@ -679,6 +692,27 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	vb->addWidget(recordingAdvancedGroup);
 	vb->addStretch();
 	recordingPage->setLayout(vb);
+
+	auto helpGroup =
+		new QGroupBox(QString::fromUtf8(obs_module_text("Help")));
+
+	auto helpLayout = new QVBoxLayout;
+
+	auto helpLabel = new QLabel(
+		QString::fromUtf8("<a href = 'https://aitum.tv/discord'>") +
+		QString::fromUtf8(obs_module_text("HelpSupport")) +
+		QString::fromUtf8("</a>"));
+	helpLabel->setOpenExternalLinks(true);
+
+	helpLayout->addWidget(helpLabel);
+
+	helpGroup->setLayout(helpLayout);
+
+	vb = new QVBoxLayout;
+	vb->setContentsMargins(0, 0, 0, 0);
+	vb->addWidget(helpGroup);
+	vb->addStretch();
+	helpPage->setLayout(vb);
 
 	QPushButton *okButton = new QPushButton(
 		QString::fromUtf8(obs_frontend_get_locale_string("OK")));
