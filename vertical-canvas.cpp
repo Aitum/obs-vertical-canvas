@@ -213,6 +213,11 @@ void frontend_event(obs_frontend_event event, void *private_data)
 							  Qt::QueuedConnection);
 			});
 		}
+	} else if (event == OBS_FRONTEND_EVENT_PROFILE_CHANGED) {
+		for (const auto &it : canvas_docks) {
+			QMetaObject::invokeMethod(it, "ProfileChanged",
+						  Qt::QueuedConnection);
+		}
 	}
 }
 
@@ -6462,6 +6467,8 @@ void CanvasDock::OnReplayBufferStop(int code, QString last_error)
 	replayButton->setStyleSheet(QString::fromUtf8(""));
 	if (!replayStatusResetTimer.isActive())
 		replayStatusResetTimer.start();
+	if (restart_video)
+		ProfileChanged();
 	HandleRecordError(code, last_error);
 	if (code == OBS_OUTPUT_SUCCESS) {
 		CheckReplayBuffer(true);
@@ -6859,6 +6866,32 @@ void CanvasDock::NewerVersionAvailable(QString version)
 	newer_version_available = version;
 	configButton->setStyleSheet(
 		QString::fromUtf8("background: rgb(192,128,0);"));
+}
+
+void CanvasDock::ProfileChanged()
+{
+	if (obs_output_active(streamOutput) || obs_output_active(recordOutput))
+		return;
+
+	if (obs_output_active(replayOutput)) {
+		obs_output_stop(replayOutput);
+		restart_video = true;
+		return;
+	}
+
+	bool virtual_cam_active = obs_output_active(virtualCamOutput);
+	if (virtual_cam_active)
+		StopVirtualCam();
+
+	DestroyVideo();
+	StartVideo();
+
+	if (virtual_cam_active)
+		StartVirtualCam();
+	if (restart_video)
+		StartReplayBuffer();
+
+	restart_video = false;
 }
 
 LockedCheckBox::LockedCheckBox() {}

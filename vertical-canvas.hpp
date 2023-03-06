@@ -158,6 +158,7 @@ private:
 
 	uint32_t canvas_width;
 	uint32_t canvas_height;
+	bool restart_video = false;
 	bool hideScenes;
 	uint32_t videoBitrate;
 	uint32_t audioBitrate;
@@ -367,6 +368,7 @@ private slots:
 	void MainReplayBufferStop();
 	void MainVirtualCamStart();
 	void MainVirtualCamStop();
+	void ProfileChanged();
 
 	void NewerVersionAvailable(QString version);
 
