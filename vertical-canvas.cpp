@@ -6286,6 +6286,17 @@ void CanvasDock::OnRecordStop(int code, QString last_error)
 	recordButton->setStyleSheet(QString::fromUtf8(""));
 	HandleRecordError(code, last_error);
 	CheckReplayBuffer();
+
+	obs_data_t *s = obs_output_get_settings(recordOutput);
+	std::string path = obs_data_get_string(s, "path");
+	obs_data_release(s);
+	if (!path.empty()) {
+		const auto main_window = static_cast<QMainWindow *>(
+			obs_frontend_get_main_window());
+		QMetaObject::invokeMethod(
+			main_window, "RecordingFileChanged",
+			Q_ARG(QString, QString::fromUtf8(path.c_str())));
+	}
 }
 
 void CanvasDock::HandleRecordError(int code, QString last_error)
@@ -6348,6 +6359,18 @@ void CanvasDock::HandleRecordError(int code, QString last_error)
 void CanvasDock::OnReplaySaved()
 {
 	statusLabel->setText(QString::fromUtf8(obs_module_text("Saved")));
+	calldata_t cd = {0};
+	proc_handler_t *ph = obs_output_get_proc_handler(replayOutput);
+	proc_handler_call(ph, "get_last_replay", &cd);
+	std::string path = calldata_string(&cd, "path");
+	calldata_free(&cd);
+	if (!path.empty()) {
+		const auto main_window = static_cast<QMainWindow *>(
+			obs_frontend_get_main_window());
+		QMetaObject::invokeMethod(
+			main_window, "RecordingFileChanged",
+			Q_ARG(QString, QString::fromUtf8(path.c_str())));
+	}
 	replayStatusResetTimer.start(4000);
 }
 
