@@ -12,6 +12,9 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
+#ifdef __APPLE__
+#import <AppKit/AppKit.h>
+#endif
 static bool mouseSwitching, transitionOnDoubleClick;
 
 static inline void GetScaleAndCenterPos(int baseCX, int baseCY, int windowCX,
@@ -231,6 +234,7 @@ void OBSProjector::EscapeTriggered()
 
 void OBSProjector::UpdateProjectorTitle(QString name)
 {
+	UNUSED_PARAMETER(name);
 	bool window = (GetMonitor() == -1);
 
 	QString title = QString::fromUtf8(obs_frontend_get_locale_string(
