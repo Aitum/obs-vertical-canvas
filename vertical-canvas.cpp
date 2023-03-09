@@ -1188,6 +1188,9 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 CanvasDock::~CanvasDock()
 {
+	for (auto projector : projectors) {
+		delete projector;
+	}
 	canvas_docks.remove(this);
 	obs_hotkey_pair_unregister(virtual_cam_hotkey);
 	obs_hotkey_pair_unregister(record_hotkey);
@@ -2920,6 +2923,23 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 		QString::fromUtf8(obs_frontend_get_locale_string(
 			"Basic.MainMenu.Edit.Transform.HorizontalCenter")),
 		this, [this] { CenterSelectedItems(CenterType::Horizontal); });
+
+	auto projectorMenu = popup->addMenu(QString::fromUtf8(
+		obs_frontend_get_locale_string("SourceProjector")));
+	AddProjectorMenuMonitors(projectorMenu, this,
+				 SLOT(OpenSourceProjector()));
+	popup->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
+				 "SourceWindow")),
+			 [this, sceneItem] {
+				 obs_source_t *source = obs_source_get_ref(
+					 obs_sceneitem_get_source(sceneItem));
+				 if (!source)
+					 return;
+				 obs_frontend_open_projector(
+					 "Source", -1, nullptr,
+					 obs_source_get_name(source));
+				 obs_source_release(source);
+			 });
 
 	popup->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
 				 "Screenshot.Source")),
@@ -7016,6 +7036,20 @@ void CanvasDock::OpenPreviewProjector()
 {
 	int monitor = sender()->property("monitor").toInt();
 	OpenProjector(monitor);
+}
+
+void CanvasDock::OpenSourceProjector()
+{
+	int monitor = sender()->property("monitor").toInt();
+	OBSSceneItem item = GetSelectedItem();
+	if (!item)
+		return;
+
+	obs_source_t *source = obs_sceneitem_get_source(item);
+	if (!source)
+		return;
+	obs_frontend_open_projector("Source", monitor, nullptr,
+				    obs_source_get_name(source));
 }
 
 LockedCheckBox::LockedCheckBox() {}

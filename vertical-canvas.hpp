@@ -378,6 +378,7 @@ private slots:
 	void MainVirtualCamStop();
 	void ProfileChanged();
 	void OpenPreviewProjector();
+	void OpenSourceProjector();
 
 	void NewerVersionAvailable(QString version);
 
