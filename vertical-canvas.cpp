@@ -2954,6 +2954,15 @@ bool CanvasDock::HandleMouseReleaseEvent(QMouseEvent *event)
 				previewDisabledWidget->setVisible(
 					preview_disabled);
 			});
+		auto projectorMenu = popup.addMenu(QString::fromUtf8(
+			obs_frontend_get_locale_string("PreviewProjector")));
+		AddProjectorMenuMonitors(projectorMenu, this,
+					 SLOT(OpenPreviewProjector()));
+
+		action = popup.addAction(
+			QString::fromUtf8(obs_frontend_get_locale_string(
+				"PreviewWindow")),
+			[this] { OpenProjector(-1); });
 
 		action = popup.addAction(
 			QString::fromUtf8(obs_frontend_get_locale_string(
@@ -6915,6 +6924,97 @@ void CanvasDock::ProfileChanged()
 		StartReplayBuffer();
 
 	restart_video = false;
+}
+
+void CanvasDock::DeleteProjector(OBSProjector *projector)
+{
+	for (size_t i = 0; i < projectors.size(); i++) {
+		if (projectors[i] == projector) {
+			projectors[i]->deleteLater();
+			projectors.erase(projectors.begin() + i);
+			break;
+		}
+	}
+}
+OBSProjector *CanvasDock::OpenProjector(int monitor)
+{
+	/* seriously?  10 monitors? */
+	if (monitor > 9 || monitor > QGuiApplication::screens().size() - 1)
+		return nullptr;
+
+	bool closeProjectors = config_get_bool(obs_frontend_get_global_config(),
+					       "BasicWindow",
+					       "CloseExistingProjectors");
+
+	if (closeProjectors && monitor > -1) {
+		for (size_t i = projectors.size(); i > 0; i--) {
+			size_t idx = i - 1;
+			if (projectors[idx]->GetMonitor() == monitor)
+				DeleteProjector(projectors[idx]);
+		}
+	}
+
+	OBSProjector *projector = new OBSProjector(this, monitor);
+
+	projectors.emplace_back(projector);
+
+	return projector;
+}
+
+QString GetMonitorName(const QString &id);
+
+void CanvasDock::AddProjectorMenuMonitors(QMenu *parent, QObject *target,
+					  const char *slot)
+{
+	QAction *action;
+	QList<QScreen *> screens = QGuiApplication::screens();
+	for (int i = 0; i < screens.size(); i++) {
+		QScreen *screen = screens[i];
+		QRect screenGeometry = screen->geometry();
+		qreal ratio = screen->devicePixelRatio();
+		QString name = "";
+#if defined(_WIN32) && QT_VERSION < QT_VERSION_CHECK(6, 4, 0)
+		QTextStream fullname(&name);
+		fullname << GetMonitorName(screen->name());
+		fullname << " (";
+		fullname << (i + 1);
+		fullname << ")";
+#elif defined(__APPLE__) || defined(_WIN32)
+		name = screen->name();
+#else
+		name = screen->model().simplified();
+
+		if (name.length() > 1 && name.endsWith("-"))
+			name.chop(1);
+#endif
+		name = name.simplified();
+
+		if (name.length() == 0) {
+			name = QString("%1 %2")
+				       .arg(QString::fromUtf8(
+					       obs_frontend_get_locale_string(
+						       "Display")))
+				       .arg(QString::number(i + 1));
+		}
+		QString str =
+			QString("%1: %2x%3 @ %4,%5")
+				.arg(name,
+				     QString::number(screenGeometry.width() *
+						     ratio),
+				     QString::number(screenGeometry.height() *
+						     ratio),
+				     QString::number(screenGeometry.x()),
+				     QString::number(screenGeometry.y()));
+
+		action = parent->addAction(str, target, slot);
+		action->setProperty("monitor", i);
+	}
+}
+
+void CanvasDock::OpenPreviewProjector()
+{
+	int monitor = sender()->property("monitor").toInt();
+	OpenProjector(monitor);
 }
 
 LockedCheckBox::LockedCheckBox() {}

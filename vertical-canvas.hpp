@@ -20,6 +20,7 @@
 #include "obs.hpp"
 #include "qt-display.hpp"
 #include "sources-dock.hpp"
+#include "projector.hpp"
 
 #define ITEM_LEFT (1 << 0)
 #define ITEM_RIGHT (1 << 1)
@@ -68,6 +69,7 @@ class CanvasDock : public QDockWidget {
 	friend class SourceTreeItem;
 	friend class SourceTreeModel;
 	friend class OBSBasicSettings;
+	friend class OBSProjector;
 
 private:
 	QPointer<QAction> action;
@@ -80,6 +82,7 @@ private:
 	OBSWeakSource source;
 	OBSSourceAutoRelease transitionAudioWrapper;
 	std::vector<OBSSource> transitions;
+	std::vector<OBSProjector *> projectors;
 	std::unique_ptr<OBSEventFilter> eventFilter;
 
 	std::vector<obs_sceneitem_t *> hoveredPreviewItems;
@@ -281,6 +284,10 @@ private:
 	QListWidget *GetGlobalScenesList();
 	void ResizeScenes();
 	void ResizeScene(QString scene_name);
+	void DeleteProjector(OBSProjector *projector);
+	OBSProjector *OpenProjector(int monitor);
+	void AddProjectorMenuMonitors(QMenu *parent, QObject *target,
+				      const char *slot);
 
 	enum class MoveDir { Up, Down, Left, Right };
 	void Nudge(int dist, MoveDir dir);
@@ -369,6 +376,7 @@ private slots:
 	void MainVirtualCamStart();
 	void MainVirtualCamStop();
 	void ProfileChanged();
+	void OpenPreviewProjector();
 
 	void NewerVersionAvailable(QString version);
 

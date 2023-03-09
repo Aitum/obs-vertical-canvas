@@ -25,6 +25,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	sources-dock.cpp
 	source-tree.cpp
 	qt-display.cpp
+	projector.cpp
 	config-dialog.cpp
 	hotkey-edit.cpp
 	name-dialog.cpp
@@ -36,6 +37,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	sources-dock.hpp
 	source-tree.hpp
 	qt-display.hpp
+	projector.hpp
 	display-helpers.hpp
 	config-dialog.hpp
 	hotkey-edit.hpp
