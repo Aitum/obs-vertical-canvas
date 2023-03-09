@@ -368,6 +368,7 @@ void vendor_request_invoke(obs_data_t *request_data, obs_data_t *response_data,
 void vendor_request_save_replay(obs_data_t *request_data,
 				obs_data_t *response_data, void *p)
 {
+	UNUSED_PARAMETER(p);
 	const auto width = obs_data_get_int(request_data, "width");
 	const auto height = obs_data_get_int(request_data, "height");
 	for (const auto &it : canvas_docks) {

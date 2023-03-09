@@ -4,7 +4,6 @@
 #include <QMenu>
 #include <QScreen>
 #include <QWindow>
-//#include "display-helpers.hpp"
 #include "projector.hpp"
 #include <obs-module.h>
 #include <obs-frontend-api.h>

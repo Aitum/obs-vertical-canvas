@@ -60,6 +60,7 @@ public:
 
 class CanvasScenesDock;
 class CanvasSourcesDock;
+class OBSProjector;
 
 class CanvasDock : public QDockWidget {
 	Q_OBJECT
