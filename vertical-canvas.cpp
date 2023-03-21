@@ -2976,7 +2976,7 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 				 SLOT(OpenSourceProjector()));
 	popup->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
 				 "SourceWindow")),
-			 [this, sceneItem] {
+			 [sceneItem] {
 				 obs_source_t *source = obs_source_get_ref(
 					 obs_sceneitem_get_source(sceneItem));
 				 if (!source)
