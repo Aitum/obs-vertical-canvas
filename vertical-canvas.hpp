@@ -60,12 +60,14 @@ public:
 
 class CanvasScenesDock;
 class CanvasSourcesDock;
+class CanvasTransitionsDock;
 class OBSProjector;
 
 class CanvasDock : public QDockWidget {
 	Q_OBJECT
 	friend class CanvasScenesDock;
 	friend class CanvasSourcesDock;
+	friend class CanvasTransitionsDock;
 	friend class SourceTree;
 	friend class SourceTreeItem;
 	friend class SourceTreeModel;
@@ -147,6 +149,8 @@ private:
 	QAction *scenesDockAction = nullptr;
 	CanvasSourcesDock *sourcesDock = nullptr;
 	QAction *sourcesDockAction = nullptr;
+	CanvasTransitionsDock *transitionsDock = nullptr;
+	QAction *transitionsDockAction = nullptr;
 	OBSBasicSettings *configDialog = nullptr;
 
 	obs_hotkey_pair_id stream_hotkey;
@@ -334,6 +338,8 @@ private:
 	static void SceneReordered(void *data, calldata_t *params);
 	static void SceneRefreshed(void *data, calldata_t *params);
 
+	static void tranistion_override_stop(void *data, calldata_t *);
+
 private slots:
 	void AddSourceFromAction();
 	void VirtualCamButtonClicked();
@@ -351,6 +357,8 @@ private slots:
 	void OnReplayBufferStart();
 	void OnReplayBufferStop(int code, QString last_error);
 	void SwitchScene(const QString &scene_name);
+	obs_source_t *GetTransition(const char *transition_name);
+	bool SwapTransition(obs_source_t * transition);
 	void StartVirtualCam();
 	void StopVirtualCam();
 	void SetRecordAudioEncoders(obs_output_t *output);

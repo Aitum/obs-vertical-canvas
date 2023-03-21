@@ -26,6 +26,7 @@
 #include "name-dialog.hpp"
 #include "obs-websocket-api.h"
 #include "sources-dock.hpp"
+#include "transitions-dock.hpp"
 #include "audio-wrapper-source.h"
 #include "media-io/video-frame.h"
 #include "util/config-file.h"
@@ -433,6 +434,11 @@ bool obs_module_load(void)
 
 	obs_register_source(&audio_wrapper_source);
 
+	return true;
+}
+
+void obs_module_post_load(void)
+{
 	const auto path = obs_module_config_path("config.json");
 	obs_data_t *config = obs_data_create_from_json_file_safe(path, "bak");
 	bfree(path);
@@ -452,7 +458,7 @@ bool obs_module_load(void)
 		dock->setAction(a);
 		canvas_docks.push_back(dock);
 		obs_data_array_release(canvas);
-		return true;
+		return;
 	}
 	for (size_t i = 0; i < count; i++) {
 		const auto item = obs_data_array_item(canvas, i);
@@ -467,7 +473,7 @@ bool obs_module_load(void)
 	if (!vendor)
 		vendor = obs_websocket_register_vendor("aitum-vertical-canvas");
 	if (!vendor)
-		return true;
+		return;
 	obs_websocket_vendor_register_request(vendor, "version",
 					      vendor_request_version, nullptr);
 	obs_websocket_vendor_register_request(
@@ -514,7 +520,6 @@ bool obs_module_load(void)
 	verison_update_info = update_info_create_single(
 		"[vertical-canvas]", "OBS", "https://api.aitum.tv/vertical",
 		version_info_downloaded, nullptr);
-	return true;
 }
 
 void obs_module_unload(void)
@@ -887,6 +892,49 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 			config_save(profile_config);
 		}
 	}
+
+	size_t idx = 0;
+	const char *id;
+	while (obs_enum_transition_types(idx++, &id)) {
+		if (obs_is_source_configurable(id))
+			continue;
+		const char *name = obs_source_get_display_name(id);
+
+		OBSSourceAutoRelease tr =
+			obs_source_create_private(id, name, NULL);
+		transitions.emplace_back(tr);
+
+		//signals "transition_stop" and "transition_video_stop"
+		//        TransitionFullyStopped TransitionStopped
+	}
+
+	obs_data_array_t *transition_array =
+		obs_data_get_array(settings, "transitions");
+	if (transition_array) {
+		size_t c = obs_data_array_count(transition_array);
+		for (size_t i = 0; i < c; i++) {
+			obs_data_t *td =
+				obs_data_array_item(transition_array, i);
+			if (!td)
+				continue;
+			OBSSourceAutoRelease transition =
+				obs_load_private_source(td);
+			if (transition)
+				transitions.emplace_back(transition);
+
+			obs_data_release(td);
+		}
+		obs_data_array_release(transition_array);
+	}
+
+	auto transition =
+		GetTransition(obs_data_get_string(settings, "transition"));
+	if (!transition)
+		transition = GetTransition(
+			obs_source_get_display_name("fade_transition"));
+
+	SwapTransition(transition);
+
 	const QString title = QString::fromUtf8(obs_module_text("Vertical"));
 	setWindowTitle(title);
 
@@ -922,6 +970,10 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	sourcesDock = new CanvasSourcesDock(this, parent);
 	sourcesDockAction =
 		static_cast<QAction *>(obs_frontend_add_dock(sourcesDock));
+
+	transitionsDock = new CanvasTransitionsDock(this, parent);
+	transitionsDockAction =
+		static_cast<QAction *>(obs_frontend_add_dock(transitionsDock));
 
 	preview->setObjectName(QStringLiteral("preview"));
 	preview->setMinimumSize(QSize(24, 24));
@@ -1165,14 +1217,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 					    "vertical_canvas_stream_service",
 					    nullptr, nullptr);
 
-	OBSSourceAutoRelease fade = obs_source_create_private(
-		"fade_transition",
-		obs_source_get_display_name("fade_transition"), nullptr);
-	obs_transition_set_size(fade, canvas_width, canvas_height);
-	transitions.push_back(fade.Get());
-	source = obs_source_get_weak_source(fade);
-	obs_source_inc_showing(fade);
-	obs_source_inc_active(fade);
 	transitionAudioWrapper = obs_source_create_private(
 		"vertical_audio_wrapper_source",
 		"vertical_audio_wrapper_source", nullptr);
@@ -1244,6 +1288,8 @@ CanvasDock::~CanvasDock()
 
 	gs_vertexbuffer_destroy(box);
 	obs_leave_graphics();
+
+	transitions.clear();
 }
 
 void CanvasDock::setAction(QAction *a)
@@ -5946,6 +5992,25 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_array(data, "stop_stream_hotkey", stop_hotkey);
 	obs_data_array_release(start_hotkey);
 	obs_data_array_release(stop_hotkey);
+
+	obs_data_array_t *transition_array = obs_data_array_create();
+	for (auto transition : transitions) {
+		const char *id = obs_source_get_unversioned_id(transition);
+		if (!obs_is_source_configurable(id))
+			continue;
+		obs_data_t *transition_data = obs_save_source(transition);
+		if (!transition_data)
+			continue;
+		obs_data_array_push_back(transition_array, transition_data);
+		obs_data_release(transition_data);
+	}
+	obs_data_set_array(data, "transitions", transition_array);
+	obs_data_array_release(transition_array);
+
+	obs_data_set_string(
+		data, "transition",
+		transitionsDock->transition->currentText().toUtf8().constData());
+
 	return data;
 }
 
@@ -6055,6 +6120,23 @@ void CanvasDock::SwitchScene(const QString &scene_name)
 		if (oldSource) {
 			auto ost = obs_source_get_type(oldSource);
 			if (ost == OBS_SOURCE_TYPE_TRANSITION) {
+				auto data = obs_source_get_private_settings(
+					obs_scene_get_source(scene));
+				if (SwapTransition(
+					    GetTransition(obs_data_get_string(
+						    data, "transition")))) {
+					obs_source_release(oldSource);
+					oldSource = obs_weak_source_get_source(
+						source);
+					signal_handler_t *handler =
+						obs_source_get_signal_handler(
+							oldSource);
+					signal_handler_connect(
+						handler, "transition_stop",
+						tranistion_override_stop, this);
+				}
+				obs_data_release(data);
+
 				auto sourceA = obs_transition_get_source(
 					oldSource, OBS_TRANSITION_SOURCE_A);
 				if (sourceA != obs_scene_get_source(scene))
@@ -6127,6 +6209,62 @@ void CanvasDock::SwitchScene(const QString &scene_name)
 		obs_websocket_vendor_emit_event(vendor, "switch_scene", d);
 		obs_data_release(d);
 	}
+}
+
+void CanvasDock::tranistion_override_stop(void *data, calldata_t *)
+{
+	auto dock = (CanvasDock *)data;
+	auto tn = dock->transitionsDock->transition->currentText().toUtf8();
+	dock->SwapTransition(dock->GetTransition(tn.constData()));
+}
+
+obs_source_t *CanvasDock::GetTransition(const char *transition_name)
+{
+	if (!transition_name || !strlen(transition_name))
+		return nullptr;
+	for (auto transition : transitions) {
+		if (strcmp(transition_name, obs_source_get_name(transition)) ==
+		    0) {
+			return transition;
+		}
+	}
+	return nullptr;
+}
+
+bool CanvasDock::SwapTransition(obs_source_t *newTransition)
+{
+	if (!newTransition ||
+	    obs_weak_source_references_source(source, newTransition))
+		return false;
+
+	obs_transition_set_size(newTransition, canvas_width, canvas_height);
+
+	obs_source_t *oldTransition = obs_weak_source_get_source(source);
+	if (!oldTransition) {
+		obs_weak_source_release(source);
+		source = obs_source_get_weak_source(newTransition);
+		if (video && view)
+			obs_view_set_source(view, 0, newTransition);
+		obs_source_inc_showing(newTransition);
+		obs_source_inc_active(newTransition);
+		return true;
+	}
+	signal_handler_t *handler =
+		obs_source_get_signal_handler(oldTransition);
+	signal_handler_disconnect(handler, "transition_stop",
+				  tranistion_override_stop, this);
+	obs_source_inc_showing(newTransition);
+	obs_source_inc_active(newTransition);
+	obs_transition_swap_begin(newTransition, oldTransition);
+	obs_weak_source_release(source);
+	source = obs_source_get_weak_source(newTransition);
+	if (video && view)
+		obs_view_set_source(view, 0, newTransition);
+	obs_transition_swap_end(newTransition, oldTransition);
+	obs_source_dec_showing(oldTransition);
+	obs_source_dec_active(oldTransition);
+	obs_source_release(oldTransition);
+	return true;
 }
 
 void CanvasDock::source_rename(void *data, calldata_t *calldata)
@@ -6297,6 +6435,27 @@ void CanvasDock::FinishLoading()
 		main->splitDockWidget(this, sourcesDock, Qt::Horizontal);
 	}
 	sourcesDock->setFloating(false);
+
+	if (!transitionsDockAction->isChecked())
+		transitionsDockAction->trigger();
+	sd = main->findChild<QDockWidget *>(QStringLiteral("transitionsDock"));
+	if (sd) {
+		auto area = main->dockWidgetArea(sd);
+		if (area == Qt::NoDockWidgetArea) {
+			main->addDockWidget(Qt::RightDockWidgetArea,
+					    transitionsDock);
+			main->splitDockWidget(this, transitionsDock,
+					      Qt::Horizontal);
+		} else {
+			main->addDockWidget(area, transitionsDock);
+			main->splitDockWidget(sd, transitionsDock,
+					      Qt::Vertical);
+		}
+	} else {
+		main->addDockWidget(Qt::RightDockWidgetArea, transitionsDock);
+		main->splitDockWidget(this, transitionsDock, Qt::Horizontal);
+	}
+	transitionsDock->setFloating(false);
 	save_canvas();
 }
 

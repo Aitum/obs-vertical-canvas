@@ -24,6 +24,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	scenes-dock.cpp
 	sources-dock.cpp
 	source-tree.cpp
+	transitions-dock.cpp
 	qt-display.cpp
 	projector.cpp
 	config-dialog.cpp
@@ -36,6 +37,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	scenes-dock.hpp
 	sources-dock.hpp
 	source-tree.hpp
+	transitions-dock.hpp
 	qt-display.hpp
 	projector.hpp
 	display-helpers.hpp
