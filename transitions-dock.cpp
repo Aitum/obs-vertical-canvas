@@ -67,7 +67,7 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 		auto menu = QMenu(this);
 		auto subMenu = menu.addMenu(
 			QString::fromUtf8(obs_module_text("CopyFromMain")));
-		struct obs_frontend_source_list transitions = {0};
+		struct obs_frontend_source_list transitions = {};
 		obs_frontend_get_transitions(&transitions);
 		for (size_t i = 0; i < transitions.sources.num; i++) {
 			auto tr = transitions.sources.array[i];
