@@ -133,6 +133,73 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 			}
 		});
 
+	auto tom = menu.addMenu(QString::fromUtf8(
+		obs_frontend_get_locale_string("TransitionOverride")));
+	std::string scene_name = item->text().toUtf8().constData();
+	OBSSourceAutoRelease scene_source =
+		obs_get_source_by_name(scene_name.c_str());
+	OBSDataAutoRelease data = obs_source_get_private_settings(scene_source);
+	obs_data_set_default_int(data, "transition_duration", 300);
+	const char *curTransition = obs_data_get_string(data, "transition");
+	int curDuration = (int)obs_data_get_int(data, "transition_duration");
+
+	QSpinBox *duration = new QSpinBox(tom);
+	duration->setMinimum(50);
+	duration->setSuffix(" ms");
+	duration->setMaximum(20000);
+	duration->setSingleStep(50);
+	duration->setValue(curDuration);
+
+	connect(duration, (void(QSpinBox::*)(int)) & QSpinBox::valueChanged,
+		[this, scene_name](int duration) {
+			OBSSourceAutoRelease source =
+				obs_get_source_by_name(scene_name.c_str());
+			OBSDataAutoRelease data =
+				obs_source_get_private_settings(source);
+
+			obs_data_set_int(data, "transition_duration", duration);
+		});
+
+	auto action = tom->addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string("None")));
+	action->setCheckable(true);
+	action->setChecked(!curTransition || !strlen(curTransition));
+	connect(action, &QAction::triggered, [this, scene_name] {
+		OBSSourceAutoRelease source =
+			obs_get_source_by_name(scene_name.c_str());
+		OBSDataAutoRelease data =
+			obs_source_get_private_settings(source);
+		obs_data_set_string(data, "transition", "");
+	});
+
+	for (auto t : canvasDock->transitions) {
+		const char *name = obs_source_get_name(t);
+		bool match = (name && curTransition &&
+			      strcmp(name, curTransition) == 0);
+
+		if (!name || !*name)
+			name = obs_frontend_get_locale_string("None");
+
+		auto action = tom->addAction(QString::fromUtf8(name));
+		action->setCheckable(true);
+		action->setChecked(match);
+		connect(action, &QAction::triggered, [this, scene_name, action] {
+			OBSSourceAutoRelease source =
+				obs_get_source_by_name(scene_name.c_str());
+			OBSDataAutoRelease data =
+				obs_source_get_private_settings(source);
+			obs_data_set_string(
+				data, "transition",
+				action->text().toUtf8().constData());
+		});
+	}
+
+	QWidgetAction *durationAction = new QWidgetAction(tom);
+	durationAction->setDefaultWidget(duration);
+
+	tom->addSeparator();
+	tom->addAction(durationAction);
+
 	auto linkedScenesMenu = menu.addMenu(
 		QString::fromUtf8(obs_module_text("LinkedScenes")));
 	connect(linkedScenesMenu, &QMenu::aboutToShow, [linkedScenesMenu, this] {
