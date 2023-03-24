@@ -151,7 +151,7 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 	duration->setValue(curDuration);
 
 	connect(duration, (void(QSpinBox::*)(int)) & QSpinBox::valueChanged,
-		[this, scene_name](int duration) {
+		[scene_name](int duration) {
 			OBSSourceAutoRelease source =
 				obs_get_source_by_name(scene_name.c_str());
 			OBSDataAutoRelease data =
@@ -164,7 +164,7 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 		QString::fromUtf8(obs_frontend_get_locale_string("None")));
 	action->setCheckable(true);
 	action->setChecked(!curTransition || !strlen(curTransition));
-	connect(action, &QAction::triggered, [this, scene_name] {
+	connect(action, &QAction::triggered, [scene_name] {
 		OBSSourceAutoRelease source =
 			obs_get_source_by_name(scene_name.c_str());
 		OBSDataAutoRelease data =
@@ -183,7 +183,7 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 		auto action = tom->addAction(QString::fromUtf8(name));
 		action->setCheckable(true);
 		action->setChecked(match);
-		connect(action, &QAction::triggered, [this, scene_name, action] {
+		connect(action, &QAction::triggered, [scene_name, action] {
 			OBSSourceAutoRelease source =
 				obs_get_source_by_name(scene_name.c_str());
 			OBSDataAutoRelease data =
