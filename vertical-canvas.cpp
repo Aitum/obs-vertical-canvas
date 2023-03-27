@@ -5097,9 +5097,9 @@ void CanvasDock::replay_saved(void *data, calldata_t *calldata)
 
 void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 {
+	size_t idx = 0;
 	if (record_advanced_settings) {
 		obs_output_set_mixers(output, record_audio_tracks);
-		size_t idx = 0;
 		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
 			if ((record_audio_tracks & (1ll << i)) == 0)
 				continue;
@@ -5123,10 +5123,6 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 			obs_output_set_audio_encoder(output, aet, idx);
 			idx++;
 		}
-		while (idx < MAX_AUDIO_MIXES) {
-			obs_output_set_audio_encoder(output, nullptr, idx);
-			idx++;
-		}
 	} else {
 		obs_output_t *replay_output =
 			obs_frontend_get_replay_buffer_output();
@@ -5144,9 +5140,29 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 				const char *mode = config_get_string(
 					config, "Output", "Mode");
 				if (astrcmpi(mode, "Advanced") == 0) {
-					mixers = config_get_int(config,
-								"AdvOut",
-								"FFAudioMixes");
+					const char *recType = config_get_string(
+						config, "AdvOut", "RecType");
+					if (astrcmpi(recType, "FFmpeg") == 0) {
+						mixers = config_get_int(
+							config, "AdvOut",
+							"FFAudioMixes");
+					} else {
+						mixers = config_get_int(
+							config, "AdvOut",
+							"RecTracks");
+					}
+
+				} else {
+					const char *quality = config_get_string(
+						config, "SimpleOutput",
+						"RecQuality");
+					if (strcmp(quality, "Stream") == 0) {
+						mixers = 1;
+					} else {
+						mixers = config_get_int(
+							config, "SimpleOutput",
+							"RecTracks");
+					}
 				}
 				if (!mixers)
 					mixers = 1;
@@ -5154,21 +5170,23 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 		}
 		obs_output_set_mixers(output, mixers);
 		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
-			obs_encoder_t *aef =
-				obs_output_get_audio_encoder(replay_output, i);
-			if (!aef && i == 0) {
+			if ((mixers & (1ll << i)) == 0)
+				continue;
+			obs_encoder_t *aef = obs_output_get_audio_encoder(
+				replay_output, idx);
+			if (!aef && idx == 0) {
 				obs_frontend_replay_buffer_start();
 				obs_frontend_replay_buffer_stop();
 				aef = obs_output_get_audio_encoder(
-					replay_output, i);
+					replay_output, idx);
 			}
 			if (aef) {
 				obs_encoder_t *aet =
 					obs_output_get_audio_encoder(
-						replayOutput, i);
+						replayOutput, idx);
 				if (!aet && recordOutput)
 					aet = obs_output_get_audio_encoder(
-						recordOutput, i);
+						recordOutput, idx);
 				if (aet && strcmp(obs_encoder_get_id(aef),
 						  obs_encoder_get_id(aet)) != 0)
 					aet = nullptr;
@@ -5186,13 +5204,14 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 				auto s = obs_encoder_get_settings(aef);
 				obs_encoder_update(aet, s);
 				obs_data_release(s);
-				obs_output_set_audio_encoder(output, aet, i);
-			} else {
-				obs_output_set_audio_encoder(output, nullptr,
-							     i);
+				obs_output_set_audio_encoder(output, aet, idx);
+				idx++;
 			}
 		}
 		obs_output_release(replay_output);
+	}
+	for (; idx < MAX_AUDIO_MIXES; idx++) {
+		obs_output_set_audio_encoder(output, nullptr, idx);
 	}
 }
 
