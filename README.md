@@ -14,3 +14,6 @@ For support please use the relevant channel on our [Discord server](https://aitu
 - Stand-alone build
     - Verify that you have development files for OBS
     - Check out this repository and run `cmake -S . -B build -DBUILD_OUT_OF_TREE=On && cmake --build build`
+
+# Translations
+Please read [Translations](TRANSLATIONS.md)
