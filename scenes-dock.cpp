@@ -295,6 +295,8 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent)
 	: QDockWidget(parent), canvasDock(canvas_dock)
 {
+	setMinimumWidth(100);
+	setMinimumHeight(50);
 	const auto scenesName = canvasDock->objectName() + "Scenes";
 	setObjectName(scenesName);
 	const auto scenesTitle =

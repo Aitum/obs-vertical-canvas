@@ -14,7 +14,8 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 	setWindowTitle(canvasDock->windowTitle() + " " +
 		       QString::fromUtf8(obs_frontend_get_locale_string(
 			       "Basic.SceneTransitions")));
-
+	setMinimumWidth(100);
+	setMinimumHeight(50);
 	setContentsMargins(0, 0, 0, 0);
 
 	auto mainLayout = new QVBoxLayout();

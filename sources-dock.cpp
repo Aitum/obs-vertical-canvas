@@ -13,6 +13,8 @@
 CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 	: QDockWidget(parent), canvasDock(canvas_dock)
 {
+	setMinimumWidth(100);
+	setMinimumHeight(50);
 	const auto sourcesName = canvasDock->objectName() + "Sources";
 	setObjectName(sourcesName);
 	const auto sourcesTitle =
