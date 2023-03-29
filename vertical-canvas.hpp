@@ -143,6 +143,9 @@ private:
 
 	QIcon replayActiveIcon = QIcon(":/aitum/media/backtrack_on.svg");
 	QIcon replayInactiveIcon = QIcon(":/aitum/media/backtrack_off.svg");
+
+	QIcon virtualCamActiveIcon = QIcon(":/aitum/media/virtual_cam_on.svg");
+	QIcon virtualCamInactiveIcon = QIcon(":/aitum/media/virtual_cam_off.svg");
 	QComboBox *scenesCombo = nullptr;
 	QCheckBox *linkedButton = nullptr;
 	CanvasScenesDock *scenesDock = nullptr;

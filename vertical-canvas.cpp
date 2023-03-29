@@ -1079,6 +1079,19 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		SLOT(ReplayButtonClicked()));
 	buttonRow->addWidget(replayButton);
 
+	virtualCamButton = new QPushButton;
+	virtualCamButton->setObjectName(QStringLiteral("canvasVirtualCam"));
+	virtualCamButton->setIcon(virtualCamInactiveIcon);
+	virtualCamButton->setCheckable(true);
+	virtualCamButton->setChecked(false);
+	virtualCamButton->setToolTip(
+		QString::fromUtf8(obs_module_text("VirtualCameraVertical")));
+	virtualCamButton->setVisible(obs_get_version() >=
+				     MAKE_SEMANTIC_VERSION(29, 1, 0));
+	connect(virtualCamButton, SIGNAL(clicked()), this,
+		SLOT(VirtualCamButtonClicked()));
+	buttonRow->addWidget(virtualCamButton);
+
 	statusLabel = new QLabel;
 	statusLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
 	buttonRow->addWidget(statusLabel, 1);
@@ -1087,19 +1100,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	replayStatusResetTimer.setSingleShot(true);
 	connect(&replayStatusResetTimer, &QTimer::timeout,
 		[this] { statusLabel->setText(""); });
-
-	virtualCamButton = new QPushButton;
-	virtualCamButton->setObjectName(QStringLiteral("canvasVirtualCam"));
-	virtualCamButton->setText(
-		QString::fromUtf8(obs_module_text("VirtualCam")));
-	virtualCamButton->setCheckable(true);
-	virtualCamButton->setChecked(false);
-	virtualCamButton->setToolTip(
-		QString::fromUtf8(obs_module_text("VirtualCameraVertical")));
-	virtualCamButton->setVisible(false);
-	connect(virtualCamButton, SIGNAL(clicked()), this,
-		SLOT(VirtualCamButtonClicked()));
-	buttonRow->addWidget(virtualCamButton);
 
 	configButton = new QPushButton(this);
 	configButton->setProperty("themeID", "configIconSmall");
@@ -4735,11 +4735,16 @@ void CanvasDock::virtual_cam_output_stop(void *data, calldata_t *calldata)
 
 void CanvasDock::OnVirtualCamStart()
 {
+	virtualCamButton->setIcon(virtualCamActiveIcon);
+	virtualCamButton->setStyleSheet(
+		QString::fromUtf8("background: rgb(192,128,0);"));
 	virtualCamButton->setChecked(true);
 }
 
 void CanvasDock::OnVirtualCamStop()
 {
+	virtualCamButton->setIcon(virtualCamInactiveIcon);
+	virtualCamButton->setStyleSheet(QString::fromUtf8(""));
 	virtualCamButton->setChecked(false);
 	CheckReplayBuffer();
 }
