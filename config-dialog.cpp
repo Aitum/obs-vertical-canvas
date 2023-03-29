@@ -436,7 +436,8 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		});
 	streamingAdvancedLayout->addRow(
 		QString::fromUtf8(obs_frontend_get_locale_string(
-			obs_get_version() >= MAKE_SEMANTIC_VERSION(29, 1, 0)
+			(obs_get_version() >= MAKE_SEMANTIC_VERSION(29, 1, 0) ||
+			 strncmp(obs_get_version_string(), "29.1.", 5) == 0)
 				? "Basic.Settings.Output.Encoder.Video"
 				: "Basic.Settings.Output.Encoder")),
 		streamingEncoder);
@@ -683,7 +684,8 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	recordingAdvancedLayout->addRow(
 		QString::fromUtf8(obs_frontend_get_locale_string(
-			obs_get_version() >= MAKE_SEMANTIC_VERSION(29, 1, 0)
+			(obs_get_version() >= MAKE_SEMANTIC_VERSION(29, 1, 0) ||
+			 strncmp(obs_get_version_string(), "29.1.", 5) == 0)
 				? "Basic.Settings.Output.Encoder.Video"
 				: "Basic.Settings.Output.Encoder")),
 		recordingEncoder);

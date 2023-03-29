@@ -1086,8 +1086,10 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	virtualCamButton->setChecked(false);
 	virtualCamButton->setToolTip(
 		QString::fromUtf8(obs_module_text("VirtualCameraVertical")));
-	virtualCamButton->setVisible(obs_get_version() >=
-				     MAKE_SEMANTIC_VERSION(29, 1, 0));
+	if (obs_get_version() < MAKE_SEMANTIC_VERSION(29, 1, 0) &&
+	    strncmp(obs_get_version_string(), "29.1.", 5) != 0) {
+		virtualCamButton->setVisible(false);
+	}
 	connect(virtualCamButton, SIGNAL(clicked()), this,
 		SLOT(VirtualCamButtonClicked()));
 	buttonRow->addWidget(virtualCamButton);
