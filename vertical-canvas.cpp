@@ -5729,10 +5729,20 @@ void CanvasDock::StartStream()
 	obs_service_update(stream_service, s);
 	obs_data_release(s);
 
+#if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(29, 1, 0)
 	const char *type = obs_service_get_output_type(stream_service);
+#else
+	const char *type =
+		obs_service_get_preferred_output_type(stream_service);
+#endif
 	if (!type) {
 		type = "rtmp_output";
+#if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(29, 1, 0)
 		const char *url = obs_service_get_url(stream_service);
+#else
+		const char *url = obs_service_get_connect_info(
+			stream_service, OBS_SERVICE_CONNECT_INFO_SERVER_URL);
+#endif
 		if (url != NULL && strncmp(url, "ftl", 3) == 0) {
 			type = "ftl_output";
 		} else if (url != NULL && strncmp(url, "rtmp", 4) != 0) {
@@ -6487,6 +6497,45 @@ void CanvasDock::OnRecordStart()
 	StartReplayBuffer();
 }
 
+void CanvasDock::TryRemux(QString path)
+{
+	const obs_encoder_t *videoEncoder = nullptr;
+	obs_output_t *ro = obs_frontend_get_recording_output();
+	if (ro) {
+		videoEncoder = obs_output_get_video_encoder(ro);
+		obs_output_release(ro);
+	}
+	if (!videoEncoder) {
+		if (!config_get_bool(obs_frontend_get_profile_config(), "Video",
+				     "AutoRemux"))
+			return;
+	}
+	if (!videoEncoder) {
+		obs_frontend_replay_buffer_start();
+		obs_frontend_replay_buffer_stop();
+		ro = obs_frontend_get_recording_output();
+		if (ro) {
+			videoEncoder = obs_output_get_video_encoder(ro);
+			obs_output_release(ro);
+		}
+	}
+	if (!videoEncoder) {
+		obs_frontend_recording_start();
+		obs_frontend_recording_stop();
+		ro = obs_frontend_get_recording_output();
+		if (ro) {
+			videoEncoder = obs_output_get_video_encoder(ro);
+			obs_output_release(ro);
+		}
+	}
+	if (videoEncoder) {
+		const auto main_window = static_cast<QMainWindow *>(
+			obs_frontend_get_main_window());
+		QMetaObject::invokeMethod(main_window, "RecordingFileChanged",
+					  Q_ARG(QString, path));
+	}
+}
+
 void CanvasDock::OnRecordStop(int code, QString last_error)
 {
 	recordButton->setChecked(false);
@@ -6498,13 +6547,8 @@ void CanvasDock::OnRecordStop(int code, QString last_error)
 	obs_data_t *s = obs_output_get_settings(recordOutput);
 	std::string path = obs_data_get_string(s, "path");
 	obs_data_release(s);
-	if (!path.empty()) {
-		const auto main_window = static_cast<QMainWindow *>(
-			obs_frontend_get_main_window());
-		QMetaObject::invokeMethod(
-			main_window, "RecordingFileChanged",
-			Q_ARG(QString, QString::fromUtf8(path.c_str())));
-	}
+	if (!path.empty())
+		TryRemux(QString::fromUtf8(path.c_str()));
 }
 
 void CanvasDock::HandleRecordError(int code, QString last_error)
@@ -6572,13 +6616,8 @@ void CanvasDock::OnReplaySaved()
 	proc_handler_call(ph, "get_last_replay", &cd);
 	std::string path = calldata_string(&cd, "path");
 	calldata_free(&cd);
-	if (!path.empty()) {
-		const auto main_window = static_cast<QMainWindow *>(
-			obs_frontend_get_main_window());
-		QMetaObject::invokeMethod(
-			main_window, "RecordingFileChanged",
-			Q_ARG(QString, QString::fromUtf8(path.c_str())));
-	}
+	if (!path.empty())
+		TryRemux(QString::fromUtf8(path.c_str()));
 	replayStatusResetTimer.start(4000);
 }
 

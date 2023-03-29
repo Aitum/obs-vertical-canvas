@@ -294,6 +294,8 @@ private:
 	void AddProjectorMenuMonitors(QMenu *parent, QObject *target,
 				      const char *slot);
 
+	void TryRemux(QString path);
+
 	enum class MoveDir { Up, Down, Left, Right };
 	void Nudge(int dist, MoveDir dir);
 
