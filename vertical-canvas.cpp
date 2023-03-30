@@ -883,6 +883,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		obs_data_get_bool(settings, "record_advanced_settings");
 	file_format = obs_data_get_string(settings, "file_format");
 	record_audio_tracks = obs_data_get_int(settings, "record_audio_tracks");
+	if (!record_audio_tracks)
+		record_audio_tracks = 1;
 	record_encoder = obs_data_get_string(settings, "record_encoder");
 	record_encoder_settings =
 		obs_data_get_obj(settings, "record_encoder_settings");

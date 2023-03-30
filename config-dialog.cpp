@@ -1078,6 +1078,8 @@ void OBSBasicSettings::SaveSettings()
 		if (recordingAudioTracks[i]->isChecked())
 			tracks += (1ll << i);
 	}
+	if (!tracks)
+		tracks = 1;
 	if (canvasDock->record_audio_tracks != tracks) {
 		canvasDock->record_audio_tracks = tracks;
 		if ((canvasDock->recordOutput &&
