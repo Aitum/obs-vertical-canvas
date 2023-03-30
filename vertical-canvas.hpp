@@ -137,6 +137,7 @@ private:
 	QPushButton *replayButton;
 	QLabel *statusLabel;
 	QTimer replayStatusResetTimer;
+	QTimer recordDurationTimer;
 	QPushButton *streamButton;
 	QIcon streamActiveIcon = QIcon(":/aitum/media/streaming.svg");
 	QIcon streamInactiveIcon = QIcon(":/aitum/media/stream.svg");

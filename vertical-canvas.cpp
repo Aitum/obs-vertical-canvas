@@ -1084,6 +1084,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	virtualCamButton->setIcon(virtualCamInactiveIcon);
 	virtualCamButton->setCheckable(true);
 	virtualCamButton->setChecked(false);
+	virtualCamButton->setSizePolicy(sp2);
 	virtualCamButton->setToolTip(
 		QString::fromUtf8(obs_module_text("VirtualCameraVertical")));
 	if (obs_get_version() < MAKE_SEMANTIC_VERSION(29, 1, 0) &&
@@ -1097,6 +1098,38 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	statusLabel = new QLabel;
 	statusLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
 	buttonRow->addWidget(statusLabel, 1);
+
+	recordDurationTimer.setInterval(1000);
+	recordDurationTimer.setSingleShot(false);
+	connect(&recordDurationTimer, &QTimer::timeout, [this] {
+		if (obs_output_active(recordOutput)) {
+			int totalFrames =
+				obs_output_get_total_frames(recordOutput);
+			video_t *video = obs_output_video(recordOutput);
+			uint64_t frameTimeNs =
+				video_output_get_frame_time(video);
+			auto t = QTime::fromMSecsSinceStartOfDay(util_mul_div64(
+				totalFrames, frameTimeNs, 1000000ULL));
+			recordButton->setText(
+				t.toString(t.hour() ? "hh:mm:ss" : "mm:ss"));
+		} else if (!recordButton->text().isEmpty()) {
+			recordButton->setText("");
+		}
+		if (obs_output_active(streamOutput)) {
+			int totalFrames =
+				obs_output_get_total_frames(streamOutput);
+			video_t *video = obs_output_video(streamOutput);
+			uint64_t frameTimeNs =
+				video_output_get_frame_time(video);
+			auto t = QTime::fromMSecsSinceStartOfDay(util_mul_div64(
+				totalFrames, frameTimeNs, 1000000ULL));
+			streamButton->setText(
+				t.toString(t.hour() ? "hh:mm:ss" : "mm:ss"));
+		} else if (!streamButton->text().isEmpty()) {
+			streamButton->setText("");
+		}
+	});
+	recordDurationTimer.start();
 
 	replayStatusResetTimer.setInterval(4000);
 	replayStatusResetTimer.setSingleShot(true);
@@ -6499,6 +6532,7 @@ void CanvasDock::OnRecordStart()
 {
 	recordButton->setChecked(true);
 	recordButton->setIcon(recordActiveIcon);
+	recordButton->setText("00:00");
 	recordButton->setStyleSheet(
 		QString::fromUtf8("background: rgb(255,0,0);"));
 	StartReplayBuffer();
@@ -6547,6 +6581,7 @@ void CanvasDock::OnRecordStop(int code, QString last_error)
 {
 	recordButton->setChecked(false);
 	recordButton->setIcon(recordInactiveIcon);
+	recordButton->setText("");
 	recordButton->setStyleSheet(QString::fromUtf8(""));
 	HandleRecordError(code, last_error);
 	CheckReplayBuffer();
@@ -6632,6 +6667,7 @@ void CanvasDock::OnStreamStart()
 {
 	streamButton->setChecked(true);
 	streamButton->setIcon(streamActiveIcon);
+	streamButton->setText("00:00");
 	streamButton->setStyleSheet(
 		QString::fromUtf8("background: rgb(0,210,153);"));
 	StartReplayBuffer();
@@ -6641,6 +6677,7 @@ void CanvasDock::OnStreamStop(int code, QString last_error)
 {
 	streamButton->setChecked(false);
 	streamButton->setIcon(streamInactiveIcon);
+	streamButton->setText("");
 	streamButton->setStyleSheet(QString::fromUtf8(""));
 	const char *errorDescription = "";
 
@@ -6743,7 +6780,7 @@ void CanvasDock::OnReplayBufferStop(int code, QString last_error)
 	replayButton->setIcon(replayInactiveIcon);
 	replayButton->setStyleSheet(QString::fromUtf8(""));
 	if (!replayStatusResetTimer.isActive())
-		replayStatusResetTimer.start();
+		replayStatusResetTimer.start(4000);
 	if (restart_video)
 		ProfileChanged();
 	HandleRecordError(code, last_error);
