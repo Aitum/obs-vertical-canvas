@@ -94,8 +94,11 @@ static void save_canvas()
 	}
 	obs_data_set_array(config, "canvas", canvas);
 	obs_data_array_release(canvas);
-	obs_data_save_json_safe(config, path, "tmp", "bak");
-	blog(LOG_INFO, "[Vertical Canvas] Saved settings");
+	if (obs_data_save_json_safe(config, path, "tmp", "bak")) {
+		blog(LOG_INFO, "[Vertical Canvas] Saved settings");
+	} else {
+		blog(LOG_ERROR, "[Vertical Canvas] Failed saving settings");
+	}
 	obs_data_release(config);
 }
 
