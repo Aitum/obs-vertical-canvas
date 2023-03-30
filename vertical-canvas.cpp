@@ -95,6 +95,7 @@ static void save_canvas()
 	obs_data_set_array(config, "canvas", canvas);
 	obs_data_array_release(canvas);
 	obs_data_save_json_safe(config, path, "tmp", "bak");
+	blog(LOG_INFO, "[Vertical Canvas] Saved settings");
 	obs_data_release(config);
 }
 
@@ -442,8 +443,13 @@ void obs_module_post_load(void)
 	const auto path = obs_module_config_path("config.json");
 	obs_data_t *config = obs_data_create_from_json_file_safe(path, "bak");
 	bfree(path);
-	if (!config)
+	if (!config) {
 		config = obs_data_create();
+		blog(LOG_WARNING,
+		     "[Vertical Canvas] No configuration file loaded");
+	} else {
+		blog(LOG_INFO, "[Vertical Canvas] Loaded configuration file");
+	}
 
 	const auto main_window =
 		static_cast<QMainWindow *>(obs_frontend_get_main_window());
@@ -458,6 +464,7 @@ void obs_module_post_load(void)
 		dock->setAction(a);
 		canvas_docks.push_back(dock);
 		obs_data_array_release(canvas);
+		blog(LOG_INFO, "[Vertical Canvas] New Canvas created");
 		return;
 	}
 	for (size_t i = 0; i < count; i++) {
