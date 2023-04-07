@@ -82,6 +82,8 @@ static void ensure_directory(char *path)
 
 static void save_canvas()
 {
+	if (canvas_docks.empty())
+		return;
 	char path[512];
 	strcpy(path, obs_module_config_path("config.json"));
 	ensure_directory(path);
@@ -113,7 +115,8 @@ void transition_start(void *, calldata_t *)
 void frontend_event(obs_frontend_event event, void *private_data)
 {
 	UNUSED_PARAMETER(private_data);
-	if (event == OBS_FRONTEND_EVENT_EXIT) {
+	if (event == OBS_FRONTEND_EVENT_EXIT ||
+	    event == OBS_FRONTEND_EVENT_SCRIPTING_SHUTDOWN) {
 		save_canvas();
 		clear_canvas_docks();
 	} else if (event == OBS_FRONTEND_EVENT_SCENE_COLLECTION_CLEANUP) {
@@ -458,8 +461,11 @@ void obs_module_post_load(void)
 		static_cast<QMainWindow *>(obs_frontend_get_main_window());
 	auto canvas = obs_data_get_array(config, "canvas");
 	obs_data_release(config);
-	if (!canvas)
+	if (!canvas) {
 		canvas = obs_data_array_create();
+		blog(LOG_WARNING,
+		     "[Vertical Canvas] no canvas found in configuration");
+	}
 	const auto count = obs_data_array_count(canvas);
 	if (!count) {
 		const auto dock = new CanvasDock(nullptr, main_window);
@@ -1289,6 +1295,15 @@ CanvasDock::~CanvasDock()
 	obs_display_remove_draw_callback(preview->GetDisplay(), DrawPreview,
 					 this);
 	delete action;
+	delete sourcesDock;
+	delete sourcesDockAction;
+	sourcesDock = nullptr;
+	delete scenesDock;
+	delete scenesDockAction;
+	scenesDock = nullptr;
+	delete transitionsDock;
+	delete transitionsDockAction;
+	transitionsDock = nullptr;
 	auto sh = obs_get_signal_handler();
 	signal_handler_disconnect(sh, "source_rename", source_rename, this);
 	signal_handler_disconnect(sh, "source_remove", source_remove, this);
@@ -6099,7 +6114,7 @@ void CanvasDock::ClearScenes()
 {
 	if (scenesCombo)
 		scenesCombo->clear();
-	if (scenesDock)
+	if (scenesDock && scenesDock->sceneList->count())
 		scenesDock->sceneList->clear();
 	SwitchScene("");
 }
