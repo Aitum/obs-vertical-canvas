@@ -23,17 +23,6 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 	mainLayout->setSpacing(2);
 
 	transition = new QComboBox();
-	connect(transition, &QComboBox::currentTextChanged, [this] {
-		auto tn = transition->currentText().toUtf8();
-		auto t = canvasDock->GetTransition(tn.constData());
-		if (!t)
-			return;
-		canvasDock->SwapTransition(t);
-		bool config = obs_is_source_configurable(
-			obs_source_get_unversioned_id(t));
-		removeButton->setEnabled(config);
-		propsButton->setEnabled(config);
-	});
 	mainLayout->addWidget(transition);
 
 	auto hl = new QHBoxLayout();
@@ -290,6 +279,17 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 			propsButton->setEnabled(config);
 		}
 	}
+	connect(transition, &QComboBox::currentTextChanged, [this] {
+		auto tn = transition->currentText().toUtf8();
+		auto t = canvasDock->GetTransition(tn.constData());
+		if (!t)
+			return;
+		canvasDock->SwapTransition(t);
+		bool config = obs_is_source_configurable(
+			obs_source_get_unversioned_id(t));
+		removeButton->setEnabled(config);
+		propsButton->setEnabled(config);
+	});
 }
 
 CanvasTransitionsDock::~CanvasTransitionsDock() {}
