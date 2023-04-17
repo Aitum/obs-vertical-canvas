@@ -4982,14 +4982,16 @@ void CanvasDock::StartRecord()
 				"ffmpeg_muxer", "vertical_canvas_record",
 				nullptr, nullptr);
 	} else {
-		obs_output_t *replay_output =
-			obs_frontend_get_replay_buffer_output();
-		if (!replay_output) {
-			ShowNoReplayOutputError();
-			return;
-		}
-
 		obs_output_t *output = obs_frontend_get_recording_output();
+		if (!output) {
+			obs_output_t *replay_output =
+				obs_frontend_get_replay_buffer_output();
+			if (!replay_output) {
+				ShowNoReplayOutputError();
+				return;
+			}
+			obs_output_release(replay_output);
+		}
 		if (!recordOutput)
 			recordOutput = obs_output_create(
 				obs_output_get_id(output),
@@ -5074,6 +5076,7 @@ void CanvasDock::StartRecord()
 		if (filename_formatting.empty()) {
 			filename_formatting = config_get_string(
 				config, "Output", "FilenameFormatting");
+			filename_formatting += "-vertical";
 		}
 		if (filename_formatting.empty()) {
 			filename_formatting =
@@ -5193,9 +5196,14 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 			idx++;
 		}
 	} else {
-		obs_output_t *replay_output =
+		bool r = false;
+		obs_output_t *main_output =
 			obs_frontend_get_replay_buffer_output();
-		size_t mixers = obs_output_get_mixers(replay_output);
+		if (!main_output) {
+			r = true;
+			main_output = obs_frontend_get_recording_output();
+		}
+		size_t mixers = obs_output_get_mixers(main_output);
 		if (!mixers) {
 			obs_output_t *record_output =
 				obs_frontend_get_recording_output();
@@ -5241,13 +5249,18 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
 			if ((mixers & (1ll << i)) == 0)
 				continue;
-			obs_encoder_t *aef = obs_output_get_audio_encoder(
-				replay_output, idx);
+			obs_encoder_t *aef =
+				obs_output_get_audio_encoder(main_output, idx);
 			if (!aef && idx == 0) {
-				obs_frontend_replay_buffer_start();
-				obs_frontend_replay_buffer_stop();
-				aef = obs_output_get_audio_encoder(
-					replay_output, idx);
+				if (r) {
+					obs_frontend_recording_start();
+					obs_frontend_recording_stop();
+				} else {
+					obs_frontend_replay_buffer_start();
+					obs_frontend_replay_buffer_stop();
+				}
+				aef = obs_output_get_audio_encoder(main_output,
+								   idx);
 			}
 			if (aef) {
 				obs_encoder_t *aet =
@@ -5277,7 +5290,7 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 				idx++;
 			}
 		}
-		obs_output_release(replay_output);
+		obs_output_release(main_output);
 	}
 	for (; idx < MAX_AUDIO_MIXES; idx++) {
 		obs_output_set_audio_encoder(output, nullptr, idx);
@@ -5305,9 +5318,9 @@ void CanvasDock::ShowNoReplayOutputError()
 			return;
 		}
 	}
+	blog(LOG_WARNING,
+	     "[vertical-canvas] error starting backtrack: no replay buffer found");
 	if (isVisible()) {
-		blog(LOG_WARNING,
-		     "[vertical-canvas] error starting backtrack: no replay buffer found");
 		QMessageBox::warning(this,
 				     QString::fromUtf8(obs_module_text(
 					     "backtrackStartFail")),
@@ -5709,10 +5722,12 @@ obs_encoder_t *CanvasDock::GetRecordVideoEncoder()
 	obs_data_release(settings);
 
 	if (!record_advanced_settings) {
-		obs_output_t *replay_output =
+		obs_output_t *main_output =
 			obs_frontend_get_replay_buffer_output();
-		auto enc = obs_output_get_video_encoder(replay_output);
-		obs_output_release(replay_output);
+		if (!main_output)
+			main_output = obs_frontend_get_recording_output();
+		auto enc = obs_output_get_video_encoder(main_output);
+		obs_output_release(main_output);
 		obs_data_t *d = obs_encoder_get_settings(enc);
 		obs_encoder_update(video_encoder, d);
 		if (!videoBitrate) {
