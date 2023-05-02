@@ -6698,12 +6698,20 @@ void CanvasDock::HandleRecordError(int code, QString last_error)
 
 void CanvasDock::OnReplaySaved()
 {
+	std::string path;
 	statusLabel->setText(QString::fromUtf8(obs_module_text("Saved")));
-	calldata_t cd = {0};
-	proc_handler_t *ph = obs_output_get_proc_handler(replayOutput);
-	proc_handler_call(ph, "get_last_replay", &cd);
-	std::string path = calldata_string(&cd, "path");
-	calldata_free(&cd);
+	if (replayOutput) {
+		proc_handler_t *ph = obs_output_get_proc_handler(replayOutput);
+		if (ph) {
+			calldata_t cd = {0};
+			if (proc_handler_call(ph, "get_last_replay", &cd)) {
+				const char *p = calldata_string(&cd, "path");
+				if (p)
+					path = p;
+			}
+			calldata_free(&cd);
+		}
+	}
 	if (!path.empty())
 		TryRemux(QString::fromUtf8(path.c_str()));
 	replayStatusResetTimer.start(4000);
