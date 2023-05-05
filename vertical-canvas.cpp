@@ -5109,10 +5109,21 @@ void CanvasDock::StartRecord()
 	}
 	if (!format || !strlen(format))
 		format = "mkv";
+	std::string ext = format;
+	if (ffmpegOutput)
+		ext = "avi";
+	else if (ext == "fragmented_mp4")
+		ext = "mp4";
+	else if (ext == "fragmented_mov")
+		ext = "mov";
+	else if (ext == "hls")
+		ext = "m3u8";
+	else if (ext == "mpegts")
+		ext = "ts";
 	obs_data_t *ps = obs_data_create();
 	char path[512];
-	char *filename = os_generate_formatted_filename(
-		ffmpegOutput ? "avi" : format, true, filenameFormat.c_str());
+	char *filename = os_generate_formatted_filename(ext.c_str(), true,
+							filenameFormat.c_str());
 	if (recordPath.empty() && dir) {
 		recordPath = dir;
 	} else {
