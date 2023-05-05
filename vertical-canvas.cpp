@@ -5088,6 +5088,8 @@ void CanvasDock::StartRecord()
 						   "FilenameFormatting");
 		filenameFormat += "-vertical";
 	}
+	if (!format || !strlen(format))
+		format = "mkv";
 	obs_data_t *ps = obs_data_create();
 	char path[512];
 	char *filename = os_generate_formatted_filename(
@@ -5760,7 +5762,10 @@ obs_encoder_t *CanvasDock::GetRecordVideoEncoder()
 
 void CanvasDock::StopReplayBuffer()
 {
-	QMetaObject::invokeMethod(this, "OnReplayBufferStop");
+	QMetaObject::invokeMethod(this, "OnReplayBufferStop",
+			Q_ARG(int, OBS_OUTPUT_SUCCESS),
+			Q_ARG(QString,
+			      QString::fromUtf8("")));
 	if (obs_output_active(replayOutput)) {
 		SendVendorEvent("backtrack_stopping");
 		obs_output_stop(replayOutput);
