@@ -196,6 +196,7 @@ private:
 	long long record_audio_tracks;
 	std::string record_encoder;
 	obs_data_t *record_encoder_settings;
+	bool virtual_cam_warned;
 
 	QString currentSceneName;
 	bool first_time = false;

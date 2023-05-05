@@ -901,6 +901,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	preview_disabled = obs_data_get_bool(settings, "preview_disabled");
 
+	virtual_cam_warned = obs_data_get_bool(settings, "virtual_cam_warned");
+
 	if (!record_advanced_settings && (replayAlwaysOn || startReplay)) {
 		const auto profile_config = obs_frontend_get_profile_config();
 		if (!config_get_bool(profile_config, "AdvOut", "RecRB") ||
@@ -4833,6 +4835,15 @@ void CanvasDock::StartVirtualCam()
 		return;
 	}
 
+	if (!virtual_cam_warned && isVisible()) {
+		QMessageBox::warning(this,
+				     QString::fromUtf8(obs_module_text(
+					     "VirtualCameraVertical")),
+				     QString::fromUtf8(obs_module_text(
+					     "VirtualCameraWarning")));
+		virtual_cam_warned = true;
+	}
+
 	virtualCamOutput = output;
 
 	const bool started_video = StartVideo();
@@ -6087,6 +6098,7 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_int(data, "height", canvas_height);
 	obs_data_set_bool(data, "show_scenes", !hideScenes);
 	obs_data_set_bool(data, "preview_disabled", preview_disabled);
+	obs_data_set_bool(data, "virtual_cam_warned", virtual_cam_warned);
 	obs_data_set_int(data, "video_bitrate", videoBitrate);
 	obs_data_set_int(data, "audio_bitrate", audioBitrate);
 	obs_data_set_bool(data, "backtrack", startReplay);
