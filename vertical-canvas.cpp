@@ -5030,12 +5030,31 @@ void CanvasDock::StartRecord()
 		bool ffmpegRecording =
 			ffmpegOutput &&
 			config_get_bool(config, "AdvOut", "FFOutputToFile");
-		format = config_get_string(config, "AdvOut",
-					   ffmpegRecording ? "FFExtension"
-							   : "RecFormat");
+		if (ffmpegRecording) {
+			format = config_get_string(config, "AdvOut",
+						   "FFExtension");
+		} else if (!config_has_user_value(config, "AdvOut",
+						  "RecFormat2") &&
+			   config_has_user_value(config, "AdvOut",
+						 "RecFormat")) {
+			format = config_get_string(config, "AdvOut",
+						   "RecFormat");
+		} else {
+			format = config_get_string(config, "AdvOut",
+						   "RecFormat2");
+		}
 	} else {
 		dir = config_get_string(config, "SimpleOutput", "FilePath");
-		format = config_get_string(config, "SimpleOutput", "RecFormat");
+		if (!config_has_user_value(config, "SimpleOutput",
+					   "RecFormat2") &&
+		    config_has_user_value(config, "SimpleOutput",
+					  "RecFormat")) {
+			format = config_get_string(config, "SimpleOutput",
+						   "RecFormat");
+		} else {
+			format = config_get_string(config, "SimpleOutput",
+						   "RecFormat2");
+		}
 		const char *quality =
 			config_get_string(config, "SimpleOutput", "RecQuality");
 		if (strcmp(quality, "Lossless") == 0) {
@@ -5763,9 +5782,8 @@ obs_encoder_t *CanvasDock::GetRecordVideoEncoder()
 void CanvasDock::StopReplayBuffer()
 {
 	QMetaObject::invokeMethod(this, "OnReplayBufferStop",
-			Q_ARG(int, OBS_OUTPUT_SUCCESS),
-			Q_ARG(QString,
-			      QString::fromUtf8("")));
+				  Q_ARG(int, OBS_OUTPUT_SUCCESS),
+				  Q_ARG(QString, QString::fromUtf8("")));
 	if (obs_output_active(replayOutput)) {
 		SendVendorEvent("backtrack_stopping");
 		obs_output_stop(replayOutput);
