@@ -1298,6 +1298,13 @@ CanvasDock::~CanvasDock()
 	obs_hotkey_pair_unregister(stream_hotkey);
 	obs_display_remove_draw_callback(preview->GetDisplay(), DrawPreview,
 					 this);
+	for (uint32_t i = MAX_CHANNELS - 1; i > 0; i--) {
+		if (obs_get_output_source(i) == transitionAudioWrapper) {
+			obs_set_output_source(i, nullptr);
+			break;
+		}
+	}
+	obs_source_release(transitionAudioWrapper);
 	delete action;
 	delete sourcesDock;
 	delete sourcesDockAction;
@@ -6181,7 +6188,7 @@ void CanvasDock::ClearScenes()
 		scenesCombo->clear();
 	if (scenesDock && scenesDock->sceneList->count())
 		scenesDock->sceneList->clear();
-	SwitchScene("");
+	SwitchScene("", false);
 }
 
 void CanvasDock::LoadScenes()
@@ -6253,7 +6260,7 @@ void CanvasDock::LoadScenes()
 		scenesDock->sceneList->setCurrentRow(0);
 }
 
-void CanvasDock::SwitchScene(const QString &scene_name)
+void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 {
 	auto s = scene_name.isEmpty()
 			 ? nullptr
@@ -6305,10 +6312,15 @@ void CanvasDock::SwitchScene(const QString &scene_name)
 						oldSource,
 						obs_scene_get_source(scene));
 				obs_source_release(sourceA);
-				obs_transition_start(
-					oldSource, OBS_TRANSITION_MODE_AUTO,
-					obs_frontend_get_transition_duration(),
-					s);
+				if (transition) {
+					obs_transition_start(
+						oldSource,
+						OBS_TRANSITION_MODE_AUTO,
+						obs_frontend_get_transition_duration(),
+						s);
+				} else {
+					obs_transition_set(oldSource, s);
+				}
 			} else {
 				obs_weak_source_release(source);
 				source = obs_source_get_weak_source(s);
@@ -6491,6 +6503,8 @@ void CanvasDock::source_remove(void *data, calldata_t *calldata)
 {
 	const auto d = static_cast<CanvasDock *>(data);
 	const auto source = (obs_source_t *)calldata_ptr(calldata, "source");
+	if (!obs_source_is_scene(source))
+		return;
 	if (obs_weak_source_references_source(d->source, source) ||
 	    source == obs_scene_get_source(d->scene)) {
 		d->SwitchScene("");

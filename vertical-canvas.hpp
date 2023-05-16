@@ -83,7 +83,7 @@ private:
 	QFrame *previewDisabledWidget;
 	QPushButton *configButton;
 	OBSWeakSource source;
-	OBSSourceAutoRelease transitionAudioWrapper;
+	obs_source_t *transitionAudioWrapper;
 	std::vector<OBSSource> transitions;
 	std::vector<OBSProjector *> projectors;
 	std::unique_ptr<OBSEventFilter> eventFilter;
@@ -146,7 +146,8 @@ private:
 	QIcon replayInactiveIcon = QIcon(":/aitum/media/backtrack_off.svg");
 
 	QIcon virtualCamActiveIcon = QIcon(":/aitum/media/virtual_cam_on.svg");
-	QIcon virtualCamInactiveIcon = QIcon(":/aitum/media/virtual_cam_off.svg");
+	QIcon virtualCamInactiveIcon =
+		QIcon(":/aitum/media/virtual_cam_off.svg");
 	QComboBox *scenesCombo = nullptr;
 	QCheckBox *linkedButton = nullptr;
 	CanvasScenesDock *scenesDock = nullptr;
@@ -157,9 +158,9 @@ private:
 	QAction *transitionsDockAction = nullptr;
 	OBSBasicSettings *configDialog = nullptr;
 
-	obs_hotkey_pair_id stream_hotkey;
-	obs_hotkey_pair_id record_hotkey;
-	obs_hotkey_pair_id virtual_cam_hotkey;
+	obs_hotkey_pair_id stream_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
+	obs_hotkey_pair_id record_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
+	obs_hotkey_pair_id virtual_cam_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
 
 	obs_output_t *virtualCamOutput = nullptr;
 	obs_output_t *recordOutput = nullptr;
@@ -363,9 +364,9 @@ private slots:
 	void OnStreamStop(int code, QString last_error);
 	void OnReplayBufferStart();
 	void OnReplayBufferStop(int code, QString last_error);
-	void SwitchScene(const QString &scene_name);
+	void SwitchScene(const QString &scene_name, bool transition = true);
 	obs_source_t *GetTransition(const char *transition_name);
-	bool SwapTransition(obs_source_t * transition);
+	bool SwapTransition(obs_source_t *transition);
 	void StartVirtualCam();
 	void StopVirtualCam();
 	void SetRecordAudioEncoders(obs_output_t *output);
