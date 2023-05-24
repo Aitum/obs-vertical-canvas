@@ -1306,15 +1306,15 @@ CanvasDock::~CanvasDock()
 	}
 	obs_source_release(transitionAudioWrapper);
 	delete action;
-	delete sourcesDock;
-	delete sourcesDockAction;
+	sourcesDock->deleteLater();
 	sourcesDock = nullptr;
-	delete scenesDock;
-	delete scenesDockAction;
+	delete sourcesDockAction;
+	scenesDock->deleteLater();
 	scenesDock = nullptr;
-	delete transitionsDock;
-	delete transitionsDockAction;
+	delete scenesDockAction;
+	transitionsDock->deleteLater();
 	transitionsDock = nullptr;
+	delete transitionsDockAction;
 	auto sh = obs_get_signal_handler();
 	signal_handler_disconnect(sh, "source_rename", source_rename, this);
 	signal_handler_disconnect(sh, "source_remove", source_remove, this);
