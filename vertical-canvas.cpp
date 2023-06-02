@@ -6413,7 +6413,9 @@ bool CanvasDock::SwapTransition(obs_source_t *newTransition)
 	obs_transition_set_size(newTransition, canvas_width, canvas_height);
 
 	obs_source_t *oldTransition = obs_weak_source_get_source(source);
-	if (!oldTransition) {
+	if (!oldTransition ||
+	    obs_source_get_type(oldTransition) != OBS_SOURCE_TYPE_TRANSITION) {
+		obs_source_release(oldTransition);
 		obs_weak_source_release(source);
 		source = obs_source_get_weak_source(newTransition);
 		if (video && view)
@@ -6507,7 +6509,7 @@ void CanvasDock::source_remove(void *data, calldata_t *calldata)
 		return;
 	if (obs_weak_source_references_source(d->source, source) ||
 	    source == obs_scene_get_source(d->scene)) {
-		d->SwitchScene("");
+		d->SwitchScene("", false);
 	}
 	const auto name = QString::fromUtf8(obs_source_get_name(source));
 	if (name.isEmpty())
