@@ -3,7 +3,16 @@
 Plugin for [OBS Studio](https://github.com/obsproject/obs-studio) to add vertical canvas by [![Aitum logo](media/aitum.png) Aitum](https://aitum.tv)
 
 # Support
-For support please use the relevant channel on our [Discord server](https://aitum.tv/discord)
+
+Currently supported distributions can be found at:
+
+* Aitum Website: https://aitum.tv/vertical
+* GitHub: https://github.com/Aitum/obs-vertical-canvas
+* Flatpak: https://github.com/flathub/com.obsproject.Studio.Plugin.VerticalCanvas
+
+For support, please see our troubleshooter: https://l.aitum.tv/vh
+
+If this does not solve your issue, please use the relevant channel on our [Discord server](https://aitum.tv/discord).
 
 # Build
 - In-tree build
