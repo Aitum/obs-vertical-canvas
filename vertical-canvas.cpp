@@ -540,7 +540,7 @@ void obs_module_post_load(void)
 
 void obs_module_unload(void)
 {
-	if (vendor) {
+	if (vendor && obs_get_module("obs-websocket")) {
 		obs_websocket_vendor_unregister_request(vendor, "version");
 		obs_websocket_vendor_unregister_request(vendor, "switch_scene");
 		obs_websocket_vendor_unregister_request(vendor,
