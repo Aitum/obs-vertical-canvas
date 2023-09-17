@@ -373,6 +373,7 @@ void vendor_request_invoke(obs_data_t *request_data, obs_data_t *response_data,
 	obs_data_set_bool(response_data, "success", false);
 }
 
+
 void vendor_request_save_replay(obs_data_t *request_data,
 				obs_data_t *response_data, void *p)
 {
@@ -392,6 +393,39 @@ void vendor_request_save_replay(obs_data_t *request_data,
 	}
 	obs_data_set_bool(response_data, "success", false);
 }
+
+void vendor_request_update_stream_key(obs_data_t *request_data,
+                                      obs_data_t *response_data, void *)
+{
+    // Parse request_data to get the new stream_key
+    const char *new_stream_key = obs_data_get_string(request_data, "stream_key");
+    const auto width = obs_data_get_int(request_data, "width");
+    const auto height = obs_data_get_int(request_data, "height");
+
+    if (!new_stream_key || !strlen(new_stream_key)) {
+        obs_data_set_string(response_data, "error", "'stream_key' not set");
+        obs_data_set_bool(response_data, "success", false);
+        return;
+    }
+
+    // Loop through each CanvasDock to find the right one
+    for (const auto &it : canvas_docks) {
+        if ((width && it->GetCanvasWidth() != width) ||
+            (height && it->GetCanvasHeight() != height))
+            continue;
+
+        // Update stream_key using the UpdateStreamKey method of CanvasDock
+        QMetaObject::invokeMethod(
+            it, "UpdateStreamKey",
+            Q_ARG(QString, QString::fromUtf8(new_stream_key)));
+            
+        obs_data_set_bool(response_data, "success", true);
+        return;
+    }
+
+    obs_data_set_bool(response_data, "success", false);
+}
+
 
 update_info_t *verison_update_info = nullptr;
 
@@ -532,6 +566,11 @@ void obs_module_post_load(void)
 	obs_websocket_vendor_register_request(vendor, "stop_virtual_camera",
 					      vendor_request_invoke,
 					      (void *)"StopVirtualCam");
+	obs_websocket_vendor_register_request(vendor, "update_stream_key",
+                          vendor_request_update_stream_key,
+                          (void *)"UpdateStreamKey");
+
+
 
 	verison_update_info = update_info_create_single(
 		"[vertical-canvas]", "OBS", "https://api.aitum.tv/vertical",
@@ -569,6 +608,8 @@ void obs_module_unload(void)
 							"start_virtual_camera");
 		obs_websocket_vendor_unregister_request(vendor,
 							"stop_virtual_camera");
+		obs_websocket_vendor_unregister_request(vendor,
+							"update_stream_key");
 	}
 	obs_frontend_remove_event_callback(frontend_event, nullptr);
 	update_info_destroy(verison_update_info);
@@ -7427,6 +7468,12 @@ void CanvasDock::OpenSourceProjector()
 		return;
 	obs_frontend_open_projector("Source", monitor, nullptr,
 				    obs_source_get_name(source));
+}
+
+void CanvasDock::updateStreamKey(const QString& newStreamKey) {
+    // Your code to update the stream_key, assuming stream_key is a member variable
+    this->stream_key = newStreamKey.toStdString();
+    // any additional actions needed to apply the new stream key
 }
 
 LockedCheckBox::LockedCheckBox() {}
