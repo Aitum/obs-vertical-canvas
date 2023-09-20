@@ -412,6 +412,9 @@ public:
 
 	obs_data_t *SaveSettings();
 
+	void updateStreamKey(const QString& newStreamKey);
+
+
 	obs_scene_t *GetCurrentScene();
 	std::vector<QString> GetScenes();
 	bool StreamingActive();
