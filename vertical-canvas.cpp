@@ -434,7 +434,7 @@ void vendor_request_update_stream_server(obs_data_t *request_data,
     const auto height = obs_data_get_int(request_data, "height");
 
     if (!new_stream_server || !strlen(new_stream_server)) {
-        obs_data_set_string(response_data, "error", "'stream_key' not set");
+        obs_data_set_string(response_data, "error", "'stream_server' not set");
         obs_data_set_bool(response_data, "success", false);
         return;
     }
@@ -445,7 +445,7 @@ void vendor_request_update_stream_server(obs_data_t *request_data,
             (height && it->GetCanvasHeight() != height))
             continue;
 
-        // Update stream_key using the UpdateStreamServer method of CanvasDock
+        // Update stream_server using the UpdateStreamServer method of CanvasDock
         QMetaObject::invokeMethod(
             it, "UpdateStreamServer",
             Q_ARG(QString, QString::fromUtf8(new_stream_server)));
