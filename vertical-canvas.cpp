@@ -394,35 +394,36 @@ void vendor_request_save_replay(obs_data_t *request_data,
 }
 
 void vendor_request_update_stream_key(obs_data_t *request_data,
-                                      obs_data_t *response_data, void *)
+				      obs_data_t *response_data, void *)
 {
-    // Parse request_data to get the new stream_key
-    const char *new_stream_key = obs_data_get_string(request_data, "stream_key");
-    const auto width = obs_data_get_int(request_data, "width");
-    const auto height = obs_data_get_int(request_data, "height");
+	// Parse request_data to get the new stream_key
+	const char *new_stream_key =
+		obs_data_get_string(request_data, "stream_key");
+	const auto width = obs_data_get_int(request_data, "width");
+	const auto height = obs_data_get_int(request_data, "height");
 
-    if (!new_stream_key || !strlen(new_stream_key)) {
-        obs_data_set_string(response_data, "error", "'stream_key' not set");
-        obs_data_set_bool(response_data, "success", false);
-        return;
-    }
+	if (!new_stream_key || !strlen(new_stream_key)) {
+		obs_data_set_string(response_data, "error",
+				    "'stream_key' not set");
+		obs_data_set_bool(response_data, "success", false);
+		return;
+	}
 
-    // Loop through each CanvasDock to find the right one
-    for (const auto &it : canvas_docks) {
-        if ((width && it->GetCanvasWidth() != width) ||
-            (height && it->GetCanvasHeight() != height))
-            continue;
+	// Loop through each CanvasDock to find the right one
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) ||
+		    (height && it->GetCanvasHeight() != height))
+			continue;
 
-        // Update stream_key using the UpdateStreamKey method of CanvasDock
-        QMetaObject::invokeMethod(
-            it, "UpdateStreamKey",
-            Q_ARG(QString, QString::fromUtf8(new_stream_key)));
-            
-        obs_data_set_bool(response_data, "success", true);
-        return;
-    }
+		// Update stream_key using the UpdateStreamKey method of CanvasDock
+		QMetaObject::invokeMethod(
+			it, "UpdateStreamKey",
+			Q_ARG(QString, QString::fromUtf8(new_stream_key)));
 
-    obs_data_set_bool(response_data, "success", false);
+		obs_data_set_bool(response_data, "success", true);
+		return;
+	}
+	obs_data_set_bool(response_data, "success", false);
 }
 
 void vendor_request_update_stream_server(obs_data_t *request_data,
@@ -602,7 +603,6 @@ void obs_module_post_load(void)
 	obs_websocket_vendor_register_request(vendor, "update_stream_server",
 					      vendor_request_update_stream_server,
 					      (void *)"UpdateStreamServer");
-
 
 	verison_update_info = update_info_create_single(
 		"[vertical-canvas]", "OBS", "https://api.aitum.tv/vertical",
@@ -1724,7 +1724,8 @@ struct SceneFindData {
 	SceneFindData &operator=(SceneFindData &&) = delete;
 
 	inline SceneFindData(const vec2 &pos_, bool selectBelow_)
-		: pos(pos_), selectBelow(selectBelow_)
+		: pos(pos_),
+		  selectBelow(selectBelow_)
 	{
 	}
 };
@@ -1740,7 +1741,8 @@ struct SceneFindBoxData {
 	SceneFindBoxData &operator=(SceneFindData &&) = delete;
 
 	inline SceneFindBoxData(const vec2 &startPos_, const vec2 &pos_)
-		: startPos(startPos_), pos(pos_)
+		: startPos(startPos_),
+		  pos(pos_)
 	{
 	}
 };
@@ -4362,7 +4364,8 @@ struct HandleFindData {
 	HandleFindData &operator=(HandleFindData &&) = delete;
 
 	inline HandleFindData(const vec2 &pos_, float scale)
-		: pos(pos_), radius(HANDLE_SEL_RADIUS / scale)
+		: pos(pos_),
+		  radius(HANDLE_SEL_RADIUS / scale)
 	{
 		matrix4_identity(&parent_xform);
 	}
@@ -7293,16 +7296,31 @@ void CanvasDock::ResizeScene(QString scene_name)
 	auto s = obs_get_source_by_name(scene_name.toUtf8().constData());
 	if (!s)
 		return;
-	if (!obs_source_is_scene(s)) {
+	auto scene = obs_scene_from_source(s);
+	if (!scene) {
 		obs_source_release(s);
 		return;
 	}
+	obs_scene_enum_items(
+		scene,
+		[](obs_scene_t *, obs_sceneitem_t *item, void *) {
+			obs_source_get_ref(obs_sceneitem_get_source(item));
+			return true;
+		},
+		nullptr);
 	obs_source_save(s);
 	auto data = obs_source_get_settings(s);
 	obs_data_set_int(data, "cx", canvas_width);
 	obs_data_set_int(data, "cy", canvas_height);
 	obs_source_load(s);
 	obs_data_release(data);
+	obs_scene_enum_items(
+		scene,
+		[](obs_scene_t *, obs_sceneitem_t *item, void *) {
+			obs_source_release(obs_sceneitem_get_source(item));
+			return true;
+		},
+		nullptr);
 	obs_source_release(s);
 }
 
@@ -7504,10 +7522,11 @@ void CanvasDock::OpenSourceProjector()
 				    obs_source_get_name(source));
 }
 
-void CanvasDock::updateStreamKey(const QString& newStreamKey) {
-    // Your code to update the stream_key, assuming stream_key is a member variable
-    this->stream_key = newStreamKey.toStdString();
-    // any additional actions needed to apply the new stream key
+void CanvasDock::updateStreamKey(const QString &newStreamKey)
+{
+	// Your code to update the stream_key, assuming stream_key is a member variable
+	this->stream_key = newStreamKey.toStdString();
+	// any additional actions needed to apply the new stream key
 }
 
 void CanvasDock::updateStreamServer(const QString& newStreamServer) {
