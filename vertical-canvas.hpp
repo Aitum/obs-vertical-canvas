@@ -413,7 +413,7 @@ public:
 	obs_data_t *SaveSettings();
 
 	void updateStreamKey(const QString& newStreamKey);
-
+	void updateStreamServer(const QString& newStreamServer);
 
 	obs_scene_t *GetCurrentScene();
 	std::vector<QString> GetScenes();
