@@ -25,7 +25,8 @@
 #include <util/dstr.h>
 
 OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
-	: QDialog(parent), canvasDock(canvas_dock)
+	: QDialog(parent),
+	  canvasDock(canvas_dock)
 {
 
 	listWidget = new QListWidget(this);
@@ -389,8 +390,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 			continue;
 		const char *codec = obs_get_encoder_codec(type);
 		if (astrcmpi(codec, "h264") != 0 &&
-		    astrcmpi(codec, "hevc") != 0 &&
-		    astrcmpi(codec, "av1") != 0)
+		    astrcmpi(codec, "hevc") != 0 && astrcmpi(codec, "av1") != 0)
 			continue;
 		streamingEncoder->addItem(
 			QString::fromUtf8(obs_encoder_get_display_name(type)),
@@ -909,6 +909,11 @@ void OBSBasicSettings::SaveSettings()
 	     height != canvasDock->canvas_height)) {
 		if (obs_output_active(canvasDock->replayOutput))
 			obs_output_stop(canvasDock->replayOutput);
+
+		blog(LOG_INFO,
+		     "[Vertical Canvas] resolution changed from %dx%d to %dx%d",
+		     canvasDock->canvas_width, canvasDock->canvas_height, width,
+		     height);
 
 		canvasDock->canvas_width = width;
 		canvasDock->canvas_height = height;

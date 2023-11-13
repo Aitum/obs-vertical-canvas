@@ -605,7 +605,7 @@ void obs_module_post_load(void)
 					      (void *)"UpdateStreamServer");
 
 	verison_update_info = update_info_create_single(
-		"[vertical-canvas]", "OBS", "https://api.aitum.tv/vertical",
+		"[Vertical Canvas]", "OBS", "https://api.aitum.tv/vertical",
 		version_info_downloaded, nullptr);
 }
 
@@ -5434,7 +5434,7 @@ void CanvasDock::ShowNoReplayOutputError()
 			config_get_string(config, "AdvOut", "RecType");
 		if (astrcmpi(recType, "FFmpeg") == 0) {
 			blog(LOG_WARNING,
-			     "[vertical-canvas] error starting backtrack: custom ffmpeg");
+			     "[Vertical Canvas] error starting backtrack: custom ffmpeg");
 			if (isVisible()) {
 				QMessageBox::warning(
 					this,
@@ -5447,7 +5447,7 @@ void CanvasDock::ShowNoReplayOutputError()
 		}
 	}
 	blog(LOG_WARNING,
-	     "[vertical-canvas] error starting backtrack: no replay buffer found");
+	     "[Vertical Canvas] error starting backtrack: no replay buffer found");
 	if (isVisible()) {
 		QMessageBox::warning(this,
 				     QString::fromUtf8(obs_module_text(
@@ -5497,7 +5497,7 @@ void CanvasDock::StartReplayBuffer()
 		if (!enc) {
 			obs_output_release(replay_output);
 			blog(LOG_WARNING,
-			     "[vertical-canvas] error starting backtrack: no video encoder found");
+			     "[Vertical Canvas] error starting backtrack: no video encoder found");
 			return;
 		}
 
@@ -6784,11 +6784,11 @@ void CanvasDock::HandleRecordError(int code, QString last_error)
 	if (code != OBS_OUTPUT_SUCCESS) {
 		if (!last_error.isEmpty()) {
 			blog(LOG_WARNING,
-			     "[vertical-canvas] record stop error %s",
+			     "[Vertical Canvas] record stop error %s",
 			     last_error.toUtf8().constData());
 		} else {
 			blog(LOG_WARNING,
-			     "[vertical-canvas] record stop error %i", code);
+			     "[Vertical Canvas] record stop error %i", code);
 		}
 	}
 	if (code == OBS_OUTPUT_UNSUPPORTED && isVisible()) {
@@ -6925,11 +6925,11 @@ void CanvasDock::OnStreamStop(int code, QString last_error)
 	if (code != OBS_OUTPUT_SUCCESS) {
 		if (use_last_error && !last_error.isEmpty()) {
 			blog(LOG_WARNING,
-			     "[vertical-canvas] stream stop error %s",
+			     "[Vertical Canvas] stream stop error %s",
 			     last_error.toUtf8().constData());
 		} else {
 			blog(LOG_WARNING,
-			     "[vertical-canvas] stream stop error %i", code);
+			     "[Vertical Canvas] stream stop error %i", code);
 		}
 	}
 	if (encode_error) {
