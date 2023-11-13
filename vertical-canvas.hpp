@@ -236,6 +236,8 @@ private:
 	QMenu *CreateAddSourcePopupMenu();
 	void AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem);
 	void LoadSourceTypeMenu(QMenu *menu, const char *type);
+	QMenu *CreateVisibilityTransitionMenu(bool visible,
+					      obs_sceneitem_t *sceneItem);
 	QIcon GetIconFromType(enum obs_icon_type icon_type) const;
 	QIcon GetGroupIcon() const;
 	QIcon GetSceneIcon() const;

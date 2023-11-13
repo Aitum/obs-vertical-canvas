@@ -427,35 +427,37 @@ void vendor_request_update_stream_key(obs_data_t *request_data,
 }
 
 void vendor_request_update_stream_server(obs_data_t *request_data,
-                                      obs_data_t *response_data, void *)
+					 obs_data_t *response_data, void *)
 {
-    // Parse request_data to get the new stream_server
-    const char *new_stream_server = obs_data_get_string(request_data, "stream_server");
-    const auto width = obs_data_get_int(request_data, "width");
-    const auto height = obs_data_get_int(request_data, "height");
+	// Parse request_data to get the new stream_server
+	const char *new_stream_server =
+		obs_data_get_string(request_data, "stream_server");
+	const auto width = obs_data_get_int(request_data, "width");
+	const auto height = obs_data_get_int(request_data, "height");
 
-    if (!new_stream_server || !strlen(new_stream_server)) {
-        obs_data_set_string(response_data, "error", "'stream_server' not set");
-        obs_data_set_bool(response_data, "success", false);
-        return;
-    }
+	if (!new_stream_server || !strlen(new_stream_server)) {
+		obs_data_set_string(response_data, "error",
+				    "'stream_server' not set");
+		obs_data_set_bool(response_data, "success", false);
+		return;
+	}
 
-    // Loop through each CanvasDock to find the right one
-    for (const auto &it : canvas_docks) {
-        if ((width && it->GetCanvasWidth() != width) ||
-            (height && it->GetCanvasHeight() != height))
-            continue;
+	// Loop through each CanvasDock to find the right one
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) ||
+		    (height && it->GetCanvasHeight() != height))
+			continue;
 
-        // Update stream_server using the UpdateStreamServer method of CanvasDock
-        QMetaObject::invokeMethod(
-            it, "UpdateStreamServer",
-            Q_ARG(QString, QString::fromUtf8(new_stream_server)));
-            
-        obs_data_set_bool(response_data, "success", true);
-        return;
-    }
+		// Update stream_server using the UpdateStreamServer method of CanvasDock
+		QMetaObject::invokeMethod(
+			it, "UpdateStreamServer",
+			Q_ARG(QString, QString::fromUtf8(new_stream_server)));
 
-    obs_data_set_bool(response_data, "success", false);
+		obs_data_set_bool(response_data, "success", true);
+		return;
+	}
+
+	obs_data_set_bool(response_data, "success", false);
 }
 
 update_info_t *verison_update_info = nullptr;
@@ -600,9 +602,10 @@ void obs_module_post_load(void)
 	obs_websocket_vendor_register_request(vendor, "update_stream_key",
 					      vendor_request_update_stream_key,
 					      (void *)"UpdateStreamKey");
-	obs_websocket_vendor_register_request(vendor, "update_stream_server",
-					      vendor_request_update_stream_server,
-					      (void *)"UpdateStreamServer");
+	obs_websocket_vendor_register_request(
+		vendor, "update_stream_server",
+		vendor_request_update_stream_server,
+		(void *)"UpdateStreamServer");
 
 	verison_update_info = update_info_create_single(
 		"[Vertical Canvas]", "OBS", "https://api.aitum.tv/vertical",
@@ -3120,6 +3123,12 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 			"Basic.MainMenu.Edit.Transform.HorizontalCenter")),
 		this, [this] { CenterSelectedItems(CenterType::Horizontal); });
 
+	popup->addSeparator();
+	popup->addMenu(CreateVisibilityTransitionMenu(true, sceneItem));
+	popup->addMenu(CreateVisibilityTransitionMenu(false, sceneItem));
+
+	popup->addSeparator();
+
 	auto projectorMenu = popup->addMenu(QString::fromUtf8(
 		obs_frontend_get_locale_string("SourceProjector")));
 	AddProjectorMenuMonitors(projectorMenu, this,
@@ -3142,7 +3151,7 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 			 this, [source] {
 				 obs_frontend_take_source_screenshot(source);
 			 });
-
+	popup->addSeparator();
 	popup->addAction(
 		QString::fromUtf8(obs_frontend_get_locale_string("Filters")),
 		this, [source] { obs_frontend_open_source_filters(source); });
@@ -7529,10 +7538,120 @@ void CanvasDock::updateStreamKey(const QString &newStreamKey)
 	// any additional actions needed to apply the new stream key
 }
 
-void CanvasDock::updateStreamServer(const QString& newStreamServer) {
-    // Your code to update the stream_server, assuming stream_server is a member variable
-    this->stream_server = newStreamServer.toStdString();
-    // any additional actions needed to apply the new stream server
+void CanvasDock::updateStreamServer(const QString &newStreamServer)
+{
+	// Your code to update the stream_server, assuming stream_server is a member variable
+	this->stream_server = newStreamServer.toStdString();
+	// any additional actions needed to apply the new stream server
+}
+
+QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible, obs_sceneitem_t* si)
+{
+	QMenu *menu =
+		new QMenu(QString::fromUtf8(obs_frontend_get_locale_string(
+			visible ? "ShowTransition" : "HideTransition")));
+	QAction *action;
+
+	obs_source_t* curTransition = obs_sceneitem_get_transition(si, visible);
+	const char *curId = curTransition ? obs_source_get_id(curTransition)
+					  : nullptr;
+	int curDuration =
+		(int)obs_sceneitem_get_transition_duration(si, visible);
+
+	if (curDuration <= 0)
+		curDuration = obs_frontend_get_transition_duration();
+
+	QSpinBox *duration = new QSpinBox(menu);
+	duration->setMinimum(50);
+	duration->setSuffix(" ms");
+	duration->setMaximum(20000);
+	duration->setSingleStep(50);
+	duration->setValue(curDuration);
+
+	auto setTransition = [this](QAction *action, bool visible, obs_sceneitem_t* si) {
+		std::string id = action->property("transition_id")
+					 .toString()
+					 .toUtf8()
+					 .constData();
+		if (id.empty()) {
+			obs_sceneitem_set_transition(si, visible, nullptr);
+		} else {
+			obs_source_t* tr =
+				obs_sceneitem_get_transition(si, visible);
+
+			if (!tr ||
+			    strcmp(id.c_str(), obs_source_get_id(tr)) != 0) {
+				QString name =
+					QString::fromUtf8(obs_source_get_name(
+						obs_sceneitem_get_source(si)));
+				name += " ";
+				name += QString::fromUtf8(
+					obs_frontend_get_locale_string(
+						visible ? "ShowTransition"
+							: "HideTransition"));
+				tr = obs_source_create_private(
+					id.c_str(), name.toUtf8().constData(),
+					nullptr);
+				obs_sceneitem_set_transition(si, visible, tr);
+				obs_source_release(tr);
+
+				int duration = (int)
+					obs_sceneitem_get_transition_duration(
+						si, visible);
+				if (duration <= 0) {
+					duration =
+						obs_frontend_get_transition_duration();
+					obs_sceneitem_set_transition_duration(
+						si, visible, duration);
+				}
+			}
+			if (obs_source_configurable(tr))
+				obs_frontend_open_source_properties(tr);
+		}
+	};
+	auto setDuration = [visible, si](int duration) {
+		obs_sceneitem_set_transition_duration(si, visible, duration);
+	};
+	connect(duration, (void(QSpinBox::*)(int)) & QSpinBox::valueChanged,
+		setDuration);
+
+	action = menu->addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string("None")));
+	action->setProperty("transition_id", QString::fromUtf8(""));
+	action->setCheckable(true);
+	action->setChecked(!curId);
+	connect(action, &QAction::triggered,
+		std::bind(setTransition, action, visible, si));
+	size_t idx = 0;
+	const char *id;
+	while (obs_enum_transition_types(idx++, &id)) {
+		const char *name = obs_source_get_display_name(id);
+		const bool match = id && curId && strcmp(id, curId) == 0;
+		action = menu->addAction(QString::fromUtf8(name));
+		action->setProperty("transition_id", QString::fromUtf8(id));
+		action->setCheckable(true);
+		action->setChecked(match);
+		connect(action, &QAction::triggered,
+			std::bind(setTransition, action, visible, si));
+	}
+
+	QWidgetAction *durationAction = new QWidgetAction(menu);
+	durationAction->setDefaultWidget(duration);
+
+	menu->addSeparator();
+	menu->addAction(durationAction);
+	if (curId && obs_is_source_configurable(curId)) {
+		menu->addSeparator();
+		menu->addAction(
+			QString::fromUtf8(
+				obs_frontend_get_locale_string("Properties")),
+			this, [curTransition] {
+				obs_frontend_open_source_properties(
+					curTransition);
+			});
+	}
+
+	return menu;
 }
 
 LockedCheckBox::LockedCheckBox() {}
