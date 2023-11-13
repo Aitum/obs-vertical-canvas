@@ -7568,7 +7568,7 @@ QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible, obs_sceneitem_t*
 	duration->setSingleStep(50);
 	duration->setValue(curDuration);
 
-	auto setTransition = [this](QAction *action, bool visible, obs_sceneitem_t* si) {
+	auto setTransition = [](QAction *action, bool visible, obs_sceneitem_t* si) {
 		std::string id = action->property("transition_id")
 					 .toString()
 					 .toUtf8()
