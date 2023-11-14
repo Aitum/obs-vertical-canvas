@@ -1050,6 +1050,8 @@ void OBSBasicSettings::SaveSettings()
 		}
 	}
 
+	int enabled_count = 0;
+	int active_count = 0;
 	for (size_t idx = 0; idx < servers.size(); idx++) {
 		std::string sk = keys[idx]->text().toUtf8().constData();
 		std::string ss =
@@ -1065,6 +1067,9 @@ void OBSBasicSettings::SaveSettings()
 							service_name.c_str(),
 							nullptr, nullptr);
 			canvasDock->streamOutputs.push_back(so);
+		} else if (obs_output_active(
+				   canvasDock->streamOutputs[idx].output)) {
+			active_count++;
 		}
 
 		if (sk != canvasDock->streamOutputs[idx].stream_key ||
@@ -1080,6 +1085,8 @@ void OBSBasicSettings::SaveSettings()
 		}
 		canvasDock->streamOutputs[idx].enabled =
 			servers_enabled[idx]->isChecked();
+		if (canvasDock->streamOutputs[idx].enabled)
+			enabled_count++;
 	}
 	if (canvasDock->streamOutputs.size() > servers.size()) {
 		for (auto idx = canvasDock->streamOutputs.size() - 1;
@@ -1094,6 +1101,20 @@ void OBSBasicSettings::SaveSettings()
 				canvasDock->streamOutputs[idx].service);
 			canvasDock->streamOutputs.pop_back();
 		}
+	}
+	if (enabled_count > 1 && !canvasDock->multi_rtmp) {
+		canvasDock->streamButtonMulti->setVisible(true);
+		canvasDock->multi_rtmp = true;
+		canvasDock->streamButton->setStyleSheet(QString::fromUtf8(
+			active_count > 0
+				? "background: rgb(0,210,153); border-top-right-radius: 0; border-bottom-right-radius: 0;"
+				: "border-top-right-radius: 0; border-bottom-right-radius: 0;"));
+
+	} else if (enabled_count <= 1 && canvasDock->multi_rtmp) {
+		canvasDock->streamButtonMulti->setVisible(false);
+		canvasDock->multi_rtmp = false;
+		canvasDock->streamButton->setStyleSheet(QString::fromUtf8(
+			active_count > 0 ? "background: rgb(0,210,153);" : ""));
 	}
 
 	auto sa = !streamingUseMain->isChecked();

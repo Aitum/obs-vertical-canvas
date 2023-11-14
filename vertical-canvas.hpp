@@ -207,6 +207,7 @@ private:
 
 	QString currentSceneName;
 	bool first_time = false;
+	bool multi_rtmp = false;
 
 	QColor GetSelectionColor() const;
 	QColor GetCropColor() const;
@@ -309,6 +310,9 @@ private:
 				      const char *slot);
 
 	void TryRemux(QString path);
+	void CreateStreamOutput(std::vector<StreamServer>::iterator it);
+
+	void StreamButtonMultiMenu(QMenu *menu);
 
 	enum class MoveDir { Up, Down, Left, Right };
 	void Nudge(int dist, MoveDir dir);
@@ -380,6 +384,7 @@ private slots:
 	void SetRecordAudioEncoders(obs_output_t *output);
 	obs_encoder_t *GetRecordVideoEncoder();
 	obs_encoder_t *GetStreamVideoEncoder();
+	obs_encoder_t *GetStreamAudioEncoder();
 	void ShowNoReplayOutputError();
 	void StartRecord();
 	void StopRecord();

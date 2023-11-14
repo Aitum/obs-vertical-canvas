@@ -953,12 +953,15 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	auto so = obs_data_get_array(settings, "stream_outputs");
 	auto count = obs_data_array_count(so);
+	auto enabled_count = 0;
 	for (size_t i = 0; i < count; i++) {
 		auto item = obs_data_array_item(so, i);
 		StreamServer ss;
 		ss.stream_server = obs_data_get_string(item, "stream_server");
 		ss.stream_key = obs_data_get_string(item, "stream_key");
 		ss.enabled = obs_data_get_bool(item, "enabled");
+		if (ss.enabled)
+			enabled_count++;
 		std::string service_name = "vertical_canvas_stream_service_";
 		service_name += std::to_string(i);
 		ss.service = obs_service_create(
@@ -967,6 +970,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		obs_data_release(item);
 	}
 	obs_data_array_release(so);
+	multi_rtmp = enabled_count > 1;
 	if (streamOutputs.empty() &&
 	    strlen(obs_data_get_string(settings, "stream_server"))) {
 		StreamServer ss;
@@ -1172,7 +1176,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	auto streamButtonGroup = new QWidget();
 	auto streamButtonGroupLayout = new QHBoxLayout();
-	streamButtonGroupLayout->setContentsMargins(0,0,0,0);
+	streamButtonGroupLayout->setContentsMargins(0, 0, 0, 0);
 
 	streamButtonGroupLayout->setSpacing(0);
 	streamButtonGroup->setLayout(streamButtonGroupLayout);
@@ -1185,8 +1189,10 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	streamButton->setSizePolicy(sp2);
 	streamButton->setToolTip(
 		QString::fromUtf8(obs_module_text("StreamVertical")));
-
-	streamButton->setStyleSheet(QString::fromUtf8("border-top-right-radius: 0; border-bottom-right-radius: 0;"));
+	streamButton->setStyleSheet(QString::fromUtf8(
+		multi_rtmp
+			? "border-top-right-radius: 0; border-bottom-right-radius: 0;"
+			: ""));
 	connect(streamButton, SIGNAL(clicked()), this,
 		SLOT(StreamButtonClicked()));
 	streamButtonGroup->layout()->addWidget(streamButton);
@@ -1194,13 +1200,15 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	// Little up arrow in the case of there being multiple enabled outputs
 	streamButtonMulti = new QPushButton;
 	streamButtonMulti->setObjectName(QStringLiteral("canvasStreamMulti"));
-	streamButtonMulti->setCheckable(true);
 	streamButtonMulti->setChecked(false);
 	streamButtonMulti->setSizePolicy(sp2);
-	streamButtonMulti->setText(QString::fromUtf8("▲"));
-	streamButtonMulti->setStyleSheet(QString::fromUtf8("width: 16px; padding-left: 4px; padding-right: 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;"));
-	connect(streamButtonMulti, SIGNAL(clicked()), this,
-		SLOT(StreamButtonClicked()));
+	auto multi_menu = new QMenu(this);
+	connect(multi_menu, &QMenu::aboutToShow,
+		[this, multi_menu] { StreamButtonMultiMenu(multi_menu); });
+	streamButtonMulti->setMenu(multi_menu);
+	streamButtonMulti->setStyleSheet(QString::fromUtf8(
+		"width: 16px; padding-left: 4px; padding-right: 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;"));
+	streamButtonMulti->setVisible(multi_rtmp);
 	streamButtonGroup->layout()->addWidget(streamButtonMulti);
 
 	buttonRow->addWidget(streamButtonGroup);
@@ -5989,132 +5997,121 @@ void CanvasDock::replay_output_stop(void *data, calldata_t *calldata)
 
 void CanvasDock::StreamButtonClicked()
 {
-	int enabled_count = 0;
+
 	int active_count = 0;
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
-		if (it->enabled)
-			enabled_count++;
 		if (obs_output_active(it->output))
 			active_count++;
 	}
-	if (enabled_count <= 1 && active_count <= 1) {
-		for (auto it = streamOutputs.begin(); it != streamOutputs.end();
-		     ++it) {
-			if (obs_output_active(it->output)) {
-				StopStream();
-				return;
-			}
-		}
-		StartStream();
+	if (active_count > 0) {
+		StopStream();
 		return;
 	}
-	streamButton->setChecked(false);
-	QMenu menu;
-	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
-		if (!it->enabled)
-			continue;
-		auto action =
-			menu.addAction(QString::fromUtf8(it->stream_server));
-		action->setCheckable(true);
-		action->setChecked(obs_output_active(it->output));
-	}
-	menu.addSeparator();
-	if (active_count == 0) {
-		menu.addAction(QString::fromUtf8(obs_module_text("StartAll")),
-			       [this] { StartStream(); });
-	} else {
-		menu.addAction(QString::fromUtf8(obs_module_text("StopAll")),
-			       [this] { StopStream(); });
-	}
-	menu.exec(QCursor::pos());
+	StartStream();
 }
 
-void CanvasDock::StartStream()
+void CanvasDock::StreamButtonMultiMenu(QMenu *menu)
 {
-	bool to_start = false;
+	int active_count = 0;
+	menu->clear();
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
-		if (obs_output_active(it->output)) {
-			return;
-		}
-		if (it->enabled)
-			to_start = true;
-	}
-	if (!to_start) {
-		QMetaObject::invokeMethod(
-			this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_SUCCESS),
-			Q_ARG(QString, QString::fromUtf8("")),
-			Q_ARG(QString, QString::fromUtf8("")),
-			Q_ARG(QString, QString::fromUtf8("")));
-		if (isVisible()) {
-			QMessageBox::information(
-				this,
-				QString::fromUtf8(
-					obs_module_text("NoOutputServer")),
-				QString::fromUtf8(obs_module_text(
-					"NoOutputServerWarning")));
-		}
-		return;
-	}
-
-	const bool started_video = StartVideo();
-	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
-		if (!it->enabled)
+		bool active = obs_output_active(it->output);
+		if (active)
+			active_count++;
+		if (!it->enabled && !active)
 			continue;
-		auto s = obs_data_create();
-		obs_data_set_string(s, "server", it->stream_server.c_str());
-		obs_data_set_string(s, "key", it->stream_key.c_str());
-		//use_auth
-		//username
-		//password
-		obs_service_update(it->service, s);
-		obs_data_release(s);
-
-#if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(29, 1, 0)
-		const char *type = obs_service_get_output_type(it->service);
-#else
-		const char *type =
-			obs_service_get_preferred_output_type(it->service);
-#endif
-		if (!type) {
-			type = "rtmp_output";
-#if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(29, 1, 0)
-			const char *url = obs_service_get_url(it->service);
-#else
-			const char *url = obs_service_get_connect_info(
-				it->service,
-				OBS_SERVICE_CONNECT_INFO_SERVER_URL);
-#endif
-			if (url != NULL && strncmp(url, "ftl", 3) == 0) {
-				type = "ftl_output";
-			} else if (url != NULL &&
-				   strncmp(url, "rtmp", 4) != 0) {
-				type = "ffmpeg_mpegts_muxer";
-			}
+		auto action =
+			menu->addAction(QString::fromUtf8(it->stream_server));
+		action->setCheckable(true);
+		action->setChecked(active);
+		auto output = it->output;
+		if (active) {
+			connect(action, &QAction::triggered,
+				[output] { obs_output_stop(output); });
+		} else {
+			connect(action, &QAction::triggered, [this, it] {
+				CreateStreamOutput(it);
+				obs_output_set_video_encoder(
+					it->output, GetStreamVideoEncoder());
+				obs_output_set_audio_encoder(
+					it->output, GetStreamAudioEncoder(), 0);
+				if (!obs_output_start(it->output)) {
+					QMetaObject::invokeMethod(
+						this, "OnStreamStop",
+						Q_ARG(int, OBS_OUTPUT_ERROR),
+						Q_ARG(QString,
+						      QString::fromUtf8(
+							      obs_output_get_last_error(
+								      it->output))),
+						Q_ARG(QString,
+						      QString::fromUtf8(
+							      it->stream_server)),
+						Q_ARG(QString,
+						      QString::fromUtf8(
+							      it->stream_key)));
+				}
+			});
 		}
-		if (!it->output ||
-		    strcmp(type, obs_output_get_id(it->output)) != 0) {
-			if (it->output) {
-				if (obs_output_active(it->output))
-					obs_output_stop(it->output);
-				obs_output_release(it->output);
-			}
-			it->output = obs_output_create(type,
-						       "vertical_canvas_stream",
-						       nullptr, nullptr);
-			obs_output_set_service(it->output, it->service);
-		}
-
-		signal_handler_t *signal =
-			obs_output_get_signal_handler(it->output);
-		signal_handler_disconnect(signal, "start", stream_output_start,
-					  this);
-		signal_handler_disconnect(signal, "stop", stream_output_stop,
-					  this);
-		signal_handler_connect(signal, "start", stream_output_start,
-				       this);
-		signal_handler_connect(signal, "stop", stream_output_stop,
-				       this);
 	}
+	menu->addSeparator();
+	if (active_count == 0) {
+		menu->addAction(QString::fromUtf8(obs_module_text("StartAll")),
+				[this] { StartStream(); });
+	} else {
+		menu->addAction(QString::fromUtf8(obs_module_text("StopAll")),
+				[this] { StopStream(); });
+	}
+}
+
+void CanvasDock::CreateStreamOutput(std::vector<StreamServer>::iterator it)
+{
+	auto s = obs_data_create();
+	obs_data_set_string(s, "server", it->stream_server.c_str());
+	obs_data_set_string(s, "key", it->stream_key.c_str());
+	//use_auth
+	//username
+	//password
+	obs_service_update(it->service, s);
+	obs_data_release(s);
+#if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(29, 1, 0)
+	const char *type = obs_service_get_output_type(it->service);
+#else
+	const char *type = obs_service_get_preferred_output_type(it->service);
+#endif
+	if (!type) {
+#if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(29, 1, 0)
+		const char *url = obs_service_get_url(it->service);
+#else
+		const char *url = obs_service_get_connect_info(
+			it->service, OBS_SERVICE_CONNECT_INFO_SERVER_URL);
+#endif
+		type = "rtmp_output";
+		if (url != NULL && strncmp(url, "ftl", 3) == 0) {
+			type = "ftl_output";
+		} else if (url != NULL && strncmp(url, "rtmp", 4) != 0) {
+			type = "ffmpeg_mpegts_muxer";
+		}
+	}
+	if (!it->output || strcmp(type, obs_output_get_id(it->output)) != 0) {
+		if (it->output) {
+			if (obs_output_active(it->output))
+				obs_output_stop(it->output);
+			obs_output_release(it->output);
+		}
+		it->output = obs_output_create(type, "vertical_canvas_stream",
+					       nullptr, nullptr);
+		obs_output_set_service(it->output, it->service);
+	}
+
+	signal_handler_t *signal = obs_output_get_signal_handler(it->output);
+	signal_handler_disconnect(signal, "start", stream_output_start, this);
+	signal_handler_disconnect(signal, "stop", stream_output_stop, this);
+	signal_handler_connect(signal, "start", stream_output_start, this);
+	signal_handler_connect(signal, "stop", stream_output_stop, this);
+}
+
+obs_encoder_t *CanvasDock::GetStreamAudioEncoder()
+{
 	const auto audio_settings = obs_data_create();
 
 	config_t *config = obs_frontend_get_profile_config();
@@ -6192,8 +6189,6 @@ void CanvasDock::StartStream()
 	}
 	obs_encoder_t *audio_encoder = nullptr;
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
-		obs_output_set_video_encoder(it->output,
-					     GetStreamVideoEncoder());
 		if (!audio_encoder)
 			audio_encoder =
 				obs_output_get_audio_encoder(it->output, 0);
@@ -6211,6 +6206,58 @@ void CanvasDock::StartStream()
 		obs_encoder_update(audio_encoder, audio_settings);
 	}
 	obs_data_release(audio_settings);
+	return audio_encoder;
+}
+
+void CanvasDock::StartStream()
+{
+	bool to_start = false;
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		if (obs_output_active(it->output)) {
+			return;
+		}
+		if (it->enabled)
+			to_start = true;
+	}
+	if (!to_start) {
+		QMetaObject::invokeMethod(
+			this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_SUCCESS),
+			Q_ARG(QString, QString::fromUtf8("")),
+			Q_ARG(QString, QString::fromUtf8("")),
+			Q_ARG(QString, QString::fromUtf8("")));
+		if (isVisible()) {
+			QMessageBox::information(
+				this,
+				QString::fromUtf8(
+					obs_module_text("NoOutputServer")),
+				QString::fromUtf8(obs_module_text(
+					"NoOutputServerWarning")));
+		}
+		return;
+	}
+
+	const bool started_video = StartVideo();
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		if (!it->enabled)
+			continue;
+		auto s = obs_data_create();
+		obs_data_set_string(s, "server", it->stream_server.c_str());
+		obs_data_set_string(s, "key", it->stream_key.c_str());
+		//use_auth
+		//username
+		//password
+		obs_service_update(it->service, s);
+		obs_data_release(s);
+
+		CreateStreamOutput(it);
+	}
+
+	auto video_encoder = GetStreamVideoEncoder();
+	auto audio_encoder = GetStreamAudioEncoder();
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		obs_output_set_video_encoder(it->output, video_encoder);
+		obs_output_set_audio_encoder(it->output, audio_encoder, 0);
+	}
 
 	SendVendorEvent("streaming_starting");
 
@@ -7046,8 +7093,10 @@ void CanvasDock::OnStreamStart()
 	streamButton->setChecked(true);
 	streamButton->setIcon(streamActiveIcon);
 	streamButton->setText("00:00");
-	streamButton->setStyleSheet(
-		QString::fromUtf8("background: rgb(0,210,153);"));
+	streamButton->setStyleSheet(QString::fromUtf8(
+		multi_rtmp
+			? "background: rgb(0,210,153); border-top-right-radius: 0; border-bottom-right-radius: 0;"
+			: "background: rgb(0,210,153);"));
 	StartReplayBuffer();
 }
 
@@ -7066,7 +7115,10 @@ void CanvasDock::OnStreamStop(int code, QString last_error,
 		streamButton->setChecked(false);
 		streamButton->setIcon(streamInactiveIcon);
 		streamButton->setText("");
-		streamButton->setStyleSheet(QString::fromUtf8(""));
+		streamButton->setStyleSheet(QString::fromUtf8(
+			multi_rtmp
+				? "border-top-right-radius: 0; border-bottom-right-radius: 0;"
+				: ""));
 	}
 	const char *errorDescription = "";
 
