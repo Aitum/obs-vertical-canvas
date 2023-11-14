@@ -249,44 +249,34 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	streamingGroup->setSizePolicy(QSizePolicy::Preferred,
 				      QSizePolicy::Maximum);
 
-	auto streamingLayout = new QFormLayout;
+	streamingLayout = new QFormLayout;
 	streamingLayout->setContentsMargins(9, 2, 9, 9);
 	streamingLayout->setFieldGrowthPolicy(
 		QFormLayout::AllNonFixedFieldsGrow);
 	streamingLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignTrailing |
 					   Qt::AlignVCenter);
 
-	server = new QComboBox;
-	server->setEditable(true);
-
-	server->addItem("rtmps://a.rtmps.youtube.com:443/live2");
-	server->addItem("rtmps://b.rtmps.youtube.com:443/live2?backup=1");
-	server->addItem("rtmp://a.rtmp.youtube.com/live2");
-	server->addItem("rtmp://b.rtmp.youtube.com/live2?backup=1");
-	streamingLayout->addRow(QString::fromUtf8(obs_module_text("Server")),
-				server);
-
-	QLayout *subLayout = new QHBoxLayout();
-	key = new QLineEdit;
-	key->setEchoMode(QLineEdit::Password);
-
-	QPushButton *show = new QPushButton();
-	show->setText(
-		QString::fromUtf8(obs_frontend_get_locale_string("Show")));
-	show->setCheckable(true);
-	connect(show, &QAbstractButton::toggled, [=](bool hide) {
-		show->setText(QString::fromUtf8(
-			hide ? obs_frontend_get_locale_string("Hide")
-			     : obs_frontend_get_locale_string("Show")));
-		key->setEchoMode(hide ? QLineEdit::Normal
-				      : QLineEdit::Password);
+	auto hl = new QHBoxLayout;
+	auto addButton = new QPushButton(
+		QIcon(QString::fromUtf8(":/res/images/plus.svg")),
+		QString::fromUtf8(obs_frontend_get_locale_string("Add")));
+	connect(addButton, &QPushButton::clicked, [this] { AddServer(); });
+	hl->addWidget(addButton);
+	auto removeButton = new QPushButton(
+		QIcon(":/res/images/minus.svg"),
+		QString::fromUtf8(obs_frontend_get_locale_string("Remove")));
+	connect(removeButton, &QPushButton::clicked, [this] {
+		if (servers.empty())
+			return;
+		auto idx = (int)servers.size()-1;
+		streamingLayout->removeRow(idx * 2 + 1);
+		streamingLayout->removeRow(idx * 2);
+		servers.pop_back();
+		keys.pop_back();
 	});
+	hl->addWidget(removeButton);
 
-	subLayout->addWidget(key);
-	subLayout->addWidget(show);
-
-	streamingLayout->addRow(QString::fromUtf8(obs_module_text("Key")),
-				subLayout);
+	streamingLayout->addRow(hl);
 
 	OBSHotkeyWidget *otherHotkey = nullptr;
 	auto hotkey =
@@ -805,6 +795,46 @@ void OBSBasicSettings::SetOutputIcon(const QIcon &icon)
 	listWidget->item(2)->setIcon(icon);
 }
 
+void OBSBasicSettings::AddServer()
+{
+	int idx = (int)servers.size();
+	auto server = new QComboBox;
+	server->setEditable(true);
+
+	server->addItem("rtmps://a.rtmps.youtube.com:443/live2");
+	server->addItem("rtmps://b.rtmps.youtube.com:443/live2?backup=1");
+	server->addItem("rtmp://a.rtmp.youtube.com/live2");
+	server->addItem("rtmp://b.rtmp.youtube.com/live2?backup=1");
+	server->setCurrentText("");
+	streamingLayout->insertRow(
+		idx * 2, QString::fromUtf8(obs_module_text("Server")), server);
+	servers.push_back(server);
+
+	QLayout *subLayout = new QHBoxLayout();
+	auto key = new QLineEdit;
+	key->setEchoMode(QLineEdit::Password);
+
+	QPushButton *show = new QPushButton();
+	show->setText(
+		QString::fromUtf8(obs_frontend_get_locale_string("Show")));
+	show->setCheckable(true);
+	connect(show, &QAbstractButton::toggled, [=](bool hide) {
+		show->setText(QString::fromUtf8(
+			hide ? obs_frontend_get_locale_string("Hide")
+			     : obs_frontend_get_locale_string("Show")));
+		key->setEchoMode(hide ? QLineEdit::Normal
+				      : QLineEdit::Password);
+	});
+
+	subLayout->addWidget(key);
+	subLayout->addWidget(show);
+
+	streamingLayout->insertRow(idx * 2 + 1,
+				   QString::fromUtf8(obs_module_text("Key")),
+				   subLayout);
+	keys.push_back(key);
+}
+
 void OBSBasicSettings::LoadSettings()
 {
 	if (!canvasDock->newer_version_available.isEmpty()) {
@@ -816,10 +846,15 @@ void OBSBasicSettings::LoadSettings()
 	resolution->setCurrentText(QString::number(canvasDock->canvas_width) +
 				   "x" +
 				   QString::number(canvasDock->canvas_height));
-	resolution->setEnabled(
-		!obs_output_active(canvasDock->recordOutput) &&
-		!obs_output_active(canvasDock->streamOutput) &&
-		!obs_output_active(canvasDock->virtualCamOutput));
+	bool enable = !obs_output_active(canvasDock->recordOutput) &&
+		      !obs_output_active(canvasDock->virtualCamOutput);
+	for (auto it = canvasDock->streamOutputs.begin();
+	     it != canvasDock->streamOutputs.end(); ++it) {
+		if (obs_output_active(it->output))
+			enable = false;
+	}
+
+	resolution->setEnabled(enable);
 	showScenes->setChecked(!canvasDock->hideScenes);
 	videoBitrate->setValue(
 		canvasDock->videoBitrate ? canvasDock->videoBitrate : 6000);
@@ -835,9 +870,17 @@ void OBSBasicSettings::LoadSettings()
 	backtrackDuration->setValue(canvasDock->replayDuration);
 	backtrackPath->setText(QString::fromUtf8(canvasDock->replayPath));
 
-	key->setEchoMode(QLineEdit::Password);
-	key->setText(QString::fromUtf8(canvasDock->stream_key));
-	server->setCurrentText(QString::fromUtf8(canvasDock->stream_server));
+	for (size_t idx = 0; idx < canvasDock->streamOutputs.size(); idx++) {
+		if (idx >= servers.size()) {
+			AddServer();
+		}
+		auto key = keys[idx];
+		key->setEchoMode(QLineEdit::Password);
+		key->setText(QString::fromUtf8(
+			canvasDock->streamOutputs[idx].stream_key));
+		servers[idx]->setCurrentText(QString::fromUtf8(
+			canvasDock->streamOutputs[idx].stream_server));
+	}
 
 	streamingUseMain->setChecked(!canvasDock->stream_advanced_settings);
 	if (canvasDock->stream_audio_track > 0)
@@ -946,8 +989,10 @@ void OBSBasicSettings::SaveSettings()
 			obs_output_get_video_encoder(canvasDock->replayOutput));
 		SetEncoderBitrate(
 			obs_output_get_video_encoder(canvasDock->recordOutput));
-		SetEncoderBitrate(
-			obs_output_get_video_encoder(canvasDock->streamOutput));
+		for (auto it = canvasDock->streamOutputs.begin();
+		     it != canvasDock->streamOutputs.end(); ++it)
+			SetEncoderBitrate(
+				obs_output_get_video_encoder(it->output));
 	}
 	bitrate = (uint32_t)audioBitrate->currentData().toUInt();
 	if (bitrate != canvasDock->audioBitrate) {
@@ -957,8 +1002,10 @@ void OBSBasicSettings::SaveSettings()
 				canvasDock->replayOutput, i));
 			SetEncoderBitrate(obs_output_get_audio_encoder(
 				canvasDock->recordOutput, i));
-			SetEncoderBitrate(obs_output_get_audio_encoder(
-				canvasDock->streamOutput, i));
+			for (auto it = canvasDock->streamOutputs.begin();
+			     it != canvasDock->streamOutputs.end(); ++it)
+				SetEncoderBitrate(obs_output_get_audio_encoder(
+					it->output, i));
 		}
 	}
 
@@ -988,46 +1035,85 @@ void OBSBasicSettings::SaveSettings()
 		}
 	}
 
-	std::string sk = key->text().toUtf8().constData();
-	std::string ss = server->currentText().toUtf8().constData();
-	if (sk != canvasDock->stream_key || ss != canvasDock->stream_server) {
-		canvasDock->stream_key = sk;
-		canvasDock->stream_server = ss;
-		if (obs_output_active(canvasDock->streamOutput)) {
-			//TODO restart
-			//StopStream();
-			//StartStream();
+	for (size_t idx = 0; idx < servers.size(); idx++) {
+		std::string sk = keys[idx]->text().toUtf8().constData();
+		std::string ss =
+			servers[idx]->currentText().toUtf8().constData();
+		if (idx >= canvasDock->streamOutputs.size()) {
+			StreamServer so;
+			so.stream_server = ss;
+			so.stream_key = sk;
+			std::string service_name =
+				"vertical_canvas_stream_service_";
+			service_name += std::to_string(idx);
+			so.service = obs_service_create("rtmp_custom",
+							service_name.c_str(),
+							nullptr, nullptr);
+			canvasDock->streamOutputs.push_back(so);
+		}
+
+		if (sk != canvasDock->streamOutputs[idx].stream_key ||
+		    ss != canvasDock->streamOutputs[idx].stream_server) {
+			canvasDock->streamOutputs[idx].stream_key = sk;
+			canvasDock->streamOutputs[idx].stream_server = ss;
+			if (obs_output_active(
+				    canvasDock->streamOutputs[idx].output)) {
+				//TODO restart
+				//StopStream();
+				//StartStream();
+			}
 		}
 	}
+	if (canvasDock->streamOutputs.size() > servers.size()) {
+		for (auto idx = canvasDock->streamOutputs.size() - 1;
+		     idx >= servers.size(); idx--) {
+			if (obs_output_active(
+				    canvasDock->streamOutputs[idx].output))
+				obs_output_stop(
+					canvasDock->streamOutputs[idx].output);
+			obs_output_release(
+				canvasDock->streamOutputs[idx].output);
+			obs_service_release(
+				canvasDock->streamOutputs[idx].service);
+			canvasDock->streamOutputs.pop_back();
+		}
+	}
+
 	auto sa = !streamingUseMain->isChecked();
 	auto se = streamingEncoder->currentData().toString().toUtf8();
 	if (canvasDock->stream_advanced_settings != sa ||
 	    canvasDock->stream_encoder != se.constData()) {
 		canvasDock->stream_advanced_settings = sa;
 		canvasDock->stream_encoder = se.constData();
-		if (canvasDock->streamOutput &&
-		    !obs_output_active(canvasDock->streamOutput)) {
-			auto enc = obs_output_get_video_encoder(
-				canvasDock->streamOutput);
-			obs_output_set_video_encoder(canvasDock->streamOutput,
-						     nullptr);
-			if (enc &&
-			    strcmp(obs_encoder_get_name(enc),
-				   "vertical_canvas_video_encoder") == 0) {
-				obs_encoder_release(enc);
+		obs_encoder_t *enc = nullptr;
+		for (auto it = canvasDock->streamOutputs.begin();
+		     it != canvasDock->streamOutputs.end(); ++it) {
+			if (it->output && !obs_output_active(it->output)) {
+				if (!enc)
+					enc = obs_output_get_video_encoder(
+						it->output);
+				obs_output_set_video_encoder(it->output,
+							     nullptr);
 			}
+		}
+		if (enc && strcmp(obs_encoder_get_name(enc),
+				  "vertical_canvas_video_encoder") == 0) {
+			obs_encoder_release(enc);
 		}
 	}
 
 	for (int i = 1; i <= (int)streamingAudioTracks.size(); i++) {
 		if (streamingAudioTracks[i - 1]->isChecked()) {
 			if (canvasDock->stream_audio_track != i) {
-				if (canvasDock->streamOutput &&
-				    !obs_output_active(
-					    canvasDock->streamOutput))
-					obs_output_set_audio_encoder(
-						canvasDock->streamOutput,
-						nullptr, 0);
+				for (auto it =
+					     canvasDock->streamOutputs.begin();
+				     it != canvasDock->streamOutputs.end();
+				     ++it) {
+					if (it->output &&
+					    !obs_output_active(it->output))
+						obs_output_set_audio_encoder(
+							it->output, nullptr, 0);
+				}
 				canvasDock->stream_audio_track = i;
 			}
 			break;

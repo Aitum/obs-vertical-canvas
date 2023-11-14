@@ -418,7 +418,8 @@ void vendor_request_update_stream_key(obs_data_t *request_data,
 		// Update stream_key using the UpdateStreamKey method of CanvasDock
 		QMetaObject::invokeMethod(
 			it, "UpdateStreamKey",
-			Q_ARG(QString, QString::fromUtf8(new_stream_key)));
+			Q_ARG(QString, QString::fromUtf8(new_stream_key)),
+			Q_ARG(int, obs_data_get_int(request_data, "index")));
 
 		obs_data_set_bool(response_data, "success", true);
 		return;
@@ -451,7 +452,8 @@ void vendor_request_update_stream_server(obs_data_t *request_data,
 		// Update stream_server using the UpdateStreamServer method of CanvasDock
 		QMetaObject::invokeMethod(
 			it, "UpdateStreamServer",
-			Q_ARG(QString, QString::fromUtf8(new_stream_server)));
+			Q_ARG(QString, QString::fromUtf8(new_stream_server)),
+			Q_ARG(int, obs_data_get_int(request_data, "index")));
 
 		obs_data_set_bool(response_data, "success", true);
 		return;
@@ -601,11 +603,10 @@ void obs_module_post_load(void)
 					      (void *)"StopVirtualCam");
 	obs_websocket_vendor_register_request(vendor, "update_stream_key",
 					      vendor_request_update_stream_key,
-					      (void *)"UpdateStreamKey");
+					      nullptr);
 	obs_websocket_vendor_register_request(
 		vendor, "update_stream_server",
-		vendor_request_update_stream_server,
-		(void *)"UpdateStreamServer");
+		vendor_request_update_stream_server, nullptr);
 
 	verison_update_info = update_info_create_single(
 		"[Vertical Canvas]", "OBS", "https://api.aitum.tv/vertical",
@@ -950,8 +951,32 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		(uint32_t)obs_data_get_int(settings, "backtrack_seconds");
 	replayPath = obs_data_get_string(settings, "backtrack_path");
 
-	stream_server = obs_data_get_string(settings, "stream_server");
-	stream_key = obs_data_get_string(settings, "stream_key");
+	auto so = obs_data_get_array(settings, "stream_outputs");
+	auto count = obs_data_array_count(so);
+	for (size_t i = 0; i < count; i++) {
+		auto item = obs_data_array_item(so, i);
+		StreamServer ss;
+		ss.stream_server = obs_data_get_string(item, "stream_server");
+		ss.stream_key = obs_data_get_string(item, "stream_key");
+		std::string service_name = "vertical_canvas_stream_service_";
+		service_name += std::to_string(i);
+		ss.service = obs_service_create(
+			"rtmp_custom", service_name.c_str(), nullptr, nullptr);
+		streamOutputs.push_back(ss);
+		obs_data_release(item);
+	}
+	obs_data_array_release(so);
+	if (streamOutputs.empty() &&
+	    strlen(obs_data_get_string(settings, "stream_server"))) {
+		StreamServer ss;
+		ss.stream_server =
+			obs_data_get_string(settings, "stream_server");
+		ss.stream_key = obs_data_get_string(settings, "stream_key");
+		ss.service = obs_service_create(
+			"rtmp_custom", "vertical_canvas_stream_service_0",
+			nullptr, nullptr);
+		streamOutputs.push_back(ss);
+	}
 
 	stream_advanced_settings =
 		obs_data_get_bool(settings, "stream_advanced_settings");
@@ -1215,18 +1240,25 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		} else if (!recordButton->text().isEmpty()) {
 			recordButton->setText("");
 		}
-		if (obs_output_active(streamOutput)) {
+		QString streamButtonText;
+		for (auto it = streamOutputs.begin(); it != streamOutputs.end();
+		     ++it) {
+			if (!obs_output_active(it->output))
+				continue;
+
 			int totalFrames =
-				obs_output_get_total_frames(streamOutput);
-			video_t *video = obs_output_video(streamOutput);
+				obs_output_get_total_frames(it->output);
+			video_t *video = obs_output_video(it->output);
 			uint64_t frameTimeNs =
 				video_output_get_frame_time(video);
 			auto t = QTime::fromMSecsSinceStartOfDay(util_mul_div64(
 				totalFrames, frameTimeNs, 1000000ULL));
-			streamButton->setText(
-				t.toString(t.hour() ? "hh:mm:ss" : "mm:ss"));
-		} else if (!streamButton->text().isEmpty()) {
-			streamButton->setText("");
+			streamButtonText =
+				t.toString(t.hour() ? "hh:mm:ss" : "mm:ss");
+			break;
+		}
+		if (streamButton->text() != streamButtonText) {
+			streamButton->setText(streamButtonText);
 		}
 	});
 	recordDurationTimer.start();
@@ -1348,10 +1380,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	}
 	hide();
 
-	stream_service = obs_service_create("rtmp_custom",
-					    "vertical_canvas_stream_service",
-					    nullptr, nullptr);
-
 	transitionAudioWrapper = obs_source_create_private(
 		"vertical_audio_wrapper_source",
 		"vertical_audio_wrapper_source", nullptr);
@@ -1413,13 +1441,16 @@ CanvasDock::~CanvasDock()
 		obs_output_stop(virtualCamOutput);
 	obs_output_release(virtualCamOutput);
 
-	if (obs_output_active(streamOutput))
-		obs_output_stop(streamOutput);
-	obs_output_release(streamOutput);
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		if (obs_output_active(it->output))
+			obs_output_stop(it->output);
+		obs_output_release(it->output);
+		obs_service_release(it->service);
+	}
+	streamOutputs.clear();
 
 	obs_data_release(stream_encoder_settings);
 	obs_data_release(record_encoder_settings);
-	obs_service_release(stream_service);
 
 	if (video) {
 		obs_view_remove(view);
@@ -5764,7 +5795,12 @@ obs_encoder_t *CanvasDock::GetStreamVideoEncoder()
 		}
 	}
 
-	obs_encoder_t *se = obs_output_get_video_encoder(streamOutput);
+	obs_encoder_t *se = nullptr;
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		se = obs_output_get_video_encoder(it->output);
+		if (se)
+			break;
+	}
 	if (se && strcmp(enc_id, obs_encoder_get_id(se)) == 0) {
 		video_encoder = se;
 	}
@@ -5929,67 +5965,80 @@ void CanvasDock::replay_output_stop(void *data, calldata_t *calldata)
 
 void CanvasDock::StreamButtonClicked()
 {
-	if (obs_output_active(streamOutput)) {
-		StopStream();
-	} else {
-		StartStream();
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		if (obs_output_active(it->output)) {
+			StopStream();
+			return;
+		}
 	}
+	StartStream();
 }
 
 void CanvasDock::StartStream()
 {
-	if (obs_output_active(streamOutput))
-		return;
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		if (obs_output_active(it->output)) {
+			return;
+		}
+	}
 
 	const bool started_video = StartVideo();
-
-	auto s = obs_data_create();
-	obs_data_set_string(s, "server", stream_server.c_str());
-	obs_data_set_string(s, "key", stream_key.c_str());
-	//use_auth
-	//username
-	//password
-	obs_service_update(stream_service, s);
-	obs_data_release(s);
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		auto s = obs_data_create();
+		obs_data_set_string(s, "server", it->stream_server.c_str());
+		obs_data_set_string(s, "key", it->stream_key.c_str());
+		//use_auth
+		//username
+		//password
+		obs_service_update(it->service, s);
+		obs_data_release(s);
 
 #if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(29, 1, 0)
-	const char *type = obs_service_get_output_type(stream_service);
+		const char *type = obs_service_get_output_type(it->service);
 #else
-	const char *type =
-		obs_service_get_preferred_output_type(stream_service);
+		const char *type =
+			obs_service_get_preferred_output_type(it->service);
 #endif
-	if (!type) {
-		type = "rtmp_output";
+		if (!type) {
+			type = "rtmp_output";
 #if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(29, 1, 0)
-		const char *url = obs_service_get_url(stream_service);
+			const char *url = obs_service_get_url(it->service);
 #else
-		const char *url = obs_service_get_connect_info(
-			stream_service, OBS_SERVICE_CONNECT_INFO_SERVER_URL);
+			const char *url = obs_service_get_connect_info(
+				it->service,
+				OBS_SERVICE_CONNECT_INFO_SERVER_URL);
 #endif
-		if (url != NULL && strncmp(url, "ftl", 3) == 0) {
-			type = "ftl_output";
-		} else if (url != NULL && strncmp(url, "rtmp", 4) != 0) {
-			type = "ffmpeg_mpegts_muxer";
+			if (url != NULL && strncmp(url, "ftl", 3) == 0) {
+				type = "ftl_output";
+			} else if (url != NULL &&
+				   strncmp(url, "rtmp", 4) != 0) {
+				type = "ffmpeg_mpegts_muxer";
+			}
 		}
-	}
-	if (!streamOutput ||
-	    strcmp(type, obs_output_get_id(streamOutput)) != 0) {
-		if (streamOutput) {
-			if (obs_output_active(streamOutput))
-				obs_output_stop(streamOutput);
-			obs_output_release(streamOutput);
+		if (!it->output ||
+		    strcmp(type, obs_output_get_id(it->output)) != 0) {
+			if (it->output) {
+				if (obs_output_active(it->output))
+					obs_output_stop(it->output);
+				obs_output_release(it->output);
+			}
+			it->output = obs_output_create(type,
+						       "vertical_canvas_stream",
+						       nullptr, nullptr);
+			obs_output_set_service(it->output, it->service);
 		}
-		streamOutput = obs_output_create(type, "vertical_canvas_stream",
-						 nullptr, nullptr);
-		obs_output_set_service(streamOutput, stream_service);
+
+		signal_handler_t *signal =
+			obs_output_get_signal_handler(it->output);
+		signal_handler_disconnect(signal, "start", stream_output_start,
+					  this);
+		signal_handler_disconnect(signal, "stop", stream_output_stop,
+					  this);
+		signal_handler_connect(signal, "start", stream_output_start,
+				       this);
+		signal_handler_connect(signal, "stop", stream_output_stop,
+				       this);
 	}
-
-	signal_handler_t *signal = obs_output_get_signal_handler(streamOutput);
-	signal_handler_disconnect(signal, "start", stream_output_start, this);
-	signal_handler_disconnect(signal, "stop", stream_output_stop, this);
-	signal_handler_connect(signal, "start", stream_output_start, this);
-	signal_handler_connect(signal, "stop", stream_output_stop, this);
-
 	const auto audio_settings = obs_data_create();
 
 	config_t *config = obs_frontend_get_profile_config();
@@ -6065,45 +6114,66 @@ void CanvasDock::StartStream()
 					 audioBitrate);
 		}
 	}
-
-	obs_output_set_video_encoder(streamOutput, GetStreamVideoEncoder());
-
-	obs_encoder_t *audio_encoder =
-		obs_output_get_audio_encoder(streamOutput, 0);
+	obs_encoder_t *audio_encoder = nullptr;
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		obs_output_set_video_encoder(it->output,
+					     GetStreamVideoEncoder());
+		if (!audio_encoder)
+			audio_encoder =
+				obs_output_get_audio_encoder(it->output, 0);
+	}
 	if (!audio_encoder) {
 		audio_encoder = obs_audio_encoder_create(
 			"ffmpeg_aac", "vertical_canvas_audio_encoder",
 			audio_settings, mix_idx, nullptr);
 		obs_encoder_set_audio(audio_encoder, obs_get_audio());
-		obs_output_set_audio_encoder(streamOutput, audio_encoder, 0);
+		for (auto it = streamOutputs.begin(); it != streamOutputs.end();
+		     ++it)
+			obs_output_set_audio_encoder(it->output, audio_encoder,
+						     0);
 	} else {
 		obs_encoder_update(audio_encoder, audio_settings);
 	}
 	obs_data_release(audio_settings);
 
 	SendVendorEvent("streaming_starting");
-	const bool success = obs_output_start(streamOutput);
-	if (!success) {
-		QMetaObject::invokeMethod(
-			this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_ERROR),
-			Q_ARG(QString,
-			      QString::fromUtf8(obs_output_get_last_error(
-				      streamOutput))));
-		if (started_video) {
-			obs_view_remove(view);
-			obs_view_set_source(view, 0, nullptr);
-			video = nullptr;
-		}
+
+	bool success = false;
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		if (obs_output_start(it->output))
+			success = true;
+		else
+			QMetaObject::invokeMethod(
+				this, "OnStreamStop",
+				Q_ARG(int, OBS_OUTPUT_ERROR),
+				Q_ARG(QString,
+				      QString::fromUtf8(
+					      obs_output_get_last_error(
+						      it->output))),
+				Q_ARG(QString,
+				      QString::fromUtf8(it->stream_server)),
+				Q_ARG(QString,
+				      QString::fromUtf8(it->stream_key)));
+	}
+	if (!success && started_video) {
+		obs_view_remove(view);
+		obs_view_set_source(view, 0, nullptr);
+		video = nullptr;
 	}
 }
 
 void CanvasDock::StopStream()
 {
 	streamButton->setChecked(false);
-	if (obs_output_active(streamOutput)) {
-		SendVendorEvent("streaming_stopping");
-		obs_output_stop(streamOutput);
+	bool done = false;
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		if (obs_output_active(it->output)) {
+			obs_output_stop(it->output);
+			done = true;
+		}
 	}
+	if (done)
+		SendVendorEvent("streaming_stopping");
 	CheckReplayBuffer();
 }
 
@@ -6124,8 +6194,21 @@ void CanvasDock::stream_output_stop(void *data, calldata_t *calldata)
 	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
 	d->SendVendorEvent("streaming_stopped");
+	QString stream_server;
+	QString stream_key;
+	obs_output_t *t = (obs_output_t *)calldata_ptr(calldata, "output");
+	for (auto it = d->streamOutputs.begin(); it != d->streamOutputs.end();
+	     ++it) {
+		if (it->output == t) {
+			stream_server = QString::fromUtf8(it->stream_server);
+			stream_key = QString::fromUtf8(it->stream_key);
+		}
+	}
+
 	QMetaObject::invokeMethod(d, "OnStreamStop", Q_ARG(int, code),
-				  Q_ARG(QString, arg_last_error));
+				  Q_ARG(QString, arg_last_error),
+				  Q_ARG(QString, stream_server),
+				  Q_ARG(QString, stream_key));
 }
 
 void CanvasDock::DestroyVideo()
@@ -6160,7 +6243,11 @@ std::vector<QString> CanvasDock::GetScenes()
 
 bool CanvasDock::StreamingActive()
 {
-	return obs_output_active(streamOutput);
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		if (obs_output_active(it->output))
+			return true;
+	}
+	return false;
 }
 
 bool CanvasDock::RecordingActive()
@@ -6205,8 +6292,18 @@ obs_data_t *CanvasDock::SaveSettings()
 		obs_data_release(hotkeys);
 	}
 
-	obs_data_set_string(data, "stream_server", stream_server.c_str());
-	obs_data_set_string(data, "stream_key", stream_key.c_str());
+	obs_data_array_t *stream_servers = obs_data_array_create();
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		obs_data_t *s = obs_data_create();
+		obs_data_set_string(s, "stream_server",
+				    it->stream_server.c_str());
+		obs_data_set_string(s, "stream_key", it->stream_key.c_str());
+		obs_data_array_push_back(stream_servers, s);
+		obs_data_release(s);
+	}
+
+	obs_data_set_array(data, "stream_outputs", stream_servers);
+	obs_data_array_release(stream_servers);
 
 	obs_data_set_bool(data, "stream_advanced_settings",
 			  stream_advanced_settings);
@@ -6876,12 +6973,24 @@ void CanvasDock::OnStreamStart()
 	StartReplayBuffer();
 }
 
-void CanvasDock::OnStreamStop(int code, QString last_error)
+void CanvasDock::OnStreamStop(int code, QString last_error,
+			      QString stream_server, QString stream_key)
 {
-	streamButton->setChecked(false);
-	streamButton->setIcon(streamInactiveIcon);
-	streamButton->setText("");
-	streamButton->setStyleSheet(QString::fromUtf8(""));
+	bool active = false;
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end();
+	     ++it) {
+		if (stream_server == QString::fromUtf8(it->stream_server) &&
+		    stream_key == QString::fromUtf8(it->stream_key)) {
+		} else if (obs_output_active(it->output)) {
+			active = true;
+		}
+	}
+	if (!active) {
+		streamButton->setChecked(false);
+		streamButton->setIcon(streamInactiveIcon);
+		streamButton->setText("");
+		streamButton->setStyleSheet(QString::fromUtf8(""));
+	}
 	const char *errorDescription = "";
 
 	bool use_last_error = false;
@@ -6895,7 +7004,7 @@ void CanvasDock::OnStreamStop(int code, QString last_error)
 
 	case OBS_OUTPUT_CONNECT_FAILED:
 		use_last_error = true;
-		if (stream_server.find("tiktok") != std::string::npos) {
+		if (stream_server.contains("tiktok")) {
 			last_error = QString::fromUtf8(
 				obs_module_text("tiktokError"));
 		}
@@ -6904,7 +7013,7 @@ void CanvasDock::OnStreamStop(int code, QString last_error)
 		break;
 
 	case OBS_OUTPUT_INVALID_STREAM:
-		if (stream_server.find("tiktok") != std::string::npos) {
+		if (stream_server.contains("tiktok")) {
 			use_last_error = true;
 			last_error = QString::fromUtf8(
 				obs_module_text("tiktokError"));
@@ -7102,8 +7211,10 @@ bool CanvasDock::start_streaming_hotkey(void *data, obs_hotkey_pair_id id,
 	if (!pressed)
 		return false;
 	const auto d = static_cast<CanvasDock *>(data);
-	if (obs_output_active(d->streamOutput))
-		return false;
+	for (auto it = d->streamOutputs.begin(); it != d->streamOutputs.end();
+	     ++it)
+		if (obs_output_active(it->output))
+			return false;
 	QMetaObject::invokeMethod(d, "StreamButtonClicked");
 	return true;
 }
@@ -7116,7 +7227,12 @@ bool CanvasDock::stop_streaming_hotkey(void *data, obs_hotkey_pair_id id,
 	if (!pressed)
 		return false;
 	const auto d = static_cast<CanvasDock *>(data);
-	if (!obs_output_active(d->streamOutput))
+	bool found = false;
+	for (auto it = d->streamOutputs.begin(); it != d->streamOutputs.end();
+	     ++it)
+		if (obs_output_active(it->output))
+			found = true;
+	if (!found)
 		return false;
 	QMetaObject::invokeMethod(d, "StreamButtonClicked");
 	return true;
@@ -7402,7 +7518,11 @@ void CanvasDock::NewerVersionAvailable(QString version)
 
 void CanvasDock::ProfileChanged()
 {
-	if (obs_output_active(streamOutput) || obs_output_active(recordOutput))
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it)
+		if (obs_output_active(it->output))
+			return;
+
+	if (obs_output_active(recordOutput))
 		return;
 
 	if (obs_output_active(replayOutput)) {
@@ -7531,28 +7651,29 @@ void CanvasDock::OpenSourceProjector()
 				    obs_source_get_name(source));
 }
 
-void CanvasDock::updateStreamKey(const QString &newStreamKey)
+void CanvasDock::updateStreamKey(const QString &newStreamKey, int index)
 {
-	// Your code to update the stream_key, assuming stream_key is a member variable
-	this->stream_key = newStreamKey.toStdString();
-	// any additional actions needed to apply the new stream key
+	if ((int)streamOutputs.size() < index)
+		return;
+	streamOutputs[index].stream_key = newStreamKey.toStdString();
 }
 
-void CanvasDock::updateStreamServer(const QString &newStreamServer)
+void CanvasDock::updateStreamServer(const QString &newStreamServer, int index)
 {
-	// Your code to update the stream_server, assuming stream_server is a member variable
-	this->stream_server = newStreamServer.toStdString();
-	// any additional actions needed to apply the new stream server
+	if ((int)streamOutputs.size() < index)
+		return;
+	streamOutputs[index].stream_server = newStreamServer.toStdString();
 }
 
-QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible, obs_sceneitem_t* si)
+QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible,
+						  obs_sceneitem_t *si)
 {
 	QMenu *menu =
 		new QMenu(QString::fromUtf8(obs_frontend_get_locale_string(
 			visible ? "ShowTransition" : "HideTransition")));
 	QAction *action;
 
-	obs_source_t* curTransition = obs_sceneitem_get_transition(si, visible);
+	obs_source_t *curTransition = obs_sceneitem_get_transition(si, visible);
 	const char *curId = curTransition ? obs_source_get_id(curTransition)
 					  : nullptr;
 	int curDuration =
@@ -7568,7 +7689,8 @@ QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible, obs_sceneitem_t*
 	duration->setSingleStep(50);
 	duration->setValue(curDuration);
 
-	auto setTransition = [](QAction *action, bool visible, obs_sceneitem_t* si) {
+	auto setTransition = [](QAction *action, bool visible,
+				obs_sceneitem_t *si) {
 		std::string id = action->property("transition_id")
 					 .toString()
 					 .toUtf8()
@@ -7576,7 +7698,7 @@ QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible, obs_sceneitem_t*
 		if (id.empty()) {
 			obs_sceneitem_set_transition(si, visible, nullptr);
 		} else {
-			obs_source_t* tr =
+			obs_source_t *tr =
 				obs_sceneitem_get_transition(si, visible);
 
 			if (!tr ||

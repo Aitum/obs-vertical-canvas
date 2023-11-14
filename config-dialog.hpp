@@ -37,8 +37,10 @@ private:
 	QSpinBox *backtrackDuration;
 	QLineEdit *backtrackPath;
 
-	QComboBox *server;
-	QLineEdit *key;
+	QFormLayout *streamingLayout;
+	std::vector<QComboBox *>servers;
+	std::vector <QLineEdit *>keys;
+
 	QCheckBox *streamingUseMain;
 	std::vector<QRadioButton *> streamingAudioTracks;
 	QComboBox *streamingEncoder;
@@ -83,6 +85,7 @@ private:
 			  QWidget *widget);
 	void RefreshProperties(std::map<obs_property_t *, QWidget *> *widgets,
 			       QFormLayout *layout);
+	void AddServer();
 
 private slots:
 	void SetGeneralIcon(const QIcon &icon);

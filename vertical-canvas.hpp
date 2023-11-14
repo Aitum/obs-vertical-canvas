@@ -63,6 +63,14 @@ class CanvasSourcesDock;
 class CanvasTransitionsDock;
 class OBSProjector;
 
+class StreamServer {
+public:
+	obs_output_t *output = nullptr;
+	obs_service_t *service = nullptr;
+	std::string stream_key;
+	std::string stream_server;
+};
+
 class CanvasDock : public QDockWidget {
 	Q_OBJECT
 	friend class CanvasScenesDock;
@@ -165,9 +173,6 @@ private:
 	obs_output_t *virtualCamOutput = nullptr;
 	obs_output_t *recordOutput = nullptr;
 	obs_output_t *replayOutput = nullptr;
-	obs_output_t *streamOutput = nullptr;
-
-	obs_service_t *stream_service = nullptr;
 
 	uint32_t canvas_width;
 	uint32_t canvas_height;
@@ -181,8 +186,7 @@ private:
 	std::string replayPath;
 	std::string replayFilename;
 
-	std::string stream_key;
-	std::string stream_server;
+	std::vector<StreamServer> streamOutputs;
 
 	bool stream_advanced_settings;
 	int stream_audio_track;
@@ -363,7 +367,7 @@ private slots:
 	void OnRecordStop(int code, QString last_error);
 	void OnReplaySaved();
 	void OnStreamStart();
-	void OnStreamStop(int code, QString last_error);
+	void OnStreamStop(int code, QString last_error, QString stream_server, QString stream_key);
 	void OnReplayBufferStart();
 	void OnReplayBufferStop(int code, QString last_error);
 	void SwitchScene(const QString &scene_name, bool transition = true);
@@ -414,8 +418,8 @@ public:
 
 	obs_data_t *SaveSettings();
 
-	void updateStreamKey(const QString& newStreamKey);
-	void updateStreamServer(const QString& newStreamServer);
+	void updateStreamKey(const QString &newStreamKey, int index);
+	void updateStreamServer(const QString &newStreamServer, int index);
 
 	obs_scene_t *GetCurrentScene();
 	std::vector<QString> GetScenes();
