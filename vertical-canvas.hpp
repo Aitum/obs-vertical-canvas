@@ -69,6 +69,7 @@ public:
 	obs_service_t *service = nullptr;
 	std::string stream_key;
 	std::string stream_server;
+	bool enabled = true;
 };
 
 class CanvasDock : public QDockWidget {

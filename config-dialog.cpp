@@ -24,6 +24,8 @@
 #include "vertical-canvas.hpp"
 #include <util/dstr.h>
 
+#define OUTPUT_ROWS 3
+
 OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	: QDialog(parent),
 	  canvasDock(canvas_dock)
@@ -268,11 +270,13 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	connect(removeButton, &QPushButton::clicked, [this] {
 		if (servers.empty())
 			return;
-		auto idx = (int)servers.size()-1;
-		streamingLayout->removeRow(idx * 2 + 1);
-		streamingLayout->removeRow(idx * 2);
+		auto idx = (int)servers.size() - 1;
+		for (int i = OUTPUT_ROWS; i > 0; i++) {
+			streamingLayout->removeRow(idx * OUTPUT_ROWS + i - 1);
+		}
 		servers.pop_back();
 		keys.pop_back();
+		servers_enabled.pop_back();
 	});
 	hl->addWidget(removeButton);
 
@@ -806,8 +810,9 @@ void OBSBasicSettings::AddServer()
 	server->addItem("rtmp://a.rtmp.youtube.com/live2");
 	server->addItem("rtmp://b.rtmp.youtube.com/live2?backup=1");
 	server->setCurrentText("");
-	streamingLayout->insertRow(
-		idx * 2, QString::fromUtf8(obs_module_text("Server")), server);
+	streamingLayout->insertRow(idx * OUTPUT_ROWS,
+				   QString::fromUtf8(obs_module_text("Server")),
+				   server);
 	servers.push_back(server);
 
 	QLayout *subLayout = new QHBoxLayout();
@@ -829,10 +834,18 @@ void OBSBasicSettings::AddServer()
 	subLayout->addWidget(key);
 	subLayout->addWidget(show);
 
-	streamingLayout->insertRow(idx * 2 + 1,
+	streamingLayout->insertRow(idx * OUTPUT_ROWS + 1,
 				   QString::fromUtf8(obs_module_text("Key")),
 				   subLayout);
 	keys.push_back(key);
+
+	auto enabled = new QCheckBox;
+	streamingLayout->insertRow(
+		idx * OUTPUT_ROWS + 2,
+		QString::fromUtf8(obs_frontend_get_locale_string("Enabled")),
+		enabled);
+
+	servers_enabled.push_back(enabled);
 }
 
 void OBSBasicSettings::LoadSettings()
@@ -880,6 +893,8 @@ void OBSBasicSettings::LoadSettings()
 			canvasDock->streamOutputs[idx].stream_key));
 		servers[idx]->setCurrentText(QString::fromUtf8(
 			canvasDock->streamOutputs[idx].stream_server));
+		servers_enabled[idx]->setChecked(
+			canvasDock->streamOutputs[idx].enabled);
 	}
 
 	streamingUseMain->setChecked(!canvasDock->stream_advanced_settings);
@@ -1063,6 +1078,8 @@ void OBSBasicSettings::SaveSettings()
 				//StartStream();
 			}
 		}
+		canvasDock->streamOutputs[idx].enabled =
+			servers_enabled[idx]->isChecked();
 	}
 	if (canvasDock->streamOutputs.size() > servers.size()) {
 		for (auto idx = canvasDock->streamOutputs.size() - 1;

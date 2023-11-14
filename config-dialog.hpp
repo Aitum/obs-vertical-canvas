@@ -40,6 +40,7 @@ private:
 	QFormLayout *streamingLayout;
 	std::vector<QComboBox *>servers;
 	std::vector <QLineEdit *>keys;
+	std::vector<QCheckBox *> servers_enabled;
 
 	QCheckBox *streamingUseMain;
 	std::vector<QRadioButton *> streamingAudioTracks;

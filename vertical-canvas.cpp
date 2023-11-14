@@ -958,6 +958,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		StreamServer ss;
 		ss.stream_server = obs_data_get_string(item, "stream_server");
 		ss.stream_key = obs_data_get_string(item, "stream_key");
+		ss.enabled = obs_data_get_bool(item, "enabled");
 		std::string service_name = "vertical_canvas_stream_service_";
 		service_name += std::to_string(i);
 		ss.service = obs_service_create(
@@ -5976,14 +5977,36 @@ void CanvasDock::StreamButtonClicked()
 
 void CanvasDock::StartStream()
 {
+	bool to_start = false;
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
 		if (obs_output_active(it->output)) {
 			return;
 		}
+		if (it->enabled)
+			to_start = true;
+	}
+	if (!to_start) {
+		QMetaObject::invokeMethod(
+			this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_SUCCESS),
+			Q_ARG(QString, QString::fromUtf8("")),
+			Q_ARG(QString, QString::fromUtf8("")),
+			Q_ARG(QString, QString::fromUtf8("")));
+		if (isVisible()) {
+			QMessageBox::information(
+				this,
+				QString::fromUtf8(
+					obs_module_text(
+						"NoOutputServer")),
+				QString::fromUtf8(obs_module_text(
+					"NoOutputServerWarning")));
+		}
+		return;
 	}
 
 	const bool started_video = StartVideo();
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		if (!it->enabled)
+			continue;
 		auto s = obs_data_create();
 		obs_data_set_string(s, "server", it->stream_server.c_str());
 		obs_data_set_string(s, "key", it->stream_key.c_str());
@@ -6140,6 +6163,8 @@ void CanvasDock::StartStream()
 
 	bool success = false;
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		if (!it->enabled)
+			continue;
 		if (obs_output_start(it->output))
 			success = true;
 		else
@@ -6298,6 +6323,7 @@ obs_data_t *CanvasDock::SaveSettings()
 		obs_data_set_string(s, "stream_server",
 				    it->stream_server.c_str());
 		obs_data_set_string(s, "stream_key", it->stream_key.c_str());
+		obs_data_set_bool(s, "enabled", it->enabled);
 		obs_data_array_push_back(stream_servers, s);
 		obs_data_release(s);
 	}
