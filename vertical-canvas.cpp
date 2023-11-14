@@ -1170,6 +1170,13 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	auto buttonRow = new QHBoxLayout(this);
 
+	auto streamButtonGroup = new QWidget();
+	auto streamButtonGroupLayout = new QHBoxLayout();
+	streamButtonGroupLayout->setContentsMargins(0,0,0,0);
+
+	streamButtonGroupLayout->setSpacing(0);
+	streamButtonGroup->setLayout(streamButtonGroupLayout);
+
 	streamButton = new QPushButton;
 	streamButton->setObjectName(QStringLiteral("canvasStream"));
 	streamButton->setIcon(streamInactiveIcon);
@@ -1178,9 +1185,25 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	streamButton->setSizePolicy(sp2);
 	streamButton->setToolTip(
 		QString::fromUtf8(obs_module_text("StreamVertical")));
+
+	streamButton->setStyleSheet(QString::fromUtf8("border-top-right-radius: 0; border-bottom-right-radius: 0;"));
 	connect(streamButton, SIGNAL(clicked()), this,
 		SLOT(StreamButtonClicked()));
-	buttonRow->addWidget(streamButton);
+	streamButtonGroup->layout()->addWidget(streamButton);
+
+	// Little up arrow in the case of there being multiple enabled outputs
+	streamButtonMulti = new QPushButton;
+	streamButtonMulti->setObjectName(QStringLiteral("canvasStreamMulti"));
+	streamButtonMulti->setCheckable(true);
+	streamButtonMulti->setChecked(false);
+	streamButtonMulti->setSizePolicy(sp2);
+	streamButtonMulti->setText(QString::fromUtf8("▲"));
+	streamButtonMulti->setStyleSheet(QString::fromUtf8("width: 16px; padding-left: 4px; padding-right: 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;"));
+	connect(streamButtonMulti, SIGNAL(clicked()), this,
+		SLOT(StreamButtonClicked()));
+	streamButtonGroup->layout()->addWidget(streamButtonMulti);
+
+	buttonRow->addWidget(streamButtonGroup);
 
 	recordButton = new QPushButton;
 	recordButton->setObjectName(QStringLiteral("canvasRecord"));
