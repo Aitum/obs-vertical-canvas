@@ -5966,13 +5966,44 @@ void CanvasDock::replay_output_stop(void *data, calldata_t *calldata)
 
 void CanvasDock::StreamButtonClicked()
 {
+	int enabled_count = 0;
+	int active_count = 0;
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
-		if (obs_output_active(it->output)) {
-			StopStream();
-			return;
-		}
+		if (it->enabled)
+			enabled_count++;
+		if (obs_output_active(it->output))
+			active_count++;
 	}
-	StartStream();
+	if (enabled_count <= 1 && active_count <= 1) {
+		for (auto it = streamOutputs.begin(); it != streamOutputs.end();
+		     ++it) {
+			if (obs_output_active(it->output)) {
+				StopStream();
+				return;
+			}
+		}
+		StartStream();
+		return;
+	}
+	streamButton->setChecked(false);
+	QMenu menu;
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		if (!it->enabled)
+			continue;
+		auto action =
+			menu.addAction(QString::fromUtf8(it->stream_server));
+		action->setCheckable(true);
+		action->setChecked(obs_output_active(it->output));
+	}
+	menu.addSeparator();
+	if (active_count == 0) {
+		menu.addAction(QString::fromUtf8(obs_module_text("StartAll")),
+			       [this] { StartStream(); });
+	} else {
+		menu.addAction(QString::fromUtf8(obs_module_text("StopAll")),
+			       [this] { StopStream(); });
+	}
+	menu.exec(QCursor::pos());
 }
 
 void CanvasDock::StartStream()
@@ -5995,8 +6026,7 @@ void CanvasDock::StartStream()
 			QMessageBox::information(
 				this,
 				QString::fromUtf8(
-					obs_module_text(
-						"NoOutputServer")),
+					obs_module_text("NoOutputServer")),
 				QString::fromUtf8(obs_module_text(
 					"NoOutputServerWarning")));
 		}
@@ -7002,8 +7032,7 @@ void CanvasDock::OnStreamStop(int code, QString last_error,
 			      QString stream_server, QString stream_key)
 {
 	bool active = false;
-	for (auto it = streamOutputs.begin(); it != streamOutputs.end();
-	     ++it) {
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
 		if (stream_server == QString::fromUtf8(it->stream_server) &&
 		    stream_key == QString::fromUtf8(it->stream_key)) {
 		} else if (obs_output_active(it->output)) {
