@@ -6472,8 +6472,7 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 		if (oldSource) {
 			auto ost = obs_source_get_type(oldSource);
 			if (ost == OBS_SOURCE_TYPE_TRANSITION) {
-				auto data = obs_source_get_private_settings(
-					obs_scene_get_source(scene));
+				auto data = obs_source_get_private_settings(s);
 				if (SwapTransition(
 					    GetTransition(obs_data_get_string(
 						    data, "transition")))) {
