@@ -262,11 +262,15 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	auto addButton = new QPushButton(
 		QIcon(QString::fromUtf8(":/res/images/plus.svg")),
 		QString::fromUtf8(obs_frontend_get_locale_string("Add")));
+	addButton->setProperty("themeID",
+			       QVariant(QString::fromUtf8("addIconSmall")));
 	connect(addButton, &QPushButton::clicked, [this] { AddServer(); });
 	hl->addWidget(addButton);
 	auto removeButton = new QPushButton(
 		QIcon(":/res/images/minus.svg"),
 		QString::fromUtf8(obs_frontend_get_locale_string("Remove")));
+	removeButton->setProperty(
+		"themeID", QVariant(QString::fromUtf8("removeIconSmall")));
 	connect(removeButton, &QPushButton::clicked, [this] {
 		if (servers.empty())
 			return;
