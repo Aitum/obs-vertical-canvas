@@ -863,7 +863,7 @@ void OBSBasicSettings::AddServer()
 	auto enabled = new QCheckBox;
 	streamingLayout->insertRow(
 		idx * OUTPUT_ROWS + 4,
-		QString::fromUtf8(obs_frontend_get_locale_string("Enabled")),
+		QString::fromUtf8(obs_module_text("Enabled")),
 		enabled);
 
 	servers_enabled.push_back(enabled);
