@@ -38,8 +38,9 @@ private:
 	QLineEdit *backtrackPath;
 
 	QFormLayout *streamingLayout;
-	std::vector<QComboBox *>servers;
-	std::vector <QLineEdit *>keys;
+	std::vector<QLineEdit *> server_names;
+	std::vector<QComboBox *> servers;
+	std::vector<QLineEdit *> keys;
 	std::vector<QCheckBox *> servers_enabled;
 
 	QCheckBox *streamingUseMain;
@@ -81,7 +82,7 @@ private:
 	void SetEncoderBitrate(obs_encoder_t *obs_encoder);
 	void AddProperty(obs_property_t *property, obs_data_t *settings,
 			 QFormLayout *layout,
-			 std::map<obs_property_t *, QWidget *>* widgets);
+			 std::map<obs_property_t *, QWidget *> *widgets);
 	void LoadProperty(obs_property_t *property, obs_data_t *settings,
 			  QWidget *widget);
 	void RefreshProperties(std::map<obs_property_t *, QWidget *> *widgets,

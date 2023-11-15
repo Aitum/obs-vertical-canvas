@@ -957,6 +957,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	for (size_t i = 0; i < count; i++) {
 		auto item = obs_data_array_item(so, i);
 		StreamServer ss;
+		ss.name = obs_data_get_string(item, "name");
 		ss.stream_server = obs_data_get_string(item, "stream_server");
 		ss.stream_key = obs_data_get_string(item, "stream_key");
 		ss.enabled = obs_data_get_bool(item, "enabled");
@@ -6020,8 +6021,8 @@ void CanvasDock::StreamButtonMultiMenu(QMenu *menu)
 			active_count++;
 		if (!it->enabled && !active)
 			continue;
-		auto action =
-			menu->addAction(QString::fromUtf8(it->stream_server));
+		auto action = menu->addAction(QString::fromUtf8(
+			it->name.empty() ? it->stream_server : it->name));
 		action->setCheckable(true);
 		action->setChecked(active);
 		auto output = it->output;
@@ -6420,6 +6421,7 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_array_t *stream_servers = obs_data_array_create();
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
 		obs_data_t *s = obs_data_create();
+		obs_data_set_string(s, "name", it->name.c_str());
 		obs_data_set_string(s, "stream_server",
 				    it->stream_server.c_str());
 		obs_data_set_string(s, "stream_key", it->stream_key.c_str());

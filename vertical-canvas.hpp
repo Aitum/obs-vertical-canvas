@@ -67,6 +67,7 @@ class StreamServer {
 public:
 	obs_output_t *output = nullptr;
 	obs_service_t *service = nullptr;
+	std::string name;
 	std::string stream_key;
 	std::string stream_server;
 	bool enabled = true;
@@ -373,7 +374,8 @@ private slots:
 	void OnRecordStop(int code, QString last_error);
 	void OnReplaySaved();
 	void OnStreamStart();
-	void OnStreamStop(int code, QString last_error, QString stream_server, QString stream_key);
+	void OnStreamStop(int code, QString last_error, QString stream_server,
+			  QString stream_key);
 	void OnReplayBufferStart();
 	void OnReplayBufferStop(int code, QString last_error);
 	void SwitchScene(const QString &scene_name, bool transition = true);

@@ -24,7 +24,7 @@
 #include "vertical-canvas.hpp"
 #include <util/dstr.h>
 
-#define OUTPUT_ROWS 3
+#define OUTPUT_ROWS 5
 
 OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	: QDialog(parent),
@@ -806,6 +806,23 @@ void OBSBasicSettings::SetOutputIcon(const QIcon &icon)
 void OBSBasicSettings::AddServer()
 {
 	int idx = (int)servers.size();
+	auto line = new QFrame;
+	line->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+	line->setFrameShape(QFrame::HLine);
+	line->setStyleSheet(
+		QString("background-color: %1;")
+			.arg(palette()
+				     .color(QPalette::ColorRole::Button)
+				     .name(QColor::HexRgb)));
+	line->setVisible(idx > 0);
+	streamingLayout->insertRow(idx * OUTPUT_ROWS, line);
+
+	auto server_name = new QLineEdit;
+	streamingLayout->insertRow(idx * OUTPUT_ROWS + 1,
+				   QString::fromUtf8(obs_module_text("Name")),
+				   server_name);
+	server_names.push_back(server_name);
+
 	auto server = new QComboBox;
 	server->setEditable(true);
 
@@ -814,7 +831,7 @@ void OBSBasicSettings::AddServer()
 	server->addItem("rtmp://a.rtmp.youtube.com/live2");
 	server->addItem("rtmp://b.rtmp.youtube.com/live2?backup=1");
 	server->setCurrentText("");
-	streamingLayout->insertRow(idx * OUTPUT_ROWS,
+	streamingLayout->insertRow(idx * OUTPUT_ROWS + 2,
 				   QString::fromUtf8(obs_module_text("Server")),
 				   server);
 	servers.push_back(server);
@@ -838,14 +855,14 @@ void OBSBasicSettings::AddServer()
 	subLayout->addWidget(key);
 	subLayout->addWidget(show);
 
-	streamingLayout->insertRow(idx * OUTPUT_ROWS + 1,
+	streamingLayout->insertRow(idx * OUTPUT_ROWS + 3,
 				   QString::fromUtf8(obs_module_text("Key")),
 				   subLayout);
 	keys.push_back(key);
 
 	auto enabled = new QCheckBox;
 	streamingLayout->insertRow(
-		idx * OUTPUT_ROWS + 2,
+		idx * OUTPUT_ROWS + 4,
 		QString::fromUtf8(obs_frontend_get_locale_string("Enabled")),
 		enabled);
 
@@ -891,6 +908,12 @@ void OBSBasicSettings::LoadSettings()
 		if (idx >= servers.size()) {
 			AddServer();
 		}
+		auto name = canvasDock->streamOutputs[idx].name;
+		server_names[idx]->setText(
+			name.empty()
+				? QString::fromUtf8(obs_module_text("Output")) +
+					  " " + QString::number(idx + 1)
+				: QString::fromUtf8(name));
 		auto key = keys[idx];
 		key->setEchoMode(QLineEdit::Password);
 		key->setText(QString::fromUtf8(
@@ -1057,6 +1080,8 @@ void OBSBasicSettings::SaveSettings()
 	int enabled_count = 0;
 	int active_count = 0;
 	for (size_t idx = 0; idx < servers.size(); idx++) {
+		canvasDock->streamOutputs[idx].name =
+			server_names[idx]->text().toUtf8().constData();
 		std::string sk = keys[idx]->text().toUtf8().constData();
 		std::string ss =
 			servers[idx]->currentText().toUtf8().constData();
