@@ -270,7 +270,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	removeButton->setProperty(
 		"themeID", QVariant(QString::fromUtf8("removeIconSmall")));
 	connect(removeButton, &QPushButton::clicked, [this] {
-		if (servers.empty())
+		if (servers.size() <= 1)
 			return;
 		auto idx = (int)servers.size() - 1;
 		streamingLayout->removeRow(idx);
@@ -920,6 +920,10 @@ void OBSBasicSettings::LoadSettings()
 			canvasDock->streamOutputs[idx].stream_server));
 		servers_enabled[idx]->setChecked(
 			canvasDock->streamOutputs[idx].enabled);
+	}
+
+	if (servers.empty()) {
+		AddServer();
 	}
 
 	streamingUseMain->setChecked(!canvasDock->stream_advanced_settings);
