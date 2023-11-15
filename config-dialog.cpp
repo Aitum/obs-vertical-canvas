@@ -33,7 +33,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	listWidget = new QListWidget(this);
 	listWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
-	listWidget->setMaximumWidth(120);
+	listWidget->setMaximumWidth(180);
 	QListWidgetItem *listwidgetitem = new QListWidgetItem(listWidget);
 	listwidgetitem->setIcon(QIcon(
 		QString::fromUtf8(":/settings/images/settings/general.svg")));
@@ -57,6 +57,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	listwidgetitem->setText(QString::fromUtf8(obs_module_text("Help")));
 
 	listWidget->setCurrentRow(0);
+	listWidget->setSpacing(1);
 
 	auto settingsPages = new QStackedWidget;
 	settingsPages->setContentsMargins(0, 0, 0, 0);
