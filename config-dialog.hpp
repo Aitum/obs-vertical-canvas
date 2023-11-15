@@ -41,7 +41,7 @@ private:
 	std::vector<QLineEdit *> server_names;
 	std::vector<QComboBox *> servers;
 	std::vector<QLineEdit *> keys;
-	std::vector<QGroupBox *> servers_enabled;
+	std::vector<QCheckBox *> servers_enabled;
 
 	QCheckBox *streamingUseMain;
 	std::vector<QRadioButton *> streamingAudioTracks;

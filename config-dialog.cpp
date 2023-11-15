@@ -96,8 +96,8 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	connect(listWidget, &QListWidget::currentRowChanged, settingsPages,
 		&QStackedWidget::setCurrentIndex);
 
-	auto generalGroup =
-		new QGroupBox(QString::fromUtf8(obs_module_text("General")));
+	auto generalGroup = new QGroupBox;
+	generalGroup->setStyleSheet(QString("QGroupBox{ padding-top: 4px;}"));
 
 	auto generalLayout = new QFormLayout;
 	generalLayout->setContentsMargins(9, 2, 9, 9);
@@ -105,6 +105,21 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	generalLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
 
 	generalGroup->setLayout(generalLayout);
+
+	auto general_title_layout = new QHBoxLayout;
+	auto general_title =
+		new QLabel(QString::fromUtf8(obs_module_text("General")));
+	general_title->setStyleSheet(QString::fromUtf8("font-weight: bold;"));
+	general_title_layout->addWidget(general_title, 0, Qt::AlignLeft);
+	auto guide_link = new QLabel(
+		QString::fromUtf8(
+			"<a href=\"https://l.aitum.tv/vh-general-settings\">") +
+		QString::fromUtf8(obs_module_text("ViewGuide")) +
+		QString::fromUtf8("</a>"));
+	guide_link->setOpenExternalLinks(true);
+	general_title_layout->addWidget(guide_link, 0, Qt::AlignRight);
+
+	generalLayout->addRow(general_title_layout);
 
 	resolution = new QComboBox;
 	resolution->setEditable(true);
@@ -142,14 +157,29 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 				      "Basic.Settings.Output.AudioBitrate")),
 			      audioBitrate);
 
-	auto backtrackGroup =
-		new QGroupBox(QString::fromUtf8(obs_module_text("Backtrack")));
+	auto backtrackGroup = new QGroupBox;
+	backtrackGroup->setStyleSheet(QString("QGroupBox{ padding-top: 4px;}"));
 	auto backtrackLayout = new QFormLayout;
 	backtrackLayout->setContentsMargins(9, 2, 9, 9);
 	backtrackLayout->setFieldGrowthPolicy(
 		QFormLayout::AllNonFixedFieldsGrow);
 	backtrackLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
 	backtrackGroup->setLayout(backtrackLayout);
+
+	auto backtrack_title_layout = new QHBoxLayout;
+	auto backtrack_title =
+		new QLabel(QString::fromUtf8(obs_module_text("Backtrack")));
+	backtrack_title->setStyleSheet(QString::fromUtf8("font-weight: bold;"));
+	backtrack_title_layout->addWidget(backtrack_title, 0, Qt::AlignLeft);
+	guide_link = new QLabel(
+		QString::fromUtf8(
+			"<a href=\"https://l.aitum.tv/vh-backtrack-settings\">") +
+		QString::fromUtf8(obs_module_text("ViewGuide")) +
+		QString::fromUtf8("</a>"));
+	guide_link->setOpenExternalLinks(true);
+	backtrack_title_layout->addWidget(guide_link, 0, Qt::AlignRight);
+
+	backtrackLayout->addRow(backtrack_title_layout);
 
 	backtrackAlwaysOn = new QCheckBox(
 		QString::fromUtf8(obs_module_text("BacktrackAlwaysOn")));
@@ -244,8 +274,8 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	vb->addStretch();
 	generalPage->setLayout(vb);
 
-	auto streamingGroup =
-		new QGroupBox(QString::fromUtf8(obs_module_text("Streaming")));
+	auto streamingGroup = new QGroupBox;
+	streamingGroup->setStyleSheet(QString("QGroupBox{ padding-top: 4px;}"));
 	streamingGroup->setSizePolicy(QSizePolicy::Preferred,
 				      QSizePolicy::Maximum);
 
@@ -255,6 +285,21 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		QFormLayout::AllNonFixedFieldsGrow);
 	streamingLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignTrailing |
 					   Qt::AlignVCenter);
+
+	auto streaming_title_layout = new QHBoxLayout;
+	auto streaming_title =
+		new QLabel(QString::fromUtf8(obs_module_text("Streaming")));
+	streaming_title->setStyleSheet(QString::fromUtf8("font-weight: bold;"));
+	streaming_title_layout->addWidget(streaming_title, 0, Qt::AlignLeft);
+	guide_link = new QLabel(
+		QString::fromUtf8(
+			"<a href=\"https://l.aitum.tv/vh-streaming-settings\">") +
+		QString::fromUtf8(obs_module_text("ViewGuide")) +
+		QString::fromUtf8("</a>"));
+	guide_link->setOpenExternalLinks(true);
+	streaming_title_layout->addWidget(guide_link, 0, Qt::AlignRight);
+
+	streamingLayout->addRow(streaming_title_layout);
 
 	auto hl = new QHBoxLayout;
 	auto addButton = new QPushButton(
@@ -272,7 +317,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	connect(removeButton, &QPushButton::clicked, [this] {
 		if (servers.size() <= 1)
 			return;
-		auto idx = (int)servers.size() - 1;
+		auto idx = (int)servers.size();
 		streamingLayout->removeRow(idx);
 		server_names.pop_back();
 		servers.pop_back();
@@ -449,12 +494,27 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	vb->addStretch();
 	streamingPage->setLayout(vb);
 
-	auto recordGroup =
-		new QGroupBox(QString::fromUtf8(obs_module_text("Recording")));
+	auto recordGroup = new QGroupBox;
+	recordGroup->setStyleSheet(QString("QGroupBox{ padding-top: 4px;}"));
 	auto recordLayout = new QFormLayout;
 	recordLayout->setContentsMargins(9, 2, 9, 9);
 	recordLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 	recordLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignVCenter);
+
+	auto record_title_layout = new QHBoxLayout;
+	auto record_title =
+		new QLabel(QString::fromUtf8(obs_module_text("Recording")));
+	record_title->setStyleSheet(QString::fromUtf8("font-weight: bold;"));
+	record_title_layout->addWidget(record_title, 0, Qt::AlignLeft);
+	guide_link = new QLabel(
+		QString::fromUtf8(
+			"<a href=\"https://l.aitum.tv/vh-recording-settings\">") +
+		QString::fromUtf8(obs_module_text("ViewGuide")) +
+		QString::fromUtf8("</a>"));
+	guide_link->setOpenExternalLinks(true);
+	record_title_layout->addWidget(guide_link, 0, Qt::AlignRight);
+
+	recordLayout->addRow(record_title_layout);
 
 	QLayout *recordPathLayout = new QHBoxLayout();
 	recordPath = new QLineEdit();
@@ -803,25 +863,25 @@ void OBSBasicSettings::SetOutputIcon(const QIcon &icon)
 void OBSBasicSettings::AddServer()
 {
 	int idx = (int)servers.size();
-	auto serverGroup =
-		new QGroupBox(QString::fromUtf8(obs_module_text("Output")) +
-			      " " + QString::number(idx + 1));
+	auto serverGroup = new QGroupBox;
 	serverGroup->setSizePolicy(QSizePolicy::Preferred,
 				   QSizePolicy::Maximum);
-	serverGroup->setCheckable(true);
 	serverGroup->setStyleSheet(
-		QString("QGroupBox{background-color: %1;}")
+		QString("QGroupBox{background-color: %1; padding-top: 4px;}")
 			.arg(palette()
 				     .color(QPalette::ColorRole::Mid)
 				     .name(QColor::HexRgb)));
-	servers_enabled.push_back(serverGroup);
-
 
 	auto serverLayout = new QFormLayout;
 	serverLayout->setContentsMargins(9, 2, 9, 9);
 	serverLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 	serverLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignTrailing |
 					Qt::AlignVCenter);
+
+	auto enabled =
+		new QCheckBox(QString::fromUtf8(obs_module_text("Enabled")));
+	serverLayout->addRow(enabled);
+	servers_enabled.push_back(enabled);
 
 	auto server_name = new QLineEdit;
 	serverLayout->addRow(QString::fromUtf8(obs_module_text("Name")),
@@ -864,7 +924,7 @@ void OBSBasicSettings::AddServer()
 	keys.push_back(key);
 
 	serverGroup->setLayout(serverLayout);
-	streamingLayout->insertRow(idx, serverGroup);
+	streamingLayout->insertRow(idx + 1, serverGroup);
 }
 
 void OBSBasicSettings::LoadSettings()
