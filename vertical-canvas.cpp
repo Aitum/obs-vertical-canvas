@@ -1211,6 +1211,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	// Little up arrow in the case of there being multiple enabled outputs
 	streamButtonMulti = new QPushButton;
 	streamButtonMulti->setObjectName(QStringLiteral("canvasStreamMulti"));
+	streamButtonMulti->setToolTip(QString::fromUtf8(obs_module_text("StreamVerticalMulti")));
 	streamButtonMulti->setChecked(false);
 	streamButtonMulti->setSizePolicy(sp2);
 	auto multi_menu = new QMenu(this);
