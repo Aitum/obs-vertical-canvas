@@ -24,8 +24,6 @@
 #include "vertical-canvas.hpp"
 #include <util/dstr.h>
 
-#define OUTPUT_ROWS 5
-
 OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	: QDialog(parent),
 	  canvasDock(canvas_dock)
@@ -275,9 +273,8 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		if (servers.empty())
 			return;
 		auto idx = (int)servers.size() - 1;
-		for (int i = OUTPUT_ROWS; i > 0; i++) {
-			streamingLayout->removeRow(idx * OUTPUT_ROWS + i - 1);
-		}
+		streamingLayout->removeRow(idx);
+		server_names.pop_back();
 		servers.pop_back();
 		keys.pop_back();
 		servers_enabled.pop_back();
@@ -806,21 +803,29 @@ void OBSBasicSettings::SetOutputIcon(const QIcon &icon)
 void OBSBasicSettings::AddServer()
 {
 	int idx = (int)servers.size();
-	auto line = new QFrame;
-	line->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-	line->setFrameShape(QFrame::HLine);
-	line->setStyleSheet(
-		QString("background-color: %1;")
+	auto serverGroup =
+		new QGroupBox(QString::fromUtf8(obs_module_text("Output")) +
+			      " " + QString::number(idx + 1));
+	serverGroup->setSizePolicy(QSizePolicy::Preferred,
+				   QSizePolicy::Maximum);
+	serverGroup->setCheckable(true);
+	serverGroup->setStyleSheet(
+		QString("QGroupBox{background-color: %1;}")
 			.arg(palette()
-				     .color(QPalette::ColorRole::Button)
+				     .color(QPalette::ColorRole::Mid)
 				     .name(QColor::HexRgb)));
-	line->setVisible(idx > 0);
-	streamingLayout->insertRow(idx * OUTPUT_ROWS, line);
+	servers_enabled.push_back(serverGroup);
+
+
+	auto serverLayout = new QFormLayout;
+	serverLayout->setContentsMargins(9, 2, 9, 9);
+	serverLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+	serverLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignTrailing |
+					Qt::AlignVCenter);
 
 	auto server_name = new QLineEdit;
-	streamingLayout->insertRow(idx * OUTPUT_ROWS + 1,
-				   QString::fromUtf8(obs_module_text("Name")),
-				   server_name);
+	serverLayout->addRow(QString::fromUtf8(obs_module_text("Name")),
+			     server_name);
 	server_names.push_back(server_name);
 
 	auto server = new QComboBox;
@@ -831,9 +836,8 @@ void OBSBasicSettings::AddServer()
 	server->addItem("rtmp://a.rtmp.youtube.com/live2");
 	server->addItem("rtmp://b.rtmp.youtube.com/live2?backup=1");
 	server->setCurrentText("");
-	streamingLayout->insertRow(idx * OUTPUT_ROWS + 2,
-				   QString::fromUtf8(obs_module_text("Server")),
-				   server);
+	serverLayout->addRow(QString::fromUtf8(obs_module_text("Server")),
+			     server);
 	servers.push_back(server);
 
 	QLayout *subLayout = new QHBoxLayout();
@@ -855,18 +859,12 @@ void OBSBasicSettings::AddServer()
 	subLayout->addWidget(key);
 	subLayout->addWidget(show);
 
-	streamingLayout->insertRow(idx * OUTPUT_ROWS + 3,
-				   QString::fromUtf8(obs_module_text("Key")),
-				   subLayout);
+	serverLayout->addRow(QString::fromUtf8(obs_module_text("Key")),
+			     subLayout);
 	keys.push_back(key);
 
-	auto enabled = new QCheckBox;
-	streamingLayout->insertRow(
-		idx * OUTPUT_ROWS + 4,
-		QString::fromUtf8(obs_module_text("Enabled")),
-		enabled);
-
-	servers_enabled.push_back(enabled);
+	serverGroup->setLayout(serverLayout);
+	streamingLayout->insertRow(idx, serverGroup);
 }
 
 void OBSBasicSettings::LoadSettings()
