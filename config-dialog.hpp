@@ -30,7 +30,8 @@ private:
 	QListWidget *listWidget;
 	QComboBox *resolution;
 	QCheckBox *showScenes;
-	QSpinBox *videoBitrate;
+	QSpinBox *streamingVideoBitrate;
+	QSpinBox *recordVideoBitrate;
 	QComboBox *audioBitrate;
 	QCheckBox *backtrackClip;
 	QCheckBox *backtrackAlwaysOn;
@@ -79,7 +80,7 @@ private:
 	std::vector<obs_hotkey_t *> GetHotkeyById(obs_hotkey_id hotkey);
 	obs_hotkey_t *GetHotkeyByName(QString name);
 
-	void SetEncoderBitrate(obs_encoder_t *obs_encoder);
+	void SetEncoderBitrate(obs_encoder_t *obs_encoder, bool record);
 	void AddProperty(obs_property_t *property, obs_data_t *settings,
 			 QFormLayout *layout,
 			 std::map<obs_property_t *, QWidget *> *widgets);

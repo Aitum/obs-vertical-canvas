@@ -135,14 +135,6 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		new QCheckBox(QString::fromUtf8(obs_module_text("ShowScenes")));
 	generalLayout->addWidget(showScenes);
 
-	videoBitrate = new QSpinBox;
-	videoBitrate->setSuffix(" Kbps");
-	videoBitrate->setMinimum(200);
-	videoBitrate->setMaximum(1000000);
-	generalLayout->addRow(QString::fromUtf8(obs_frontend_get_locale_string(
-				      "Basic.Settings.Output.VideoBitrate")),
-			      videoBitrate);
-
 	audioBitrate = new QComboBox;
 	audioBitrate->addItem("64", QVariant(64));
 	audioBitrate->addItem("96", QVariant(96));
@@ -330,6 +322,15 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	streamingLayout->addRow(hl);
 
+	streamingVideoBitrate = new QSpinBox;
+	streamingVideoBitrate->setSuffix(" Kbps");
+	streamingVideoBitrate->setMinimum(200);
+	streamingVideoBitrate->setMaximum(1000000);
+	streamingLayout->addRow(
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.Settings.Output.VideoBitrate")),
+		streamingVideoBitrate);
+
 	OBSHotkeyWidget *otherHotkey = nullptr;
 	auto hotkey =
 		GetHotkeyByName(canvasDock->objectName() + "StartStreaming");
@@ -383,6 +384,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	connect(streamingUseMain, &QCheckBox::stateChanged,
 		[this, streamingAdvancedLayout] {
 			bool checked = streamingUseMain->isChecked();
+			streamingVideoBitrate->setEnabled(checked);
 			for (int i = 1; i < streamingAdvancedLayout->rowCount();
 			     i++) {
 				auto field = streamingAdvancedLayout->itemAt(
@@ -545,6 +547,14 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 				     "Basic.Settings.Output.Simple.SavePath")),
 			     recordPathLayout);
 
+	recordVideoBitrate = new QSpinBox;
+	recordVideoBitrate->setSuffix(" Kbps");
+	recordVideoBitrate->setMinimum(200);
+	recordVideoBitrate->setMaximum(1000000);
+	recordLayout->addRow(QString::fromUtf8(obs_frontend_get_locale_string(
+				     "Basic.Settings.Output.VideoBitrate")),
+			     recordVideoBitrate);
+
 	otherHotkey = nullptr;
 
 	hotkey = GetHotkeyByName(canvasDock->objectName() + "StartRecording");
@@ -599,6 +609,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	connect(recordingUseMain, &QCheckBox::stateChanged,
 		[this, recordingAdvancedLayout] {
 			bool checked = recordingUseMain->isChecked();
+			recordVideoBitrate->setEnabled(checked);
 			for (int i = 1; i < recordingAdvancedLayout->rowCount();
 			     i++) {
 				auto field = recordingAdvancedLayout->itemAt(
@@ -994,8 +1005,13 @@ void OBSBasicSettings::LoadSettings()
 
 	resolution->setEnabled(enable);
 	showScenes->setChecked(!canvasDock->hideScenes);
-	videoBitrate->setValue(
-		canvasDock->videoBitrate ? canvasDock->videoBitrate : 6000);
+	recordVideoBitrate->setValue(canvasDock->recordVideoBitrate
+					     ? canvasDock->recordVideoBitrate
+					     : 6000);
+	streamingVideoBitrate->setValue(
+		canvasDock->streamingVideoBitrate
+			? canvasDock->streamingVideoBitrate
+			: 6000);
 	for (int i = 0; i < audioBitrate->count(); i++) {
 		if (audioBitrate->itemData(i).toUInt() ==
 		    (canvasDock->audioBitrate ? canvasDock->audioBitrate
@@ -1132,30 +1148,40 @@ void OBSBasicSettings::SaveSettings()
 		canvasDock->LoadScenes();
 		canvasDock->ProfileChanged();
 	}
-	uint32_t bitrate = (uint32_t)videoBitrate->value();
-	if (bitrate != canvasDock->videoBitrate) {
-		canvasDock->videoBitrate = bitrate;
+	uint32_t bitrate = (uint32_t)recordVideoBitrate->value();
+	if (bitrate != canvasDock->recordVideoBitrate) {
+		canvasDock->recordVideoBitrate = bitrate;
 		SetEncoderBitrate(
-			obs_output_get_video_encoder(canvasDock->replayOutput));
+			obs_output_get_video_encoder(canvasDock->replayOutput),
+			true);
 		SetEncoderBitrate(
-			obs_output_get_video_encoder(canvasDock->recordOutput));
+			obs_output_get_video_encoder(canvasDock->recordOutput),
+			true);
+	}
+	bitrate = (uint32_t)streamingVideoBitrate->value();
+	if (bitrate != canvasDock->streamingVideoBitrate) {
+		canvasDock->streamingVideoBitrate = bitrate;
 		for (auto it = canvasDock->streamOutputs.begin();
 		     it != canvasDock->streamOutputs.end(); ++it)
 			SetEncoderBitrate(
-				obs_output_get_video_encoder(it->output));
+				obs_output_get_video_encoder(it->output),
+				false);
 	}
 	bitrate = (uint32_t)audioBitrate->currentData().toUInt();
 	if (bitrate != canvasDock->audioBitrate) {
 		canvasDock->audioBitrate = bitrate;
 		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
 			SetEncoderBitrate(obs_output_get_audio_encoder(
-				canvasDock->replayOutput, i));
+						  canvasDock->replayOutput, i),
+					  true);
 			SetEncoderBitrate(obs_output_get_audio_encoder(
-				canvasDock->recordOutput, i));
+						  canvasDock->recordOutput, i),
+					  true);
 			for (auto it = canvasDock->streamOutputs.begin();
 			     it != canvasDock->streamOutputs.end(); ++it)
 				SetEncoderBitrate(obs_output_get_audio_encoder(
-					it->output, i));
+							  it->output, i),
+						  false);
 		}
 	}
 
@@ -1382,7 +1408,7 @@ void OBSBasicSettings::SaveSettings()
 		       record_encoder_settings);
 }
 
-void OBSBasicSettings::SetEncoderBitrate(obs_encoder_t *encoder)
+void OBSBasicSettings::SetEncoderBitrate(obs_encoder_t *encoder, bool record)
 {
 	if (!encoder)
 		return;
@@ -1391,7 +1417,8 @@ void OBSBasicSettings::SetEncoderBitrate(obs_encoder_t *encoder)
 		return;
 	auto bitrate = obs_encoder_get_type(encoder) == OBS_ENCODER_AUDIO
 			       ? canvasDock->audioBitrate
-			       : canvasDock->videoBitrate;
+			       : (record ? canvasDock->recordVideoBitrate
+					 : canvasDock->streamingVideoBitrate);
 	if (obs_data_get_int(settings, "bitrate") == bitrate) {
 		obs_data_release(settings);
 		return;

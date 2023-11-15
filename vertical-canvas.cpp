@@ -943,7 +943,17 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		canvas_width = 1080;
 		canvas_height = 1920;
 	}
-	videoBitrate = (uint32_t)obs_data_get_int(settings, "video_bitrate");
+	streamingVideoBitrate =
+		(uint32_t)obs_data_get_int(settings, "streaming_video_bitrate");
+	if (!streamingVideoBitrate)
+		streamingVideoBitrate =
+			(uint32_t)obs_data_get_int(settings, "video_bitrate");
+	recordVideoBitrate =
+		(uint32_t)obs_data_get_int(settings, "record_video_bitrate");
+	if (!recordVideoBitrate)
+		recordVideoBitrate =
+			(uint32_t)obs_data_get_int(settings, "video_bitrate");
+
 	audioBitrate = (uint32_t)obs_data_get_int(settings, "audio_bitrate");
 	startReplay = obs_data_get_bool(settings, "backtrack");
 	replayAlwaysOn = obs_data_get_bool(settings, "backtrack_always");
@@ -5757,12 +5767,12 @@ obs_encoder_t *CanvasDock::GetStreamVideoEncoder()
 		const char *recordEncoder =
 			config_get_string(config, "AdvOut", "RecEncoder");
 		useRecordEncoder = astrcmpi(recordEncoder, "none") == 0;
-		if (!videoBitrate) {
-			videoBitrate = (uint32_t)obs_data_get_int(
+		if (!streamingVideoBitrate) {
+			streamingVideoBitrate = (uint32_t)obs_data_get_int(
 				video_settings, "bitrate");
 		} else {
 			obs_data_set_int(video_settings, "bitrate",
-					 videoBitrate);
+					 streamingVideoBitrate);
 		}
 	} else {
 		video_settings = obs_data_create();
@@ -5807,15 +5817,15 @@ obs_encoder_t *CanvasDock::GetStreamVideoEncoder()
 				    preset);
 
 		obs_data_set_string(video_settings, "rate_control", "CBR");
-		if (!videoBitrate) {
+		if (!streamingVideoBitrate) {
 			const int sVideoBitrate = config_get_uint(
 				config, "SimpleOutput", "VBitrate");
 			obs_data_set_int(video_settings, "bitrate",
 					 sVideoBitrate);
-			videoBitrate = sVideoBitrate;
+			streamingVideoBitrate = sVideoBitrate;
 		} else {
 			obs_data_set_int(video_settings, "bitrate",
-					 videoBitrate);
+					 streamingVideoBitrate);
 		}
 
 		if (advanced) {
@@ -5939,12 +5949,15 @@ obs_encoder_t *CanvasDock::GetRecordVideoEncoder()
 		obs_output_release(main_output);
 		obs_data_t *d = obs_encoder_get_settings(enc);
 		obs_encoder_update(video_encoder, d);
-		if (!videoBitrate) {
-			videoBitrate = (uint32_t)obs_data_get_int(d, "bitrate");
+		if (!recordVideoBitrate) {
+			recordVideoBitrate =
+				(uint32_t)obs_data_get_int(d, "bitrate");
 		} else {
 			auto s = obs_encoder_get_settings(video_encoder);
-			if (videoBitrate != obs_data_get_int(s, "bitrate")) {
-				obs_data_set_int(s, "bitrate", videoBitrate);
+			if (recordVideoBitrate !=
+			    obs_data_get_int(s, "bitrate")) {
+				obs_data_set_int(s, "bitrate",
+						 recordVideoBitrate);
 				obs_encoder_update(video_encoder, nullptr);
 			}
 			obs_data_release(s);
@@ -6409,7 +6422,9 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_bool(data, "show_scenes", !hideScenes);
 	obs_data_set_bool(data, "preview_disabled", preview_disabled);
 	obs_data_set_bool(data, "virtual_cam_warned", virtual_cam_warned);
-	obs_data_set_int(data, "video_bitrate", videoBitrate);
+	obs_data_set_int(data, "streaming_video_bitrate", streamingVideoBitrate);
+	obs_data_set_int(data, "record_video_bitrate",
+			 recordVideoBitrate);
 	obs_data_set_int(data, "audio_bitrate", audioBitrate);
 	obs_data_set_bool(data, "backtrack", startReplay);
 	obs_data_set_bool(data, "backtrack_always", replayAlwaysOn);

@@ -181,7 +181,8 @@ private:
 	uint32_t canvas_height;
 	bool restart_video = false;
 	bool hideScenes;
-	uint32_t videoBitrate;
+	uint32_t streamingVideoBitrate;
+	uint32_t recordVideoBitrate;
 	uint32_t audioBitrate;
 	bool startReplay;
 	bool replayAlwaysOn;
