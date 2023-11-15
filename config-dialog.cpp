@@ -17,6 +17,8 @@
 #include <QRadioButton>
 #include <QPlainTextEdit>
 #include <QCompleter>
+#include <QDesktopServices>
+#include <QUrl>
 
 #include "hotkey-edit.hpp"
 #include "obs-module.h"
@@ -755,26 +757,70 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	vb->addStretch();
 	recordingPage->setLayout(vb);
 
-	auto helpGroup =
-		new QGroupBox(QString::fromUtf8(obs_module_text("Help")));
 
-	auto helpLayout = new QVBoxLayout;
+	// HELP PAGE
+	auto helpButtonGroup = new QWidget();
+	auto helpButtonGroupLayout = new QVBoxLayout();
+	helpButtonGroupLayout->setContentsMargins(0, 0, 0, 0);
 
-	auto helpLabel = new QLabel(
-		QString::fromUtf8("<a href = 'https://aitum.tv/discord'>") +
-		QString::fromUtf8(obs_module_text("HelpSupport")) +
-		QString::fromUtf8("</a>"));
-	helpLabel->setOpenExternalLinks(true);
+	helpButtonGroupLayout->setSpacing(5);
+	helpButtonGroup->setLayout(helpButtonGroupLayout);
 
-	helpLayout->addWidget(helpLabel);
+	// intro text
+	auto helpTitle = new QLabel;
+	helpTitle->setText(QString::fromUtf8(obs_module_text("Help")));
+	helpTitle->setStyleSheet(QString::fromUtf8("font-weight: bold;"));
+	helpButtonGroupLayout->addWidget(helpTitle);
 
-	helpGroup->setLayout(helpLayout);
+	// intro desc
+	auto introDesc = new QLabel;
+	introDesc->setText(QString::fromUtf8(obs_module_text("HelpIntro")));
+
+	helpButtonGroupLayout->addWidget(introDesc);
+
+	// troubleshooter button
+	auto tsButton = new QPushButton;
+	tsButton->setObjectName(QStringLiteral("tsButton"));
+	tsButton->setCheckable(false);
+	tsButton->setText(QString::fromUtf8(obs_module_text("HelpTroubleshooterButton")));
+
+	connect(tsButton, &QPushButton::clicked,
+		[] { QDesktopServices::openUrl(QUrl("https://l.aitum.tv/vh-ts")); });
+
+	helpButtonGroupLayout->addWidget(tsButton);
+
+	// guides button
+	auto guideButton = new QPushButton;
+	guideButton->setObjectName(QStringLiteral("guideButton"));
+	guideButton->setCheckable(false);
+	guideButton->setText(QString::fromUtf8(obs_module_text("HelpGuideButton")));
+
+	connect(guideButton, &QPushButton::clicked,
+		[] { QDesktopServices::openUrl(QUrl("https://l.aitum.tv/vh-guides")); });
+
+	helpButtonGroupLayout->addWidget(guideButton);
+
+	// discord button
+	auto discordButton = new QPushButton;
+	discordButton->setObjectName(QStringLiteral("discordButton"));
+	discordButton->setCheckable(false);
+	discordButton->setText(QString::fromUtf8(obs_module_text("HelpDiscordButton")));
+
+	connect(discordButton, &QPushButton::clicked,
+		[] { QDesktopServices::openUrl(QUrl("https://aitum.tv/discord")); });
+
+	helpButtonGroupLayout->addWidget(discordButton);
+
 
 	vb = new QVBoxLayout;
 	vb->setContentsMargins(0, 0, 0, 0);
-	vb->addWidget(helpGroup);
+	vb->addWidget(helpButtonGroup);
 	vb->addStretch();
 	helpPage->setLayout(vb);
+
+
+
+
 
 	QPushButton *okButton = new QPushButton(
 		QString::fromUtf8(obs_frontend_get_locale_string("OK")));
