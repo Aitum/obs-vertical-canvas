@@ -204,6 +204,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	auto button = new QPushButton(
 		QString::fromUtf8(obs_frontend_get_locale_string("Browse")));
 	button->setProperty("themeID", "settingsButtons");
+	button->setAutoDefault(false);
 	connect(button, &QPushButton::clicked, [this] {
 		const QString dir = QFileDialog::getExistingDirectory(
 			this,
