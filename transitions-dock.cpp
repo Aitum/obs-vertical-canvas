@@ -8,7 +8,8 @@
 
 CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 					     QWidget *parent)
-	: QFrame(parent), canvasDock(canvas_dock)
+	: QFrame(parent),
+	  canvasDock(canvas_dock)
 {
 
 	setMinimumWidth(100);
@@ -256,7 +257,6 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 
 	mainLayout->addLayout(hl);
 	mainLayout->addStretch();
-
 
 	setObjectName(QStringLiteral("contextContainer"));
 	setLayout(mainLayout);

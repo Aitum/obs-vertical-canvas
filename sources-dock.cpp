@@ -11,7 +11,8 @@
 #include "vertical-canvas.hpp"
 
 CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
-	: QFrame(parent), canvasDock(canvas_dock)
+	: QFrame(parent),
+	  canvasDock(canvas_dock)
 {
 	setMinimumWidth(100);
 	setMinimumHeight(50);
@@ -26,7 +27,7 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 	sourceList->setFrameShadow(QFrame::Plain);
 	sourceList->setSelectionMode(QAbstractItemView::ExtendedSelection);
 	sourceList->setContextMenuPolicy(Qt::CustomContextMenu);
-	
+
 	sourceList->setDropIndicatorShown(true);
 	sourceList->setDragEnabled(true);
 	sourceList->setDragDropMode(QAbstractItemView::InternalMove);
