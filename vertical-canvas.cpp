@@ -1130,8 +1130,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	scenesDock = new CanvasScenesDock(this, parent);
 	scenesDock->SetGridMode(obs_data_get_bool(settings, "grid_mode"));
 
-	const auto mainDialog =
-		static_cast<QMainWindow *>(obs_frontend_get_main_window());
 	const auto scenesName = "VerticalCanvasDockScenes";
 	const auto scenesTitle =
 		title + " " +
@@ -1141,6 +1139,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	obs_frontend_add_dock_by_id(
 		scenesName, scenesTitle.toUtf8().constData(), scenesDock);
 #else
+	const auto mainDialog =
+		static_cast<QMainWindow *>(obs_frontend_get_main_window());
 	auto dock = new QDockWidget(mainDialog);
 	dock->setObjectName(QString::fromUtf8(scenesName));
 	dock->setWindowTitle(scenesTitle);
