@@ -943,6 +943,7 @@ void OBSBasicSettings::AddServer()
 
 	auto enabled =
 		new QCheckBox(QString::fromUtf8(obs_module_text("Enabled")));
+	enabled->setChecked(true);
 	serverLayout->addRow(enabled);
 	servers_enabled.push_back(enabled);
 
