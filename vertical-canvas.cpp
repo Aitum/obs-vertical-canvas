@@ -1264,9 +1264,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	auto buttonRow = new QHBoxLayout(this);
 	buttonRow->setContentsMargins(0, 0, 0, 0);
-#if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
-	buttonRow->setSpacing(0);
-#endif
 
 	auto streamButtonGroup = new QWidget();
 	auto streamButtonGroupLayout = new QHBoxLayout();
@@ -1511,6 +1508,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	transitionAudioWrapper = obs_source_create_private(
 		"vertical_audio_wrapper_source",
 		"vertical_audio_wrapper_source", nullptr);
+	obs_source_get_ref(transitionAudioWrapper);
 	auto aw = (struct audio_wrapper_info *)obs_obj_get_data(
 		transitionAudioWrapper);
 	aw->param = this;
@@ -1542,12 +1540,6 @@ CanvasDock::~CanvasDock()
 	sourcesDock = nullptr;
 	scenesDock = nullptr;
 	transitionsDock = nullptr;
-#if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
-	obs_frontend_remove_dock("VerticalCanvasDock");
-	obs_frontend_remove_dock("VerticalCanvasDockScenes");
-	obs_frontend_remove_dock("VerticalCanvasDockSources");
-	obs_frontend_remove_dock("VerticalCanvasDockTransitions");
-#endif
 	auto sh = obs_get_signal_handler();
 	signal_handler_disconnect(sh, "source_rename", source_rename, this);
 	signal_handler_disconnect(sh, "source_remove", source_remove, this);
