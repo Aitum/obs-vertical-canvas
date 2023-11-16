@@ -1508,7 +1508,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	transitionAudioWrapper = obs_source_create_private(
 		"vertical_audio_wrapper_source",
 		"vertical_audio_wrapper_source", nullptr);
-	obs_source_get_ref(transitionAudioWrapper);
 	auto aw = (struct audio_wrapper_info *)obs_obj_get_data(
 		transitionAudioWrapper);
 	aw->param = this;
