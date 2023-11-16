@@ -1220,8 +1220,6 @@ void OBSBasicSettings::SaveSettings()
 	int enabled_count = 0;
 	int active_count = 0;
 	for (size_t idx = 0; idx < servers.size(); idx++) {
-		canvasDock->streamOutputs[idx].name =
-			server_names[idx]->text().toUtf8().constData();
 		std::string sk = keys[idx]->text().toUtf8().constData();
 		std::string ss =
 			servers[idx]->currentText().toUtf8().constData();
@@ -1240,7 +1238,8 @@ void OBSBasicSettings::SaveSettings()
 				   canvasDock->streamOutputs[idx].output)) {
 			active_count++;
 		}
-
+		canvasDock->streamOutputs[idx].name =
+			server_names[idx]->text().toUtf8().constData();
 		if (sk != canvasDock->streamOutputs[idx].stream_key ||
 		    ss != canvasDock->streamOutputs[idx].stream_server) {
 			canvasDock->streamOutputs[idx].stream_key = sk;
