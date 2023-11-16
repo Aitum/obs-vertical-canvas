@@ -8,7 +8,7 @@
 
 class CanvasDock;
 
-class CanvasTransitionsDock : public QDockWidget {
+class CanvasTransitionsDock : public QFrame {
 	Q_OBJECT
 	friend class CanvasDock;
 

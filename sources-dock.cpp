@@ -11,17 +11,10 @@
 #include "vertical-canvas.hpp"
 
 CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
-	: QDockWidget(parent), canvasDock(canvas_dock)
+	: QFrame(parent), canvasDock(canvas_dock)
 {
 	setMinimumWidth(100);
 	setMinimumHeight(50);
-	const auto sourcesName = canvasDock->objectName() + "Sources";
-	setObjectName(sourcesName);
-	const auto sourcesTitle =
-		canvasDock->windowTitle() + " " +
-		QString::fromUtf8(
-			obs_frontend_get_locale_string("Basic.Main.Sources"));
-	setWindowTitle(sourcesTitle);
 
 	auto mainLayout = new QVBoxLayout(this);
 	mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -202,13 +195,11 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent)
 		"themeID", QVariant(QString::fromUtf8("downArrowIconSmall")));
 	mainLayout->addWidget(toolbar, 0);
 
-	auto *dockWidgetContents = new QWidget;
-	dockWidgetContents->setObjectName(QStringLiteral("contextContainer"));
-	dockWidgetContents->setContentsMargins(0, 0, 0, 0);
-	dockWidgetContents->setLayout(mainLayout);
-
-	setWidget(dockWidgetContents);
-	hide();
+	setObjectName(QStringLiteral("contextContainer"));
+	setContentsMargins(0, 0, 0, 0);
+	mainLayout->setSpacing(0);
+	mainLayout->setContentsMargins(0, 0, 0, 0);
+	setLayout(mainLayout);
 }
 
 CanvasSourcesDock::~CanvasSourcesDock() {}

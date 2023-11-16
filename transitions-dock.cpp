@@ -8,12 +8,9 @@
 
 CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 					     QWidget *parent)
-	: QDockWidget(parent), canvasDock(canvas_dock)
+	: QFrame(parent), canvasDock(canvas_dock)
 {
-	setObjectName(canvasDock->objectName() + "Transitions");
-	setWindowTitle(canvasDock->windowTitle() + " " +
-		       QString::fromUtf8(obs_frontend_get_locale_string(
-			       "Basic.SceneTransitions")));
+
 	setMinimumWidth(100);
 	setMinimumHeight(50);
 	setContentsMargins(0, 0, 0, 0);
@@ -260,13 +257,9 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 	mainLayout->addLayout(hl);
 	mainLayout->addStretch();
 
-	auto *dockWidgetContents = new QWidget;
-	dockWidgetContents->setObjectName(QStringLiteral("contextContainer"));
-	//dockWidgetContents->setContentsMargins(0, 0, 0, 0);
-	dockWidgetContents->setLayout(mainLayout);
 
-	setWidget(dockWidgetContents);
-	hide();
+	setObjectName(QStringLiteral("contextContainer"));
+	setLayout(mainLayout);
 
 	for (auto t : canvasDock->transitions) {
 		auto name = QString::fromUtf8(obs_source_get_name(t));

@@ -774,7 +774,6 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	vb->addStretch();
 	recordingPage->setLayout(vb);
 
-
 	// HELP PAGE
 	auto helpButtonGroup = new QWidget();
 	auto helpButtonGroupLayout = new QVBoxLayout();
@@ -799,10 +798,12 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	auto tsButton = new QPushButton;
 	tsButton->setObjectName(QStringLiteral("tsButton"));
 	tsButton->setCheckable(false);
-	tsButton->setText(QString::fromUtf8(obs_module_text("HelpTroubleshooterButton")));
+	tsButton->setText(
+		QString::fromUtf8(obs_module_text("HelpTroubleshooterButton")));
 
-	connect(tsButton, &QPushButton::clicked,
-		[] { QDesktopServices::openUrl(QUrl("https://l.aitum.tv/vh-ts")); });
+	connect(tsButton, &QPushButton::clicked, [] {
+		QDesktopServices::openUrl(QUrl("https://l.aitum.tv/vh-ts"));
+	});
 
 	helpButtonGroupLayout->addWidget(tsButton);
 
@@ -810,10 +811,12 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	auto guideButton = new QPushButton;
 	guideButton->setObjectName(QStringLiteral("guideButton"));
 	guideButton->setCheckable(false);
-	guideButton->setText(QString::fromUtf8(obs_module_text("HelpGuideButton")));
+	guideButton->setText(
+		QString::fromUtf8(obs_module_text("HelpGuideButton")));
 
-	connect(guideButton, &QPushButton::clicked,
-		[] { QDesktopServices::openUrl(QUrl("https://l.aitum.tv/vh-guides")); });
+	connect(guideButton, &QPushButton::clicked, [] {
+		QDesktopServices::openUrl(QUrl("https://l.aitum.tv/vh-guides"));
+	});
 
 	helpButtonGroupLayout->addWidget(guideButton);
 
@@ -821,23 +824,20 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	auto discordButton = new QPushButton;
 	discordButton->setObjectName(QStringLiteral("discordButton"));
 	discordButton->setCheckable(false);
-	discordButton->setText(QString::fromUtf8(obs_module_text("HelpDiscordButton")));
+	discordButton->setText(
+		QString::fromUtf8(obs_module_text("HelpDiscordButton")));
 
-	connect(discordButton, &QPushButton::clicked,
-		[] { QDesktopServices::openUrl(QUrl("https://aitum.tv/discord")); });
+	connect(discordButton, &QPushButton::clicked, [] {
+		QDesktopServices::openUrl(QUrl("https://aitum.tv/discord"));
+	});
 
 	helpButtonGroupLayout->addWidget(discordButton);
-
 
 	vb = new QVBoxLayout;
 	vb->setContentsMargins(0, 0, 0, 0);
 	vb->addWidget(helpButtonGroup);
 	vb->addStretch();
 	helpPage->setLayout(vb);
-
-
-
-
 
 	QPushButton *okButton = new QPushButton(
 		QString::fromUtf8(obs_frontend_get_locale_string("OK")));
@@ -1140,17 +1140,6 @@ void OBSBasicSettings::SaveSettings()
 			obs_transition_set_size(t, width, height);
 		}
 		obs_source_release(t);
-
-		const QString name = "CanvasDock" + QString::number(width) +
-				     "x" + QString::number(height);
-		canvasDock->setObjectName(name);
-
-		if (canvasDock->scenesDock)
-			canvasDock->scenesDock->setObjectName(name + "Scenes");
-
-		if (canvasDock->sourcesDock)
-			canvasDock->sourcesDock->setObjectName(name +
-							       "Sources");
 
 		canvasDock->LoadScenes();
 		canvasDock->ProfileChanged();

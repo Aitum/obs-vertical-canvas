@@ -6,7 +6,7 @@
 
 class CanvasDock;
 
-class CanvasScenesDock : public QDockWidget {
+class CanvasScenesDock : public QFrame {
 	Q_OBJECT
 	friend class CanvasDock;
 private:

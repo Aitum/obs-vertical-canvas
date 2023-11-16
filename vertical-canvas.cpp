@@ -537,21 +537,57 @@ void obs_module_post_load(void)
 	}
 	const auto count = obs_data_array_count(canvas);
 	if (!count) {
-		const auto dock = new CanvasDock(nullptr, main_window);
-		auto *a = static_cast<QAction *>(obs_frontend_add_dock(dock));
-		dock->setAction(a);
-		canvas_docks.push_back(dock);
+		const auto canvasDock = new CanvasDock(nullptr, main_window);
+		const QString title =
+			QString::fromUtf8(obs_module_text("Vertical"));
+		const auto name = "VerticalCanvasDock";
+#if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
+	obs_frontend_add_dock_by_id(name,
+				    title.toUtf8().constData(),
+				    canvasDock);
+#else
+		auto dock = new QDockWidget(main_window);
+		dock->setObjectName(QString::fromUtf8(name));
+		dock->setWindowTitle(title);
+		dock->setWidget(canvasDock);
+		dock->setFeatures(QDockWidget::DockWidgetMovable |
+				  QDockWidget::DockWidgetFloatable);
+		dock->setFloating(true);
+		dock->hide();
+		auto *a = static_cast<QAction *>(
+			obs_frontend_add_dock(dock));
+		canvasDock->setAction(a);
+#endif
+		canvas_docks.push_back(canvasDock);
 		obs_data_array_release(canvas);
 		blog(LOG_INFO, "[Vertical Canvas] New Canvas created");
 		return;
 	}
 	for (size_t i = 0; i < count; i++) {
 		const auto item = obs_data_array_item(canvas, i);
-		const auto dock = new CanvasDock(item, main_window);
+		const auto canvasDock = new CanvasDock(item, main_window);
+		const QString title =
+			QString::fromUtf8(obs_module_text("Vertical"));
+		const auto name = "VerticalCanvasDock";
+#if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
+	obs_frontend_add_dock_by_id(name,
+				    title.toUtf8().constData(),
+				    canvasDock);
+#else
+		auto dock = new QDockWidget(main_window);
+		dock->setObjectName(QString::fromUtf8(name));
+		dock->setWindowTitle(title);
+		dock->setWidget(canvasDock);
+		dock->setFeatures(QDockWidget::DockWidgetMovable |
+				  QDockWidget::DockWidgetFloatable);
+		dock->setFloating(true);
+		dock->hide();
+		auto *a = static_cast<QAction *>(
+			obs_frontend_add_dock(dock));
+		canvasDock->setAction(a);
+#endif
 		obs_data_release(item);
-		auto *a = static_cast<QAction *>(obs_frontend_add_dock(dock));
-		dock->setAction(a);
-		canvas_docks.push_back(dock);
+		canvas_docks.push_back(canvasDock);
 	}
 	obs_data_array_release(canvas);
 
@@ -671,6 +707,9 @@ CanvasScenesDock *CanvasDock::GetScenesDock()
 QListWidget *CanvasDock::GetGlobalScenesList()
 {
 	auto p = parentWidget();
+	if (!p)
+		return nullptr;
+	p = p->parentWidget();
 	if (!p)
 		return nullptr;
 	auto scenesDock =
@@ -921,15 +960,12 @@ void CanvasDock::CreateScenesRow()
 }
 
 CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
-	: QDockWidget(parent),
+	: QFrame(parent),
 	  action(nullptr),
 	  mainLayout(new QVBoxLayout(this)),
 	  preview(new OBSQTDisplay(this)),
 	  eventFilter(BuildEventFilter())
 {
-	setFeatures(DockWidgetClosable | DockWidgetMovable |
-		    DockWidgetFloatable);
-
 	if (!settings) {
 		settings = obs_data_create();
 		obs_data_set_bool(settings, "backtrack", true);
@@ -1076,19 +1112,12 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	SwapTransition(transition);
 
+	setObjectName(QStringLiteral("contextContainer"));
+	//mainLayout->setContentsMargins(0, 0, 0, 0);
+	setContentsMargins(0, 0, 0, 0);
+	setLayout(mainLayout);
+
 	const QString title = QString::fromUtf8(obs_module_text("Vertical"));
-	setWindowTitle(title);
-
-	const QString name = "CanvasDock" + QString::number(canvas_width) +
-			     "x" + QString::number(canvas_height);
-	setObjectName(name);
-	setFloating(true);
-
-	auto *dockWidgetContents = new QWidget;
-	dockWidgetContents->setObjectName(QStringLiteral("contextContainer"));
-	dockWidgetContents->setLayout(mainLayout);
-
-	setWidget(dockWidgetContents);
 
 	const QString replayName =
 		title + " " + QString::fromUtf8(obs_module_text("Backtrack"));
@@ -1105,16 +1134,72 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	}
 	scenesDock = new CanvasScenesDock(this, parent);
 	scenesDock->SetGridMode(obs_data_get_bool(settings, "grid_mode"));
-	scenesDockAction =
-		static_cast<QAction *>(obs_frontend_add_dock(scenesDock));
+
+	const auto mainDialog =
+		static_cast<QMainWindow *>(obs_frontend_get_main_window());
+	const auto scenesName = "VerticalCanvasDockScenes";
+	const auto scenesTitle =
+		title + " " +
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("Basic.Main.Scenes"));
+#if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
+	obs_frontend_add_dock_by_id(scenesName,
+				    scenesTitle.toUtf8().constData(),
+					    scenesDock);
+#else
+	auto dock = new QDockWidget(mainDialog);
+	dock->setObjectName(QString::fromUtf8(scenesName));
+	dock->setWindowTitle(scenesTitle);
+	dock->setWidget(scenesDock);
+	dock->setFeatures(QDockWidget::DockWidgetMovable |
+			  QDockWidget::DockWidgetFloatable);
+	dock->setFloating(true);
+	dock->hide();
+	scenesDockAction = (QAction*)obs_frontend_add_dock(dock);
+#endif
 
 	sourcesDock = new CanvasSourcesDock(this, parent);
-	sourcesDockAction =
-		static_cast<QAction *>(obs_frontend_add_dock(sourcesDock));
+	const auto sourcesName = "VerticalCanvasDockSources";
+	const auto sourcesTitle =
+		title + " " +
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("Basic.Main.Sources"));
+#if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
+	obs_frontend_add_dock_by_id(sourcesName,
+				    sourcesTitle.toUtf8().constData(),
+				    sourcesDock);
+#else
+	dock = new QDockWidget(mainDialog);
+	dock->setObjectName(QString::fromUtf8(sourcesName));
+	dock->setWindowTitle(sourcesTitle);
+	dock->setWidget(sourcesDock);
+	dock->setFeatures(QDockWidget::DockWidgetMovable |
+			  QDockWidget::DockWidgetFloatable);
+	dock->setFloating(true);
+	dock->hide();
+	sourcesDockAction = (QAction *)obs_frontend_add_dock(dock);
+#endif
 
 	transitionsDock = new CanvasTransitionsDock(this, parent);
-	transitionsDockAction =
-		static_cast<QAction *>(obs_frontend_add_dock(transitionsDock));
+	const auto transitionsName = "VerticalCanvasDockTransitions";
+	const auto transitionsTitle = title + " " +
+		       QString::fromUtf8(obs_frontend_get_locale_string(
+			       "Basic.SceneTransitions"));
+#if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
+	obs_frontend_add_dock_by_id(transitionsName,
+				    transitionsTitle.toUtf8().constData(),
+				    transitionsDock);
+#else
+	dock = new QDockWidget(mainDialog);
+	dock->setObjectName(QString::fromUtf8(transitionsName));
+	dock->setWindowTitle(transitionsTitle);
+	dock->setWidget(transitionsDock);
+	dock->setFeatures(QDockWidget::DockWidgetMovable |
+			  QDockWidget::DockWidgetFloatable);
+	dock->setFloating(true);
+	dock->hide();
+	transitionsDockAction = (QAction *)obs_frontend_add_dock(dock);
+#endif
 
 	preview->setObjectName(QStringLiteral("preview"));
 	preview->setMinimumSize(QSize(24, 24));
@@ -1184,6 +1269,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	sp2.setHeightForWidth(true);
 
 	auto buttonRow = new QHBoxLayout(this);
+	buttonRow->setContentsMargins(0, 0, 0, 0);
+	buttonRow->setSpacing(0);
 
 	auto streamButtonGroup = new QWidget();
 	auto streamButtonGroupLayout = new QHBoxLayout();
@@ -1211,7 +1298,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	// Little up arrow in the case of there being multiple enabled outputs
 	streamButtonMulti = new QPushButton;
 	streamButtonMulti->setObjectName(QStringLiteral("canvasStreamMulti"));
-	streamButtonMulti->setToolTip(QString::fromUtf8(obs_module_text("StreamVerticalMulti")));
+	streamButtonMulti->setToolTip(
+		QString::fromUtf8(obs_module_text("StreamVerticalMulti")));
 	streamButtonMulti->setChecked(false);
 	streamButtonMulti->setSizePolicy(sp2);
 	auto multi_menu = new QMenu(this);
@@ -1356,13 +1444,13 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	signal_handler_connect(sh, "source_save", source_save, this);
 
 	virtual_cam_hotkey = obs_hotkey_pair_register_frontend(
-		(name + "StartVirtualCam").toUtf8().constData(),
+		"VerticalCanvasDockStartVirtualCam",
 		(title + " " +
 		 QString::fromUtf8(obs_frontend_get_locale_string(
 			 "Basic.Main.StartVirtualCam")))
 			.toUtf8()
 			.constData(),
-		(name + "StopVirtualCam").toUtf8().constData(),
+		"VerticalCanvasDockStopVirtualCam",
 		(title + " " +
 		 QString::fromUtf8(obs_frontend_get_locale_string(
 			 "Basic.Main.StopVirtualCam")))
@@ -1379,13 +1467,13 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	obs_data_array_release(stop_hotkey);
 
 	record_hotkey = obs_hotkey_pair_register_frontend(
-		(name + "StartRecording").toUtf8().constData(),
+		"VerticalCanvasDockStartRecording",
 		(title + " " +
 		 QString::fromUtf8(obs_frontend_get_locale_string(
 			 "Basic.Main.StartRecording")))
 			.toUtf8()
 			.constData(),
-		(name + "StopRecording").toUtf8().constData(),
+		"VerticalCanvasDockStopRecording",
 		(title + " " +
 		 QString::fromUtf8(obs_frontend_get_locale_string(
 			 "Basic.Main.StopRecording")))
@@ -1400,13 +1488,13 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	obs_data_array_release(stop_hotkey);
 
 	stream_hotkey = obs_hotkey_pair_register_frontend(
-		(name + "StartStreaming").toUtf8().constData(),
+		"VerticalCanvasDockStartStreaming",
 		(title + " " +
 		 QString::fromUtf8(obs_frontend_get_locale_string(
 			 "Basic.Main.StartStreaming")))
 			.toUtf8()
 			.constData(),
-		(name + "StopStreaming").toUtf8().constData(),
+		"VerticalCanvasDockStopStreaming",
 		(title + " " +
 		 QString::fromUtf8(obs_frontend_get_locale_string(
 			 "Basic.Main.StopStreaming")))
@@ -1465,6 +1553,11 @@ CanvasDock::~CanvasDock()
 	transitionsDock->deleteLater();
 	transitionsDock = nullptr;
 	delete transitionsDockAction;
+#if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
+	obs_frontend_remove_dock("VerticalCanvasDockScenes");
+	obs_frontend_remove_dock("VerticalCanvasDockSources");
+	obs_frontend_remove_dock("VerticalCanvasDockTransitions");
+#endif
 	auto sh = obs_get_signal_handler();
 	signal_handler_disconnect(sh, "source_rename", source_rename, this);
 	signal_handler_disconnect(sh, "source_remove", source_remove, this);
@@ -6423,9 +6516,9 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_bool(data, "show_scenes", !hideScenes);
 	obs_data_set_bool(data, "preview_disabled", preview_disabled);
 	obs_data_set_bool(data, "virtual_cam_warned", virtual_cam_warned);
-	obs_data_set_int(data, "streaming_video_bitrate", streamingVideoBitrate);
-	obs_data_set_int(data, "record_video_bitrate",
-			 recordVideoBitrate);
+	obs_data_set_int(data, "streaming_video_bitrate",
+			 streamingVideoBitrate);
+	obs_data_set_int(data, "record_video_bitrate", recordVideoBitrate);
 	obs_data_set_int(data, "audio_bitrate", audioBitrate);
 	obs_data_set_bool(data, "backtrack", startReplay);
 	obs_data_set_bool(data, "backtrack_always", replayAlwaysOn);
@@ -6897,72 +6990,82 @@ void CanvasDock::FinishLoading()
 	CheckReplayBuffer(true);
 	if (!first_time)
 		return;
-	if (!action->isChecked())
+	if (action && !action->isChecked())
 		action->trigger();
-	auto main = ((QMainWindow *)parentWidget());
+	auto canvasDock = (QDockWidget *)this->parentWidget();
+	auto main = ((QMainWindow *)canvasDock->parentWidget());
 
-	main->addDockWidget(Qt::RightDockWidgetArea, this);
-	setFloating(false);
+	main->addDockWidget(Qt::RightDockWidgetArea, canvasDock);
+	canvasDock->setFloating(false);
+	canvasDock->show();
 
-	if (!scenesDockAction->isChecked())
+	if (scenesDockAction && !scenesDockAction->isChecked())
 		scenesDockAction->trigger();
+	auto dock = (QDockWidget *)(scenesDock->parentWidget());
 	auto sd = main->findChild<QDockWidget *>(QStringLiteral("scenesDock"));
 	if (sd) {
 		auto area = main->dockWidgetArea(sd);
+
 		if (area == Qt::NoDockWidgetArea) {
-			main->addDockWidget(Qt::RightDockWidgetArea,
-					    scenesDock);
-			main->splitDockWidget(this, scenesDock, Qt::Horizontal);
+			main->addDockWidget(Qt::RightDockWidgetArea, dock);
+			main->splitDockWidget(canvasDock, dock, Qt::Horizontal);
 		} else {
-			main->addDockWidget(area, scenesDock);
-			main->splitDockWidget(sd, scenesDock, Qt::Vertical);
+			main->addDockWidget(area, dock);
+			main->splitDockWidget(sd, dock, Qt::Vertical);
 		}
 	} else {
-		main->addDockWidget(Qt::RightDockWidgetArea, scenesDock);
-		main->splitDockWidget(this, scenesDock, Qt::Horizontal);
+		main->addDockWidget(Qt::RightDockWidgetArea, dock);
+		main->splitDockWidget(canvasDock, dock, Qt::Horizontal);
 	}
-	scenesDock->setFloating(false);
+	dock->setFloating(false);
+	dock->show();
 
-	if (!sourcesDockAction->isChecked())
+
+	dock = (QDockWidget *)(sourcesDock->parentWidget());
+	if (sourcesDockAction && !sourcesDockAction->isChecked())
 		sourcesDockAction->trigger();
 	sd = main->findChild<QDockWidget *>(QStringLiteral("sourcesDock"));
 	if (sd) {
 		auto area = main->dockWidgetArea(sd);
 		if (area == Qt::NoDockWidgetArea) {
 			main->addDockWidget(Qt::RightDockWidgetArea,
-					    sourcesDock);
-			main->splitDockWidget(this, sourcesDock,
+					    dock);
+			main->splitDockWidget(canvasDock, dock,
 					      Qt::Horizontal);
 		} else {
-			main->addDockWidget(area, sourcesDock);
-			main->splitDockWidget(sd, sourcesDock, Qt::Vertical);
+			main->addDockWidget(area, dock);
+			main->splitDockWidget(sd, dock, Qt::Vertical);
 		}
 	} else {
-		main->addDockWidget(Qt::RightDockWidgetArea, sourcesDock);
-		main->splitDockWidget(this, sourcesDock, Qt::Horizontal);
+		main->addDockWidget(Qt::RightDockWidgetArea, dock);
+		main->splitDockWidget(canvasDock, dock, Qt::Horizontal);
 	}
-	sourcesDock->setFloating(false);
+	dock->setFloating(false);
+	dock->show();
 
-	if (!transitionsDockAction->isChecked())
+
+	dock = (QDockWidget *)(transitionsDock->parentWidget());
+	if (transitionsDockAction && !transitionsDockAction->isChecked())
 		transitionsDockAction->trigger();
 	sd = main->findChild<QDockWidget *>(QStringLiteral("transitionsDock"));
 	if (sd) {
 		auto area = main->dockWidgetArea(sd);
 		if (area == Qt::NoDockWidgetArea) {
 			main->addDockWidget(Qt::RightDockWidgetArea,
-					    transitionsDock);
-			main->splitDockWidget(this, transitionsDock,
+					    dock);
+			main->splitDockWidget(canvasDock, dock,
 					      Qt::Horizontal);
 		} else {
-			main->addDockWidget(area, transitionsDock);
-			main->splitDockWidget(sd, transitionsDock,
+			main->addDockWidget(area, dock);
+			main->splitDockWidget(sd, dock,
 					      Qt::Vertical);
 		}
 	} else {
-		main->addDockWidget(Qt::RightDockWidgetArea, transitionsDock);
-		main->splitDockWidget(this, transitionsDock, Qt::Horizontal);
+		main->addDockWidget(Qt::RightDockWidgetArea, dock);
+		main->splitDockWidget(canvasDock, dock, Qt::Horizontal);
 	}
-	transitionsDock->setFloating(false);
+	dock->setFloating(false);
+	dock->show();
 	save_canvas();
 }
 

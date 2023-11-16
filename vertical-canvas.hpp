@@ -73,7 +73,7 @@ public:
 	bool enabled = true;
 };
 
-class CanvasDock : public QDockWidget {
+class CanvasDock : public QFrame {
 	Q_OBJECT
 	friend class CanvasScenesDock;
 	friend class CanvasSourcesDock;

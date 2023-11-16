@@ -9,7 +9,7 @@
 class CanvasDock;
 class SourceTree;
 
-class CanvasSourcesDock : public QDockWidget {
+class CanvasSourcesDock : public QFrame {
 	Q_OBJECT
 	friend class CanvasDock;
 
