@@ -1539,17 +1539,11 @@ CanvasDock::~CanvasDock()
 		}
 	}
 	obs_source_release(transitionAudioWrapper);
-	delete action;
-	sourcesDock->deleteLater();
 	sourcesDock = nullptr;
-	delete sourcesDockAction;
-	scenesDock->deleteLater();
 	scenesDock = nullptr;
-	delete scenesDockAction;
-	transitionsDock->deleteLater();
 	transitionsDock = nullptr;
-	delete transitionsDockAction;
 #if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
+	obs_frontend_remove_dock("VerticalCanvasDock");
 	obs_frontend_remove_dock("VerticalCanvasDockScenes");
 	obs_frontend_remove_dock("VerticalCanvasDockSources");
 	obs_frontend_remove_dock("VerticalCanvasDockTransitions");

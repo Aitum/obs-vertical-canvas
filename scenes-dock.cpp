@@ -293,7 +293,8 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 }
 
 CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent)
-	: QFrame(parent), canvasDock(canvas_dock)
+	: QFrame(parent),
+	  canvasDock(canvas_dock)
 {
 	setMinimumWidth(100);
 	setMinimumHeight(50);
