@@ -361,7 +361,6 @@ private:
 	static void SceneRefreshed(void *data, calldata_t *params);
 
 	static void transition_override_stop(void *data, calldata_t *);
-	static void back_to_selected_transition(void *data);
 
 private slots:
 	void AddSourceFromAction();
@@ -412,6 +411,7 @@ private slots:
 	void ProfileChanged();
 	void OpenPreviewProjector();
 	void OpenSourceProjector();
+	void SwitchBackToSelectedTransition();
 
 	void NewerVersionAvailable(QString version);
 

@@ -6790,16 +6790,16 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 
 void CanvasDock::transition_override_stop(void *data, calldata_t *)
 {
-	obs_queue_task(OBS_TASK_GRAPHICS, back_to_selected_transition, data,
-		       false);
+	auto dock = (CanvasDock *)data;
+	QMetaObject::invokeMethod(dock, "SwitchBackToSelectedTransition",
+				  Qt::QueuedConnection);
 }
 
-void CanvasDock::back_to_selected_transition(void *data)
+void CanvasDock::SwitchBackToSelectedTransition()
 {
-	auto dock = (CanvasDock *)data;
-	auto tn = dock->transitionsDock->transition->currentText().toUtf8();
-	auto transition = dock->GetTransition(tn.constData());
-	dock->SwapTransition(transition);
+	auto tn = transitionsDock->transition->currentText().toUtf8();
+	auto transition = GetTransition(tn.constData());
+	SwapTransition(transition);
 }
 
 obs_source_t *CanvasDock::GetTransition(const char *transition_name)
