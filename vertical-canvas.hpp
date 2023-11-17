@@ -360,7 +360,8 @@ private:
 	static void SceneReordered(void *data, calldata_t *params);
 	static void SceneRefreshed(void *data, calldata_t *params);
 
-	static void tranistion_override_stop(void *data, calldata_t *);
+	static void transition_override_stop(void *data, calldata_t *);
+	static void back_to_selected_transition(void *data);
 
 private slots:
 	void AddSourceFromAction();

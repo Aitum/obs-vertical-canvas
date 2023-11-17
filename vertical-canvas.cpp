@@ -6705,7 +6705,7 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 							oldSource);
 					signal_handler_connect(
 						handler, "transition_stop",
-						tranistion_override_stop, this);
+						transition_override_stop, this);
 				}
 				obs_data_release(data);
 
@@ -6788,11 +6788,18 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 	}
 }
 
-void CanvasDock::tranistion_override_stop(void *data, calldata_t *)
+void CanvasDock::transition_override_stop(void *data, calldata_t *)
+{
+	obs_queue_task(OBS_TASK_GRAPHICS, back_to_selected_transition, data,
+		       false);
+}
+
+void CanvasDock::back_to_selected_transition(void *data)
 {
 	auto dock = (CanvasDock *)data;
 	auto tn = dock->transitionsDock->transition->currentText().toUtf8();
-	dock->SwapTransition(dock->GetTransition(tn.constData()));
+	auto transition = dock->GetTransition(tn.constData());
+	dock->SwapTransition(transition);
 }
 
 obs_source_t *CanvasDock::GetTransition(const char *transition_name)
@@ -6831,7 +6838,7 @@ bool CanvasDock::SwapTransition(obs_source_t *newTransition)
 	signal_handler_t *handler =
 		obs_source_get_signal_handler(oldTransition);
 	signal_handler_disconnect(handler, "transition_stop",
-				  tranistion_override_stop, this);
+				  transition_override_stop, this);
 	obs_source_inc_showing(newTransition);
 	obs_source_inc_active(newTransition);
 	obs_transition_swap_begin(newTransition, oldTransition);
