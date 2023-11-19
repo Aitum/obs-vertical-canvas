@@ -340,7 +340,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	OBSHotkeyWidget *otherHotkey = nullptr;
 	auto hotkey =
-		GetHotkeyByName(canvasDock->objectName() + "StartStreaming");
+		GetHotkeyByName("VerticalCanvasDockStartStreaming");
 	if (hotkey) {
 		auto id = obs_hotkey_get_id(hotkey);
 		std::vector<obs_key_combination_t> combos =
@@ -356,7 +356,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		hotkeys.push_back(hw);
 	}
 
-	hotkey = GetHotkeyByName(canvasDock->objectName() + "StopStreaming");
+	hotkey = GetHotkeyByName("VerticalCanvasDockStopStreaming");
 	if (hotkey) {
 		auto id = obs_hotkey_get_id(hotkey);
 		std::vector<obs_key_combination_t> combos =
@@ -564,7 +564,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	otherHotkey = nullptr;
 
-	hotkey = GetHotkeyByName(canvasDock->objectName() + "StartRecording");
+	hotkey = GetHotkeyByName("VerticalCanvasDockStartRecording");
 	if (hotkey) {
 		auto id = obs_hotkey_get_id(hotkey);
 		std::vector<obs_key_combination_t> combos =
@@ -580,7 +580,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		hotkeys.push_back(hw);
 	}
 
-	hotkey = GetHotkeyByName(canvasDock->objectName() + "StopRecording");
+	hotkey = GetHotkeyByName("VerticalCanvasDockStopRecording");
 	if (hotkey) {
 		auto id = obs_hotkey_get_id(hotkey);
 		std::vector<obs_key_combination_t> combos =
