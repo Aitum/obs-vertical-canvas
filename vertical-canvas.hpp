@@ -414,6 +414,8 @@ private slots:
 	void SwitchBackToSelectedTransition();
 
 	void NewerVersionAvailable(QString version);
+	void updateStreamKey(const QString &newStreamKey, int index);
+	void updateStreamServer(const QString &newStreamServer, int index);
 
 public:
 	CanvasDock(obs_data_t *settings, QWidget *parent = nullptr);
@@ -428,9 +430,6 @@ public:
 	inline uint32_t GetCanvasHeight() const { return canvas_height; }
 
 	obs_data_t *SaveSettings();
-
-	void updateStreamKey(const QString &newStreamKey, int index);
-	void updateStreamServer(const QString &newStreamServer, int index);
 
 	obs_scene_t *GetCurrentScene();
 	std::vector<QString> GetScenes();

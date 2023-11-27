@@ -417,7 +417,7 @@ void vendor_request_update_stream_key(obs_data_t *request_data,
 
 		// Update stream_key using the UpdateStreamKey method of CanvasDock
 		QMetaObject::invokeMethod(
-			it, "UpdateStreamKey",
+			it, "updateStreamKey",
 			Q_ARG(QString, QString::fromUtf8(new_stream_key)),
 			Q_ARG(int, obs_data_get_int(request_data, "index")));
 
@@ -451,7 +451,7 @@ void vendor_request_update_stream_server(obs_data_t *request_data,
 
 		// Update stream_server using the UpdateStreamServer method of CanvasDock
 		QMetaObject::invokeMethod(
-			it, "UpdateStreamServer",
+			it, "updateStreamServer",
 			Q_ARG(QString, QString::fromUtf8(new_stream_server)),
 			Q_ARG(int, obs_data_get_int(request_data, "index")));
 
