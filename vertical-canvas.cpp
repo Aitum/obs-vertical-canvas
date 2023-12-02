@@ -962,6 +962,15 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	  preview(new OBSQTDisplay(this)),
 	  eventFilter(BuildEventFilter())
 {
+	view = obs_view_create();
+	auto ph = obs_get_proc_handler();
+	calldata_t cd = {0};
+	calldata_set_ptr(&cd, "view", view);
+	calldata_set_string(&cd, "view_name", "Vertical");
+	calldata_set_ptr(&cd, "get_transitions", (void*)CanvasDock::get_transitions);
+	calldata_set_ptr(&cd, "get_transitions_data", this);
+	proc_handler_call(ph, "downstream_keyer_add_view", &cd);
+	calldata_free(&cd);
 	if (!settings) {
 		settings = obs_data_create();
 		obs_data_set_bool(settings, "backtrack", true);
@@ -1575,6 +1584,11 @@ CanvasDock::~CanvasDock()
 		obs_view_set_source(view, 0, nullptr);
 		video = nullptr;
 	}
+	auto ph = obs_get_proc_handler();
+	calldata_t cd = {0};
+	calldata_set_string(&cd, "view_name", "Vertical");
+	proc_handler_call(ph, "downstream_keyer_remove_view", &cd);
+	calldata_free(&cd);
 	obs_view_destroy(view);
 
 	obs_enter_graphics();
@@ -1767,15 +1781,10 @@ void CanvasDock::DrawPreview(void *data, uint32_t cx, uint32_t cy)
 {
 	CanvasDock *window = static_cast<CanvasDock *>(data);
 
-	if (!window->source)
-		return;
-	auto source = obs_weak_source_get_source(window->source);
-	if (!source)
-		return;
-	uint32_t sourceCX = obs_source_get_width(source);
+	uint32_t sourceCX = window->canvas_width;
 	if (sourceCX <= 0)
 		sourceCX = 1;
-	uint32_t sourceCY = obs_source_get_height(source);
+	uint32_t sourceCY = window->canvas_height;
 	if (sourceCY <= 0)
 		sourceCY = 1;
 
@@ -1809,8 +1818,7 @@ void CanvasDock::DrawPreview(void *data, uint32_t cx, uint32_t cy)
 
 	gs_ortho(0.0f, float(sourceCX), 0.0f, float(sourceCY), -100.0f, 100.0f);
 	gs_set_viewport(x, y, newCX, newCY);
-	obs_source_video_render(source);
-	obs_source_release(source);
+	obs_view_render(window->view);
 
 	gs_set_linear_srgb(previous);
 
@@ -8008,6 +8016,16 @@ QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible,
 	}
 
 	return menu;
+}
+void CanvasDock::get_transitions(void *data,
+				 struct obs_frontend_source_list *sources)
+{
+	auto dock = (CanvasDock *)data;
+	for (auto transition : dock->transitions) {
+		obs_source_t *tr = transition;
+		if (obs_source_get_ref(tr) != nullptr)
+			da_push_back(sources->sources, &tr);
+	}
 }
 
 LockedCheckBox::LockedCheckBox() {}

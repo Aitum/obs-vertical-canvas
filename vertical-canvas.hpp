@@ -362,6 +362,9 @@ private:
 
 	static void transition_override_stop(void *data, calldata_t *);
 
+	static void get_transitions(void *data,
+				    struct obs_frontend_source_list *sources);
+
 private slots:
 	void AddSourceFromAction();
 	void VirtualCamButtonClicked();
