@@ -967,7 +967,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	calldata_t cd = {0};
 	calldata_set_ptr(&cd, "view", view);
 	calldata_set_string(&cd, "view_name", "Vertical");
-	calldata_set_ptr(&cd, "get_transitions", (void*)CanvasDock::get_transitions);
+	calldata_set_ptr(&cd, "get_transitions",
+			 (void *)CanvasDock::get_transitions);
 	calldata_set_ptr(&cd, "get_transitions_data", this);
 	proc_handler_call(ph, "downstream_keyer_add_view", &cd);
 	calldata_free(&cd);
@@ -7213,6 +7214,10 @@ void CanvasDock::OnStreamStart()
 	StartReplayBuffer();
 }
 
+#ifndef OBS_OUTPUT_HDR_DISABLED
+#define OBS_OUTPUT_HDR_DISABLED -9
+#endif // ! OBS_OUTPUT_HDR_DISABLED
+
 void CanvasDock::OnStreamStop(int code, QString last_error,
 			      QString stream_server, QString stream_key)
 {
@@ -7266,6 +7271,11 @@ void CanvasDock::OnStreamStop(int code, QString last_error,
 
 	case OBS_OUTPUT_ENCODE_ERROR:
 		encode_error = true;
+		break;
+
+	case OBS_OUTPUT_HDR_DISABLED:
+		errorDescription = obs_frontend_get_locale_string(
+			"Output.ConnectFail.HdrDisabled");
 		break;
 
 	default:
