@@ -1624,8 +1624,11 @@ void CanvasDock::DrawOverflow(float scale)
 	if (locked)
 		return;
 
-	bool hidden = config_get_bool(obs_frontend_get_global_config(),
-				      "BasicWindow", "OverflowHidden");
+	config_t *config = obs_frontend_get_global_config();
+	if (!config)
+		return;
+
+	bool hidden = config_get_bool(config, "BasicWindow", "OverflowHidden");
 
 	if (hidden)
 		return;
@@ -1664,8 +1667,12 @@ bool CanvasDock::DrawSelectedOverflow(obs_scene_t *scene, obs_sceneitem_t *item,
 	if (!SceneItemHasVideo(item))
 		return true;
 
-	bool select = config_get_bool(obs_frontend_get_global_config(),
-				      "BasicWindow", "OverflowSelectionHidden");
+	config_t *config = obs_frontend_get_global_config();
+	if (!config)
+		return true;
+
+	bool select = config_get_bool(config, "BasicWindow",
+				      "OverflowSelectionHidden");
 
 	if (!select && !obs_sceneitem_visible(item))
 		return true;
@@ -1681,8 +1688,8 @@ bool CanvasDock::DrawSelectedOverflow(obs_scene_t *scene, obs_sceneitem_t *item,
 		gs_matrix_pop();
 	}
 
-	bool always = config_get_bool(obs_frontend_get_global_config(),
-				      "BasicWindow", "OverflowAlwaysVisible");
+	bool always =
+		config_get_bool(config, "BasicWindow", "OverflowAlwaysVisible");
 
 	if (!always && !obs_sceneitem_selected(item))
 		return true;
@@ -2640,33 +2647,33 @@ static inline QColor color_from_int(long long val)
 
 QColor CanvasDock::GetSelectionColor() const
 {
-	if (config_get_bool(obs_frontend_get_global_config(), "Accessibility",
-			    "OverrideColors")) {
+	config_t *config = obs_frontend_get_global_config();
+	if (config &&
+	    config_get_bool(config, "Accessibility", "OverrideColors")) {
 		return color_from_int(
-			config_get_int(obs_frontend_get_global_config(),
-				       "Accessibility", "SelectRed"));
+			config_get_int(config, "Accessibility", "SelectRed"));
 	}
 	return QColor::fromRgb(255, 0, 0);
 }
 
 QColor CanvasDock::GetCropColor() const
 {
-	if (config_get_bool(obs_frontend_get_global_config(), "Accessibility",
-			    "OverrideColors")) {
+	config_t *config = obs_frontend_get_global_config();
+	if (config &&
+	    config_get_bool(config, "Accessibility", "OverrideColors")) {
 		return color_from_int(
-			config_get_int(obs_frontend_get_global_config(),
-				       "Accessibility", "SelectGreen"));
+			config_get_int(config, "Accessibility", "SelectGreen"));
 	}
 	return QColor::fromRgb(0, 255, 0);
 }
 
 QColor CanvasDock::GetHoverColor() const
 {
-	if (config_get_bool(obs_frontend_get_global_config(), "Accessibility",
-			    "OverrideColors")) {
+	config_t *config = obs_frontend_get_global_config();
+	if (config &&
+	    config_get_bool(config, "Accessibility", "OverrideColors")) {
 		return color_from_int(
-			config_get_int(obs_frontend_get_global_config(),
-				       "Accessibility", "SelectBlue"));
+			config_get_int(config, "Accessibility", "SelectBlue"));
 	}
 	return QColor::fromRgb(0, 127, 255);
 }
@@ -4077,21 +4084,22 @@ vec3 CanvasDock::GetSnapOffset(const vec3 &tl, const vec3 &br)
 
 	vec3_zero(&clampOffset);
 
-	const bool snap = config_get_bool(obs_frontend_get_global_config(),
-					  "BasicWindow", "SnappingEnabled");
+	config_t *config = obs_frontend_get_global_config();
+	if (!config)
+		return clampOffset;
+
+	const bool snap =
+		config_get_bool(config, "BasicWindow", "SnappingEnabled");
 	if (snap == false)
 		return clampOffset;
 
 	const bool screenSnap =
-		config_get_bool(obs_frontend_get_global_config(), "BasicWindow",
-				"ScreenSnapping");
+		config_get_bool(config, "BasicWindow", "ScreenSnapping");
 	const bool centerSnap =
-		config_get_bool(obs_frontend_get_global_config(), "BasicWindow",
-				"CenterSnapping");
+		config_get_bool(config, "BasicWindow", "CenterSnapping");
 
 	const float clampDist =
-		config_get_double(obs_frontend_get_global_config(),
-				  "BasicWindow", "SnapDistance") /
+		config_get_double(config, "BasicWindow", "SnapDistance") /
 		previewScale;
 	const float centerX = br.x - (br.x - tl.x) / 2.0f;
 	const float centerY = br.y - (br.y - tl.y) / 2.0f;
@@ -4300,11 +4308,14 @@ void CanvasDock::SnapItemMovement(vec2 &offset)
 
 	vec3 snapOffset = GetSnapOffset(data.tl, data.br);
 
-	const bool snap = config_get_bool(obs_frontend_get_global_config(),
-					  "BasicWindow", "SnappingEnabled");
+	config_t *config = obs_frontend_get_global_config();
+	if (!config)
+		return;
+
+	const bool snap =
+		config_get_bool(config, "BasicWindow", "SnappingEnabled");
 	const bool sourcesSnap =
-		config_get_bool(obs_frontend_get_global_config(), "BasicWindow",
-				"SourceSnapping");
+		config_get_bool(config, "BasicWindow", "SourceSnapping");
 	if (snap == false)
 		return;
 	if (sourcesSnap == false) {
@@ -4314,8 +4325,7 @@ void CanvasDock::SnapItemMovement(vec2 &offset)
 	}
 
 	const float clampDist =
-		config_get_double(obs_frontend_get_global_config(),
-				  "BasicWindow", "SnapDistance") /
+		config_get_double(config, "BasicWindow", "SnapDistance") /
 		previewScale;
 
 	OffsetData offsetData;
@@ -5188,9 +5198,10 @@ int GetConfigPath(char *path, size_t size, const char *name)
 static inline int GetProfilePath(char *path, size_t size, const char *file)
 {
 	char profiles_path[512];
-	const char *profile = config_get_string(
-		obs_frontend_get_global_config(), "Basic", "ProfileDir");
-	int ret;
+	config_t *config = obs_frontend_get_global_config();
+	if (!config)
+		return -1;
+	const char *profile = config_get_string(config, "Basic", "ProfileDir");
 
 	if (!profile)
 		return -1;
@@ -5199,7 +5210,8 @@ static inline int GetProfilePath(char *path, size_t size, const char *file)
 	if (!file)
 		file = "";
 
-	ret = GetConfigPath(profiles_path, 512, "obs-studio/basic/profiles");
+	int ret =
+		GetConfigPath(profiles_path, 512, "obs-studio/basic/profiles");
 	if (ret <= 0)
 		return ret;
 
@@ -7813,8 +7825,11 @@ OBSProjector *CanvasDock::OpenProjector(int monitor)
 	/* seriously?  10 monitors? */
 	if (monitor > 9 || monitor > QGuiApplication::screens().size() - 1)
 		return nullptr;
+	config_t *config = obs_frontend_get_global_config();
+	if (!config)
+		return nullptr;
 
-	bool closeProjectors = config_get_bool(obs_frontend_get_global_config(),
+	bool closeProjectors = config_get_bool(config,
 					       "BasicWindow",
 					       "CloseExistingProjectors");
 
