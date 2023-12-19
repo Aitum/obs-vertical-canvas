@@ -8053,10 +8053,14 @@ void CanvasDock::get_transitions(void *data,
 	}
 }
 
-LockedCheckBox::LockedCheckBox() {}
+LockedCheckBox::LockedCheckBox() {
+	setProperty("lockCheckBox", true);
+}
 
 LockedCheckBox::LockedCheckBox(QWidget *parent) : QCheckBox(parent) {}
 
-VisibilityCheckBox::VisibilityCheckBox() {}
+VisibilityCheckBox::VisibilityCheckBox() {
+	setProperty("visibilityCheckBox", true);
+}
 
 VisibilityCheckBox::VisibilityCheckBox(QWidget *parent) : QCheckBox(parent) {}
