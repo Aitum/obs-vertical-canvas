@@ -152,7 +152,8 @@ void frontend_event(obs_frontend_event event, void *private_data)
 		}
 	} else if (event == OBS_FRONTEND_EVENT_SCENE_CHANGED) {
 		for (const auto &it : canvas_docks) {
-			QMetaObject::invokeMethod(it, "MainSceneChanged");
+			QMetaObject::invokeMethod(it, "MainSceneChanged",
+						  Qt::QueuedConnection);
 		}
 	} else if ( //event == OBS_FRONTEND_EVENT_STREAMING_STARTING ||
 		event == OBS_FRONTEND_EVENT_STREAMING_STARTED) {
