@@ -84,8 +84,9 @@ static void save_canvas()
 {
 	if (canvas_docks.empty())
 		return;
-	char path[512];
-	strcpy(path, obs_module_config_path("config.json"));
+	char *path = obs_module_config_path("config.json");
+	if (!path)
+		return;
 	ensure_directory(path);
 	obs_data_t *config = obs_data_create();
 	const auto canvas = obs_data_array_create();
@@ -102,6 +103,7 @@ static void save_canvas()
 		blog(LOG_ERROR, "[Vertical Canvas] Failed saving settings");
 	}
 	obs_data_release(config);
+	bfree(path);
 }
 
 void transition_start(void *, calldata_t *)
