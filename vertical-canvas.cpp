@@ -1607,6 +1607,21 @@ CanvasDock::~CanvasDock()
 	gs_vertexbuffer_destroy(box);
 	obs_leave_graphics();
 
+	obs_source_t *oldTransition = obs_weak_source_get_source(source);
+	if (oldTransition &&
+	    obs_source_get_type(oldTransition) == OBS_SOURCE_TYPE_TRANSITION) {
+		obs_weak_source_release(source);
+		source = nullptr;
+		signal_handler_t *handler =
+			obs_source_get_signal_handler(oldTransition);
+		signal_handler_disconnect(handler, "transition_stop",
+					  transition_override_stop, this);
+		obs_source_dec_showing(oldTransition);
+		obs_source_dec_active(oldTransition);
+		obs_source_release(oldTransition);
+	}
+	obs_source_release(oldTransition);
+
 	transitions.clear();
 }
 
