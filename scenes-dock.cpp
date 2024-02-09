@@ -289,6 +289,19 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 				obs_source_release(s);
 			});
 	}
+	a = menu.addAction(
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("ShowInMultiview")),
+		[scene_name](bool checked) {
+			OBSSourceAutoRelease source =
+				obs_get_source_by_name(scene_name.c_str());
+			OBSDataAutoRelease data =
+				obs_source_get_private_settings(source);
+			obs_data_set_bool(data, "show_in_multiview", checked);
+		});
+	a->setCheckable(true);
+	obs_data_set_default_bool(data, "show_in_multiview", true);
+	a->setChecked(obs_data_get_bool(data, "show_in_multiview"));
 	menu.exec(QCursor::pos());
 }
 
