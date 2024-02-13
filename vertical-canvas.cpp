@@ -53,6 +53,7 @@ void clear_canvas_docks()
 {
 	for (const auto &it : canvas_docks) {
 		it->ClearScenes();
+		it->StopOutputs();
 		it->close();
 		it->deleteLater();
 	}
@@ -1823,7 +1824,7 @@ void CanvasDock::DrawPreview(void *data, uint32_t cx, uint32_t cy)
 	auto newCX = scale * float(sourceCX);
 	auto newCY = scale * float(sourceCY);
 
-	/*auto extraCx = (window->zoom - 1.0f) * newCX;
+	/* auto extraCx = (window->zoom - 1.0f) * newCX;
 	auto extraCy = (window->zoom - 1.0f) * newCY;
 	int newCx = newCX * window->zoom;
 	int newCy = newCY * window->zoom;
@@ -6635,6 +6636,13 @@ void CanvasDock::ClearScenes()
 	SwitchScene("", false);
 }
 
+void CanvasDock::StopOutputs()
+{
+	StopRecord();
+	StopStream();
+	StopReplayBuffer();
+}
+
 void CanvasDock::LoadScenes()
 {
 	for (uint32_t i = MAX_CHANNELS - 1; i > 0; i--) {
@@ -7847,8 +7855,7 @@ OBSProjector *CanvasDock::OpenProjector(int monitor)
 	if (!config)
 		return nullptr;
 
-	bool closeProjectors = config_get_bool(config,
-					       "BasicWindow",
+	bool closeProjectors = config_get_bool(config, "BasicWindow",
 					       "CloseExistingProjectors");
 
 	if (closeProjectors && monitor > -1) {
@@ -8071,13 +8078,15 @@ void CanvasDock::get_transitions(void *data,
 	}
 }
 
-LockedCheckBox::LockedCheckBox() {
+LockedCheckBox::LockedCheckBox()
+{
 	setProperty("lockCheckBox", true);
 }
 
 LockedCheckBox::LockedCheckBox(QWidget *parent) : QCheckBox(parent) {}
 
-VisibilityCheckBox::VisibilityCheckBox() {
+VisibilityCheckBox::VisibilityCheckBox()
+{
 	setProperty("visibilityCheckBox", true);
 }
 

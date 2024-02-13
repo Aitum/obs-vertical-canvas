@@ -425,6 +425,7 @@ public:
 	~CanvasDock();
 
 	void ClearScenes();
+	void StopOutputs();
 	void LoadScenes();
 	void FinishLoading();
 	void setAction(QAction *action);
