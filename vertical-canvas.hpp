@@ -192,6 +192,10 @@ private:
 
 	std::vector<StreamServer> streamOutputs;
 
+	bool stream_delay_enabled;
+	uint32_t stream_delay_duration;
+	bool stream_delay_preserve;
+
 	bool stream_advanced_settings;
 	int stream_audio_track;
 	std::string stream_encoder;

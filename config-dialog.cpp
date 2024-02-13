@@ -190,7 +190,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	backtrackLayout->addWidget(backtrackClip);
 
 	backtrackDuration = new QSpinBox;
-	backtrackDuration->setSuffix(" sec");
+	backtrackDuration->setSuffix(" s");
 	backtrackDuration->setMinimum(5);
 	backtrackDuration->setMaximum(21600);
 	backtrackLayout->addRow(
@@ -339,8 +339,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		streamingVideoBitrate);
 
 	OBSHotkeyWidget *otherHotkey = nullptr;
-	auto hotkey =
-		GetHotkeyByName("VerticalCanvasDockStartStreaming");
+	auto hotkey = GetHotkeyByName("VerticalCanvasDockStartStreaming");
 	if (hotkey) {
 		auto id = obs_hotkey_get_id(hotkey);
 		std::vector<obs_key_combination_t> combos =
@@ -377,6 +376,50 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	streamingGroup->setLayout(streamingLayout);
 
+	auto streamingDelayGroup =
+		new QGroupBox(QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.Settings.Advanced.StreamDelay")));
+
+	auto streamingDelayLayout = new QFormLayout;
+	streamingDelayLayout->setContentsMargins(9, 2, 9, 9);
+	streamingDelayLayout->setFieldGrowthPolicy(
+		QFormLayout::AllNonFixedFieldsGrow);
+	streamingDelayLayout->setLabelAlignment(
+		Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
+
+	streamDelayEnable = new QCheckBox(
+		QString::fromUtf8(obs_frontend_get_locale_string("Enable")));
+	streamingDelayLayout->addWidget(streamDelayEnable);
+
+	streamDelayDuration = new QSpinBox();
+	streamDelayDuration->setSuffix(" s");
+	streamDelayDuration->setMinimumSize(QSize(80, 0));
+	streamDelayDuration->setMinimum(1);
+	streamDelayDuration->setMaximum(1800);
+	streamDelayDuration->setEnabled(false);
+
+
+	auto streamDelayDurationLabel =
+		new QLabel(QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.Settings.Advanced.StreamDelay.Duration")));
+	streamDelayDurationLabel->setEnabled(false);
+	streamingDelayLayout->addRow(streamDelayDurationLabel,
+				     streamDelayDuration);
+	streamDelayPreserve =
+		new QCheckBox(QString::fromUtf8(obs_frontend_get_locale_string(
+			"Basic.Settings.Advanced.StreamDelay.Preserve")));
+	streamDelayPreserve->setEnabled(false);
+	streamingDelayLayout->addWidget(streamDelayPreserve);
+
+	QObject::connect(streamDelayEnable, &QCheckBox::toggled,
+			 streamDelayDurationLabel, &QLabel::setEnabled);
+	QObject::connect(streamDelayEnable, &QCheckBox::toggled,
+			 streamDelayDuration, &QSpinBox::setEnabled);
+	QObject::connect(streamDelayEnable, &QCheckBox::toggled,
+			 streamDelayPreserve, &QCheckBox::setEnabled);
+
+	streamingDelayGroup->setLayout(streamingDelayLayout);
+
 	auto streamingAdvancedGroup = new QGroupBox(QString::fromUtf8(
 		obs_frontend_get_locale_string("Basic.Settings.Advanced")));
 	auto streamingAdvancedLayout = new QFormLayout;
@@ -389,9 +432,10 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	streamingUseMain =
 		new QCheckBox(QString::fromUtf8(obs_module_text("UseMain")));
 	connect(streamingUseMain, &QCheckBox::stateChanged,
-		[this, streamingAdvancedLayout] {
+		[this, streamingAdvancedLayout, streamingDelayGroup] {
 			bool checked = streamingUseMain->isChecked();
 			streamingVideoBitrate->setEnabled(checked);
+			streamingDelayGroup->setEnabled(!checked);
 			for (int i = 1; i < streamingAdvancedLayout->rowCount();
 			     i++) {
 				auto field = streamingAdvancedLayout->itemAt(
@@ -502,6 +546,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	vb->setContentsMargins(0, 0, 0, 0);
 	vb->addWidget(streamingGroup);
 	vb->addWidget(streamingAdvancedGroup);
+	vb->addWidget(streamingDelayGroup);
 	vb->addStretch();
 	streamingPage->setLayout(vb);
 
@@ -1061,6 +1106,10 @@ void OBSBasicSettings::LoadSettings()
 		streamingAudioTracks[canvasDock->stream_audio_track - 1]
 			->setChecked(true);
 
+	streamDelayEnable->setChecked(canvasDock->stream_delay_enabled);
+	streamDelayDuration->setValue(canvasDock->stream_delay_duration);
+	streamDelayPreserve->setChecked(canvasDock->stream_delay_preserve);
+
 	auto idx = streamingEncoder->findData(QVariant(
 		QString::fromUtf8(canvasDock->stream_encoder.c_str())));
 	if (idx != -1)
@@ -1274,6 +1323,34 @@ void OBSBasicSettings::SaveSettings()
 		canvasDock->multi_rtmp = false;
 		canvasDock->streamButton->setStyleSheet(QString::fromUtf8(
 			active_count > 0 ? "background: rgb(0,210,153);" : ""));
+	}
+
+	if (streamDelayEnable->isChecked() !=
+		    canvasDock->stream_delay_enabled ||
+	    (canvasDock->stream_delay_enabled &&
+	     (streamDelayDuration->value() !=
+		      canvasDock->stream_delay_duration ||
+	      streamDelayPreserve->isChecked() !=
+		      canvasDock->stream_delay_preserve))) {
+		canvasDock->stream_delay_enabled =
+			streamDelayEnable->isChecked();
+		canvasDock->stream_delay_duration =
+			streamDelayDuration->value();
+		canvasDock->stream_delay_preserve =
+			streamDelayPreserve->isChecked();
+		for (auto it = canvasDock->streamOutputs.begin();
+		     it != canvasDock->streamOutputs.end(); ++it) {
+			if (!it->output)
+				continue;
+			obs_output_set_delay(
+				it->output,
+				canvasDock->stream_delay_enabled
+					? canvasDock->stream_delay_duration
+					: 0,
+				canvasDock->stream_delay_preserve
+					? OBS_OUTPUT_DELAY_PRESERVE
+					: 0);
+		}
 	}
 
 	auto sa = !streamingUseMain->isChecked();

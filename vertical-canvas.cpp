@@ -1040,6 +1040,13 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		streamOutputs.push_back(ss);
 	}
 
+	stream_delay_enabled =
+		obs_data_get_bool(settings, "stream_delay_enabled");
+	stream_delay_duration =
+		obs_data_get_int(settings, "stream_delay_duration");
+	stream_delay_preserve =
+		obs_data_get_bool(settings, "stream_delay_preserve");
+
 	stream_advanced_settings =
 		obs_data_get_bool(settings, "stream_advanced_settings");
 	stream_audio_track = obs_data_get_int(settings, "stream_audio_track");
@@ -6234,6 +6241,23 @@ void CanvasDock::CreateStreamOutput(std::vector<StreamServer>::iterator it)
 					       nullptr, nullptr);
 		obs_output_set_service(it->output, it->service);
 	}
+	if (stream_advanced_settings) {
+		obs_output_set_delay(
+			it->output,
+			stream_delay_enabled ? stream_delay_duration : 0,
+			stream_delay_preserve ? OBS_OUTPUT_DELAY_PRESERVE : 0);
+	} else {
+		config_t *config = obs_frontend_get_profile_config();
+
+		bool useDelay =
+			config_get_bool(config, "Output", "DelayEnable");
+		int delaySec = config_get_int(config, "Output", "DelaySec");
+		bool preserveDelay =
+			config_get_bool(config, "Output", "DelayPreserve");
+		obs_output_set_delay(it->output, useDelay ? delaySec : 0,
+				     preserveDelay ? OBS_OUTPUT_DELAY_PRESERVE
+						   : 0);
+	}
 
 	signal_handler_t *signal = obs_output_get_signal_handler(it->output);
 	signal_handler_disconnect(signal, "start", stream_output_start, this);
@@ -6565,6 +6589,10 @@ obs_data_t *CanvasDock::SaveSettings()
 
 	obs_data_set_array(data, "stream_outputs", stream_servers);
 	obs_data_array_release(stream_servers);
+
+	obs_data_set_bool(data, "stream_delay_enabled", stream_delay_enabled);
+	obs_data_set_int(data, "stream_delay_duration", stream_delay_duration);
+	obs_data_set_bool(data, "stream_delay_preserve", stream_delay_preserve);
 
 	obs_data_set_bool(data, "stream_advanced_settings",
 			  stream_advanced_settings);

@@ -44,6 +44,10 @@ private:
 	std::vector<QLineEdit *> keys;
 	std::vector<QCheckBox *> servers_enabled;
 
+	QCheckBox *streamDelayEnable;
+	QSpinBox *streamDelayDuration;
+	QCheckBox *streamDelayPreserve;
+
 	QCheckBox *streamingUseMain;
 	std::vector<QRadioButton *> streamingAudioTracks;
 	QComboBox *streamingEncoder;
