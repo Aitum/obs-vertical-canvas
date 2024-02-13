@@ -176,7 +176,6 @@ class SourceTree : public QListView {
 	}
 
 public:
-
 	inline SourceTreeItem *GetItemWidget(int idx)
 	{
 		QWidget *widget = indexWidget(GetStm()->createIndex(idx, 0));
@@ -204,7 +203,7 @@ public:
 public slots:
 	inline void ReorderItems() { GetStm()->ReorderItems(); }
 	inline void RefreshItems() { GetStm()->SceneChanged(); }
-	void Remove(OBSSceneItem item);
+	void Remove(OBSSceneItem item, OBSScene scene);
 	void GroupSelectedItems();
 	void UngroupSelectedGroups();
 	void AddGroup();

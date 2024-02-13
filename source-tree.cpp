@@ -79,7 +79,8 @@ static QIcon GetIconFromType(enum obs_icon_type icon_type)
 }
 
 SourceTreeItem::SourceTreeItem(SourceTree *tree_, OBSSceneItem sceneitem_)
-	: tree(tree_), sceneitem(sceneitem_)
+	: tree(tree_),
+	  sceneitem(sceneitem_)
 {
 	setAttribute(Qt::WA_TranslucentBackground);
 	setMouseTracking(true);
@@ -242,10 +243,13 @@ void SourceTreeItem::ReconnectSignals()
 			reinterpret_cast<SourceTreeItem *>(data);
 		obs_sceneitem_t *curItem =
 			(obs_sceneitem_t *)calldata_ptr(cd, "item");
+		obs_scene_t *curScene =
+			(obs_scene_t *)calldata_ptr(cd, "scene");
 
 		if (curItem == this_->sceneitem) {
 			QMetaObject::invokeMethod(this_->tree, "Remove",
-						  Q_ARG(OBSSceneItem, curItem));
+						  Q_ARG(OBSSceneItem, curItem),
+						  Q_ARG(OBSScene, curScene));
 			curItem = nullptr;
 		}
 		if (!curItem)
@@ -870,7 +874,8 @@ OBSSceneItem SourceTreeModel::Get(int idx)
 }
 
 SourceTreeModel::SourceTreeModel(SourceTree *st_)
-	: QAbstractListModel(st_), st(st_)
+	: QAbstractListModel(st_),
+	  st(st_)
 {
 	obs_frontend_add_event_callback(OBSFrontendEvent, this);
 }
@@ -1074,7 +1079,8 @@ void SourceTreeModel::UpdateGroupState(bool update)
 /* ========================================================================= */
 
 SourceTree::SourceTree(CanvasDock *canvas_dock, QWidget *parent_)
-	: QListView(parent_), canvasDock(canvas_dock)
+	: QListView(parent_),
+	  canvasDock(canvas_dock)
 {
 	SourceTreeModel *stm_ = new SourceTreeModel(this);
 	setModel(stm_);
@@ -1612,12 +1618,11 @@ bool SourceTree::GroupedItemsSelected() const
 	return false;
 }
 
-void SourceTree::Remove(OBSSceneItem item)
+void SourceTree::Remove(OBSSceneItem item, OBSScene scene)
 {
 	GetStm()->Remove(item);
 	obs_frontend_save();
 
-	obs_scene_t *scene = obs_sceneitem_get_scene(item);
 	obs_source_t *sceneSource = obs_scene_get_source(scene);
 	obs_source_t *itemSource = obs_sceneitem_get_source(item);
 	blog(LOG_INFO, "User Removed source '%s' (%s) from scene '%s'",
