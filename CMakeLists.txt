@@ -35,6 +35,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 	name-dialog.cpp
 	audio-wrapper-source.c
 	file-updater.c
+	multi-canvas-source.c
 	resources.qrc
 	vertical-canvas.hpp
 	scenes-dock.hpp
@@ -49,7 +50,8 @@ target_sources(${PROJECT_NAME} PRIVATE
 	name-dialog.hpp
 	audio-wrapper-source.h
 	obs-websocket-api.h
-	file-updater.h)
+	file-updater.h
+	multi-canvas-source.h)
 
 if(BUILD_OUT_OF_TREE)
   find_package(libobs REQUIRED)

@@ -28,6 +28,7 @@
 #include "sources-dock.hpp"
 #include "transitions-dock.hpp"
 #include "audio-wrapper-source.h"
+#include "multi-canvas-source.h"
 #include "media-io/video-frame.h"
 #include "util/config-file.h"
 #include "util/dstr.h"
@@ -513,6 +514,7 @@ bool obs_module_load(void)
 	obs_frontend_add_event_callback(frontend_event, nullptr);
 
 	obs_register_source(&audio_wrapper_source);
+	obs_register_source(&multi_canvas_source);
 
 	return true;
 }
@@ -1006,6 +1008,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	replayDuration =
 		(uint32_t)obs_data_get_int(settings, "backtrack_seconds");
 	replayPath = obs_data_get_string(settings, "backtrack_path");
+
+	virtual_cam_mode = obs_data_get_int(settings, "virtual_camera_mode");
 
 	auto so = obs_data_get_array(settings, "stream_outputs");
 	auto count = obs_data_array_count(so);
@@ -1590,6 +1594,21 @@ CanvasDock::~CanvasDock()
 
 	obs_data_release(stream_encoder_settings);
 	obs_data_release(record_encoder_settings);
+
+	if (multiCanvasSource) {
+		multi_canvas_source_remove_view(
+			obs_obj_get_data(multiCanvasSource), view);
+		obs_source_release(multiCanvasSource);
+		multiCanvasSource = nullptr;
+	}
+
+	if (multiCanvasVideo) {
+		obs_view_remove(multiCanvasView);
+		obs_view_set_source(multiCanvasView, 0, nullptr);
+		multiCanvasVideo = nullptr;
+	}
+	if (multiCanvasView)
+		obs_view_destroy(multiCanvasView);
 
 	if (video) {
 		obs_view_remove(view);
@@ -5134,7 +5153,46 @@ void CanvasDock::StartVirtualCam()
 
 	virtualCamOutput = output;
 
-	const bool started_video = StartVideo();
+	obs_view_t *started_view = nullptr;
+	bool started_video = false;
+	video_t *virtual_video = nullptr;
+	if (virtual_cam_mode == VIRTUAL_CAMERA_VERTICAL) {
+		started_video = StartVideo();
+		started_view = view;
+		virtual_video = video;
+	} else if (virtual_cam_mode == VIRTUAL_CAMERA_BOTH) {
+		if (!multiCanvasView) {
+			multiCanvasView = obs_view_create();
+		}
+		started_view = multiCanvasView;
+		if (!multiCanvasSource) {
+			multiCanvasSource = obs_source_create_private(
+				"vertical_multi_canvas_source",
+				"vertical_multi_canvas_source", nullptr);
+			void *data = obs_obj_get_data(multiCanvasSource);
+			multi_canvas_source_add_view(data, view, canvas_width,
+						     canvas_height);
+		}
+		if (!multiCanvasVideo) {
+			obs_video_info ovi;
+			obs_get_video_info(&ovi);
+			ovi.base_width =
+				obs_source_get_width(multiCanvasSource);
+			ovi.base_height =
+				obs_source_get_height(multiCanvasSource);
+			ovi.output_width = ovi.base_width;
+			ovi.output_height = ovi.base_height;
+			multiCanvasVideo = obs_view_add2(multiCanvasView, &ovi);
+			started_video = true;
+		}
+		virtual_video = multiCanvasVideo;
+		if (obs_view_get_source(multiCanvasView, 0) !=
+		    multiCanvasSource)
+			obs_view_set_source(multiCanvasView, 0,
+					    multiCanvasSource);
+	} else {
+		virtual_video = obs_get_video();
+	}
 	signal_handler_t *signal = obs_output_get_signal_handler(output);
 	signal_handler_disconnect(signal, "start", virtual_cam_output_start,
 				  this);
@@ -5143,15 +5201,21 @@ void CanvasDock::StartVirtualCam()
 	signal_handler_connect(signal, "start", virtual_cam_output_start, this);
 	signal_handler_connect(signal, "stop", virtual_cam_output_stop, this);
 
-	obs_output_set_media(output, video, obs_get_audio());
+	obs_output_set_media(output, virtual_video, obs_get_audio());
 	SendVendorEvent("virtual_camera_starting");
 	const bool success = obs_output_start(output);
 	if (!success) {
 		QMetaObject::invokeMethod(this, "OnVirtualCamStop");
 		if (started_video) {
-			obs_view_remove(view);
-			obs_view_set_source(view, 0, nullptr);
-			video = nullptr;
+			obs_view_remove(started_view);
+			obs_view_set_source(started_view, 0, nullptr);
+			if (video == virtual_video) {
+				video = nullptr;
+			} else if (multiCanvasVideo == virtual_video) {
+				multiCanvasVideo = nullptr;
+				obs_view_destroy(started_view);
+				multiCanvasView = nullptr;
+			}
 		}
 	}
 }
@@ -6574,6 +6638,8 @@ obs_data_t *CanvasDock::SaveSettings()
 		obs_data_set_obj(data, "backtrack_hotkeys", hotkeys);
 		obs_data_release(hotkeys);
 	}
+
+	obs_data_set_int(data, "virtual_camera_mode", virtual_cam_mode);
 
 	obs_data_array_t *stream_servers = obs_data_array_create();
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {

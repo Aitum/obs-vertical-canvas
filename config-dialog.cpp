@@ -157,6 +157,21 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 				      "Basic.Settings.Output.AudioBitrate")),
 			      audioBitrate);
 
+	virtualCameraMode = new QComboBox;
+	virtualCameraMode->addItem(
+		QString::fromUtf8(obs_module_text("VirtualCameraModeVertical")),
+		QVariant(VIRTUAL_CAMERA_VERTICAL));
+	virtualCameraMode->addItem(
+		QString::fromUtf8(obs_module_text("VirtualCameraModeMain")),
+		QVariant(VIRTUAL_CAMERA_MAIN));
+	virtualCameraMode->addItem(
+		QString::fromUtf8(obs_module_text("VirtualCameraModeBoth")),
+		QVariant(VIRTUAL_CAMERA_BOTH));
+
+	generalLayout->addRow(QString::fromUtf8(obs_frontend_get_locale_string(
+				      "Basic.VCam.VirtualCamera")),
+			      virtualCameraMode);
+
 	auto backtrackGroup = new QGroupBox;
 	backtrackGroup->setStyleSheet(QString("QGroupBox{ padding-top: 4px;}"));
 	auto backtrackLayout = new QFormLayout;
@@ -397,7 +412,6 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	streamDelayDuration->setMinimum(1);
 	streamDelayDuration->setMaximum(1800);
 	streamDelayDuration->setEnabled(false);
-
 
 	auto streamDelayDurationLabel =
 		new QLabel(QString::fromUtf8(obs_frontend_get_locale_string(
@@ -1058,6 +1072,7 @@ void OBSBasicSettings::LoadSettings()
 
 	resolution->setEnabled(enable);
 	showScenes->setChecked(!canvasDock->hideScenes);
+	virtualCameraMode->setCurrentIndex(canvasDock->virtual_cam_mode);
 	recordVideoBitrate->setValue(canvasDock->recordVideoBitrate
 					     ? canvasDock->recordVideoBitrate
 					     : 6000);
@@ -1194,6 +1209,10 @@ void OBSBasicSettings::SaveSettings()
 		canvasDock->LoadScenes();
 		canvasDock->ProfileChanged();
 	}
+	if (virtualCameraMode->currentIndex() >= 0)
+		canvasDock->virtual_cam_mode =
+			virtualCameraMode->currentIndex();
+
 	uint32_t bitrate = (uint32_t)recordVideoBitrate->value();
 	if (bitrate != canvasDock->recordVideoBitrate) {
 		canvasDock->recordVideoBitrate = bitrate;
@@ -1328,14 +1347,14 @@ void OBSBasicSettings::SaveSettings()
 	if (streamDelayEnable->isChecked() !=
 		    canvasDock->stream_delay_enabled ||
 	    (canvasDock->stream_delay_enabled &&
-	     (streamDelayDuration->value() !=
+	     ((uint32_t)streamDelayDuration->value() !=
 		      canvasDock->stream_delay_duration ||
 	      streamDelayPreserve->isChecked() !=
 		      canvasDock->stream_delay_preserve))) {
 		canvasDock->stream_delay_enabled =
 			streamDelayEnable->isChecked();
 		canvasDock->stream_delay_duration =
-			streamDelayDuration->value();
+			(uint32_t)streamDelayDuration->value();
 		canvasDock->stream_delay_preserve =
 			streamDelayPreserve->isChecked();
 		for (auto it = canvasDock->streamOutputs.begin();

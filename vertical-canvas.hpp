@@ -28,6 +28,10 @@
 #define ITEM_BOTTOM (1 << 3)
 #define ITEM_ROT (1 << 4)
 
+#define VIRTUAL_CAMERA_VERTICAL 0
+#define VIRTUAL_CAMERA_MAIN 1
+#define VIRTUAL_CAMERA_BOTH 2
+
 enum class ItemHandle : uint32_t {
 	None = 0,
 	TopLeft = ITEM_TOP | ITEM_LEFT,
@@ -138,6 +142,9 @@ private:
 	obs_scene_t *scene = nullptr;
 	obs_view_t *view = nullptr;
 	video_t *video = nullptr;
+	obs_view_t *multiCanvasView = nullptr;
+	video_t *multiCanvasVideo = nullptr;
+	obs_source_t *multiCanvasSource = nullptr;
 	gs_texrender_t *texrender = nullptr;
 	gs_stagesurf_t *stagesurface = nullptr;
 	QPushButton *virtualCamButton;
@@ -210,6 +217,7 @@ private:
 	std::string record_encoder;
 	obs_data_t *record_encoder_settings;
 	bool virtual_cam_warned;
+	uint32_t virtual_cam_mode = 0;
 
 	QString currentSceneName;
 	bool first_time = false;

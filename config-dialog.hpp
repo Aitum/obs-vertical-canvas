@@ -33,6 +33,7 @@ private:
 	QSpinBox *streamingVideoBitrate;
 	QSpinBox *recordVideoBitrate;
 	QComboBox *audioBitrate;
+	QComboBox *virtualCameraMode;
 	QCheckBox *backtrackClip;
 	QCheckBox *backtrackAlwaysOn;
 	QSpinBox *backtrackDuration;
