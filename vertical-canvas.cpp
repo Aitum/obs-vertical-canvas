@@ -3334,6 +3334,138 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 		this, [this] { CenterSelectedItems(CenterType::Horizontal); });
 
 	popup->addSeparator();
+
+	obs_scale_type scaleFilter = obs_sceneitem_get_scale_filter(sceneItem);
+	auto scaleMenu = popup->addMenu(QString::fromUtf8(
+		obs_frontend_get_locale_string("ScaleFiltering")));
+	auto a = scaleMenu->addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string("Disable")),
+		this, [sceneItem] {
+			obs_sceneitem_set_scale_filter(sceneItem,
+						       OBS_SCALE_DISABLE);
+		});
+	a->setCheckable(true);
+	a->setChecked(scaleFilter == OBS_SCALE_DISABLE);
+	a = scaleMenu->addAction(
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("ScaleFiltering.Point")),
+		this, [sceneItem] {
+			obs_sceneitem_set_scale_filter(sceneItem,
+						       OBS_SCALE_POINT);
+		});
+	a->setCheckable(true);
+	a->setChecked(scaleFilter == OBS_SCALE_POINT);
+	a = scaleMenu->addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"ScaleFiltering.Bilinear")),
+		this, [sceneItem] {
+			obs_sceneitem_set_scale_filter(sceneItem,
+						       OBS_SCALE_BILINEAR);
+		});
+	a->setCheckable(true);
+	a->setChecked(scaleFilter == OBS_SCALE_BILINEAR);
+	a = scaleMenu->addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"ScaleFiltering.Bicubic")),
+		this, [sceneItem] {
+			obs_sceneitem_set_scale_filter(sceneItem,
+						       OBS_SCALE_BICUBIC);
+		});
+	a->setCheckable(true);
+	a->setChecked(scaleFilter == OBS_SCALE_BICUBIC);
+	a = scaleMenu->addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"ScaleFiltering.Lanczos")),
+		this, [sceneItem] {
+			obs_sceneitem_set_scale_filter(sceneItem,
+						       OBS_SCALE_LANCZOS);
+		});
+	a->setCheckable(true);
+	a->setChecked(scaleFilter == OBS_SCALE_LANCZOS);
+	a = scaleMenu->addAction(
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("ScaleFiltering.Area")),
+		this, [sceneItem] {
+			obs_sceneitem_set_scale_filter(sceneItem,
+						       OBS_SCALE_AREA);
+		});
+	a->setCheckable(true);
+	a->setChecked(scaleFilter == OBS_SCALE_AREA);
+
+	auto blendingMode = obs_sceneitem_get_blending_mode(sceneItem);
+	auto blendingMenu = popup->addMenu(QString::fromUtf8(
+		obs_frontend_get_locale_string("BlendingMode")));
+	a = blendingMenu->addAction(
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("BlendingMode.Normal")),
+		this, [sceneItem] {
+			obs_sceneitem_set_blending_mode(sceneItem,
+							OBS_BLEND_NORMAL);
+		});
+	a->setCheckable(true);
+	a->setChecked(blendingMode == OBS_BLEND_NORMAL);
+
+	a = blendingMenu->addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"BlendingMode.Additive")),
+		this, [sceneItem] {
+			obs_sceneitem_set_blending_mode(sceneItem,
+							OBS_BLEND_ADDITIVE);
+		});
+	a->setCheckable(true);
+	a->setChecked(blendingMode == OBS_BLEND_ADDITIVE);
+
+	a = blendingMenu->addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"BlendingMode.Subtract")),
+		this, [sceneItem] {
+			obs_sceneitem_set_blending_mode(sceneItem,
+							OBS_BLEND_SUBTRACT);
+		});
+	a->setCheckable(true);
+	a->setChecked(blendingMode == OBS_BLEND_SUBTRACT);
+
+	a = blendingMenu->addAction(
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("BlendingMode.Screen")),
+		this, [sceneItem] {
+			obs_sceneitem_set_blending_mode(sceneItem,
+							OBS_BLEND_SCREEN);
+		});
+	a->setCheckable(true);
+	a->setChecked(blendingMode == OBS_BLEND_SCREEN);
+
+	a = blendingMenu->addAction(
+		QString::fromUtf8(obs_frontend_get_locale_string(
+			"BlendingMode.Multiply")),
+		this, [sceneItem] {
+			obs_sceneitem_set_blending_mode(sceneItem,
+							OBS_BLEND_MULTIPLY);
+		});
+	a->setCheckable(true);
+	a->setChecked(blendingMode == OBS_BLEND_MULTIPLY);
+
+	a = blendingMenu->addAction(
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("BlendingMode.Lighten")),
+		this, [sceneItem] {
+			obs_sceneitem_set_blending_mode(sceneItem,
+							OBS_BLEND_LIGHTEN);
+		});
+	a->setCheckable(true);
+	a->setChecked(blendingMode == OBS_BLEND_LIGHTEN);
+
+	a = blendingMenu->addAction(
+		QString::fromUtf8(
+			obs_frontend_get_locale_string("BlendingMode.Darken")),
+		this, [sceneItem] {
+			obs_sceneitem_set_blending_mode(sceneItem,
+							OBS_BLEND_DARKEN);
+		});
+	a->setCheckable(true);
+	a->setChecked(blendingMode == OBS_BLEND_DARKEN);
+
+	popup->addSeparator();
 	popup->addMenu(CreateVisibilityTransitionMenu(true, sceneItem));
 	popup->addMenu(CreateVisibilityTransitionMenu(false, sceneItem));
 
@@ -3365,7 +3497,7 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 	popup->addAction(
 		QString::fromUtf8(obs_frontend_get_locale_string("Filters")),
 		this, [source] { obs_frontend_open_source_filters(source); });
-	auto a = popup->addAction(
+	a = popup->addAction(
 		QString::fromUtf8(obs_frontend_get_locale_string("Properties")),
 		this,
 		[source] { obs_frontend_open_source_properties(source); });
