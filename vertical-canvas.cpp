@@ -5252,6 +5252,22 @@ void CanvasDock::OnVirtualCamStop()
 	virtualCamButton->setStyleSheet(QString::fromUtf8(""));
 	virtualCamButton->setChecked(false);
 	CheckReplayBuffer();
+	if (multiCanvasSource) {
+		multi_canvas_source_remove_view(
+			obs_obj_get_data(multiCanvasSource), view);
+		obs_source_release(multiCanvasSource);
+		multiCanvasSource = nullptr;
+	}
+
+	if (multiCanvasVideo) {
+		obs_view_remove(multiCanvasView);
+		obs_view_set_source(multiCanvasView, 0, nullptr);
+		multiCanvasVideo = nullptr;
+	}
+	if (multiCanvasView) {
+		obs_view_destroy(multiCanvasView);
+		multiCanvasView = nullptr;
+	}
 }
 
 void CanvasDock::VirtualCamButtonClicked()
@@ -5359,7 +5375,8 @@ void CanvasDock::StopVirtualCam()
 		return;
 	}
 	SendVendorEvent("virtual_camera_stopping");
-	obs_output_set_media(virtualCamOutput, nullptr, nullptr);
+	if (obs_output_video(virtualCamOutput) != obs_get_video())
+		obs_output_set_media(virtualCamOutput, nullptr, nullptr);
 	obs_output_stop(virtualCamOutput);
 }
 
