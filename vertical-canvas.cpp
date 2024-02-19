@@ -1766,9 +1766,6 @@ bool CanvasDock::DrawSelectedOverflow(obs_scene_t *scene, obs_sceneitem_t *item,
 
 	GS_DEBUG_MARKER_BEGIN(GS_DEBUG_COLOR_DEFAULT, "DrawSelectedOverflow");
 
-	obs_transform_info info;
-	obs_sceneitem_get_info(item, &info);
-
 	gs_effect_t *solid = obs_get_base_effect(OBS_EFFECT_REPEAT);
 	gs_eparam_t *image = gs_effect_get_param_by_name(solid, "image");
 	gs_eparam_t *scale = gs_effect_get_param_by_name(solid, "scale");
@@ -2224,9 +2221,6 @@ void CanvasDock::DrawSpacingHelpers(obs_scene_t *scene, float x, float y,
 	matrix4 boxTransform;
 	obs_sceneitem_get_box_transform(item, &boxTransform);
 
-	obs_transform_info oti;
-	obs_sceneitem_get_info(item, &oti);
-
 	vec3 size;
 	vec3_set(&size, sourceX, sourceY, 1.0f);
 
@@ -2240,23 +2234,28 @@ void CanvasDock::DrawSpacingHelpers(obs_scene_t *scene, float x, float y,
 
 	// Decide which side to use with box transform, based on rotation
 	// Seems hacky, probably a better way to do it
-	float rot = oti.rot;
+	float rot = obs_sceneitem_get_rot(item);
 
 	if (parentGroup) {
-		obs_transform_info groupOti;
-		obs_sceneitem_get_info(parentGroup, &groupOti);
-
+		
 		//Correct the scene item rotation angle
-		rot = oti.rot + groupOti.rot;
+		rot += obs_sceneitem_get_rot(parentGroup);
+
+		vec2 group_scale;
+		obs_sceneitem_get_scale(parentGroup, &group_scale);
+
+		vec2 group_pos;
+		obs_sceneitem_get_pos(parentGroup, &group_pos);
 
 		// Correct the scene item box transform
 		// Based on scale, rotation angle, position of parent's group
-		matrix4_scale3f(&boxTransform, &boxTransform, groupOti.scale.x,
-				groupOti.scale.y, 1.0f);
+		matrix4_scale3f(&boxTransform, &boxTransform, group_scale.x,
+				group_scale.y, 1.0f);
 		matrix4_rotate_aa4f(&boxTransform, &boxTransform, 0.0f, 0.0f,
-				    1.0f, RAD(groupOti.rot));
-		matrix4_translate3f(&boxTransform, &boxTransform,
-				    groupOti.pos.x, groupOti.pos.y, 0.0f);
+				    1.0f,
+				    RAD(obs_sceneitem_get_rot(parentGroup)));
+		matrix4_translate3f(&boxTransform, &boxTransform, group_pos.x,
+				    group_pos.y, 0.0f);
 	}
 
 	if (rot >= HELPER_ROT_BREAKPONT) {
@@ -2291,9 +2290,11 @@ void CanvasDock::DrawSpacingHelpers(obs_scene_t *scene, float x, float y,
 			vec3_copy(&left, &t);
 		}
 	}
+	vec2 item_scale;
+	obs_sceneitem_get_scale(item, &item_scale);
 
 	// Switch top/bottom or right/left if scale is negative
-	if (oti.scale.x < 0.0f) {
+	if (item_scale.x < 0.0f) {
 		vec3 l = left;
 		vec3 r = right;
 
@@ -2301,7 +2302,7 @@ void CanvasDock::DrawSpacingHelpers(obs_scene_t *scene, float x, float y,
 		vec3_copy(&right, &l);
 	}
 
-	if (oti.scale.y < 0.0f) {
+	if (item_scale.y < 0.0f) {
 		vec3 t = top;
 		vec3 b = bottom;
 
@@ -2517,11 +2518,9 @@ bool CanvasDock::DrawSelectedItem(obs_scene_t *scene, obs_sceneitem_t *item,
 
 	if (obs_sceneitem_is_group(item)) {
 		matrix4 mat;
-		obs_transform_info groupInfo;
 		obs_sceneitem_get_draw_transform(item, &mat);
-		obs_sceneitem_get_info(item, &groupInfo);
 
-		window->groupRot = groupInfo.rot;
+		window->groupRot = obs_sceneitem_get_rot(item);
 
 		gs_matrix_push();
 		gs_matrix_mul(&mat);
@@ -2599,9 +2598,6 @@ bool CanvasDock::DrawSelectedItem(obs_scene_t *scene, obs_sceneitem_t *item,
 	boxScale.x *= curTransform.x.x;
 	boxScale.y *= curTransform.y.y;
 
-	obs_transform_info info;
-	obs_sceneitem_get_info(item, &info);
-
 	gs_matrix_push();
 	gs_matrix_mul(&boxTransform);
 
@@ -2613,7 +2609,8 @@ bool CanvasDock::DrawSelectedItem(obs_scene_t *scene, obs_sceneitem_t *item,
 
 	gs_effect_set_vec4(colParam, &red);
 
-	if (info.bounds_type == OBS_BOUNDS_NONE && crop_enabled(&crop)) {
+	if (obs_sceneitem_get_bounds_type(item) == OBS_BOUNDS_NONE &&
+	    crop_enabled(&crop)) {
 #define DRAW_SIDE(side, x1, y1, x2, y2)                                        \
 	if (hovered && !selected) {                                            \
 		gs_effect_set_vec4(colParam, &blue);                           \
@@ -2673,7 +2670,9 @@ bool CanvasDock::DrawSelectedItem(obs_scene_t *scene, obs_sceneitem_t *item,
 		}
 
 		DrawRotationHandle(window->circleFill,
-				   info.rot + window->groupRot, pixelRatio);
+				   obs_sceneitem_get_rot(item) +
+					   window->groupRot,
+				   pixelRatio);
 	}
 
 	gs_matrix_pop();
@@ -3034,12 +3033,12 @@ static bool GetSelectedItemsWithSize(obs_scene_t *scene, obs_sceneitem_t *item,
 	if (obs_sceneitem_locked(item))
 		return true;
 
-	obs_transform_info oti;
-	obs_sceneitem_get_info(item, &oti);
+	vec2 scale;
+	obs_sceneitem_get_scale(item, &scale);
 
 	obs_source_t *source = obs_sceneitem_get_source(item);
-	const float width = float(obs_source_get_width(source)) * oti.scale.x;
-	const float height = float(obs_source_get_height(source)) * oti.scale.y;
+	const float width = float(obs_source_get_width(source)) * scale.x;
+	const float height = float(obs_source_get_height(source)) * scale.y;
 
 	if (width == 0.0f || height == 0.0f)
 		return true;
@@ -4884,6 +4883,8 @@ void CanvasDock::GetStretchHandleData(const vec2 &pos, bool ignoreGroup)
 							 &invGroupTransform);
 			matrix4_inv(&invGroupTransform, &invGroupTransform);
 			obs_sceneitem_defer_group_resize_begin(stretchGroup);
+		} else {
+			stretchGroup = nullptr;
 		}
 	}
 }
