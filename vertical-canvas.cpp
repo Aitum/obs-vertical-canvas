@@ -1651,7 +1651,6 @@ CanvasDock::~CanvasDock()
 					  transition_override_stop, this);
 		obs_source_dec_showing(oldTransition);
 		obs_source_dec_active(oldTransition);
-		obs_source_release(oldTransition);
 	}
 	obs_source_release(oldTransition);
 
