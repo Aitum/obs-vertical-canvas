@@ -1555,12 +1555,16 @@ CanvasDock::~CanvasDock()
 	obs_display_remove_draw_callback(preview->GetDisplay(), DrawPreview,
 					 this);
 	for (uint32_t i = MAX_CHANNELS - 1; i > 0; i--) {
-		if (obs_get_output_source(i) == transitionAudioWrapper) {
+		auto s = obs_get_output_source(i);
+		if (s == transitionAudioWrapper) {
+			obs_source_release(s);
 			obs_set_output_source(i, nullptr);
 			break;
 		}
+		obs_source_release(s);
 	}
 	obs_source_release(transitionAudioWrapper);
+	transitionAudioWrapper = nullptr;
 	sourcesDock = nullptr;
 	scenesDock = nullptr;
 	transitionsDock = nullptr;
@@ -1607,8 +1611,10 @@ CanvasDock::~CanvasDock()
 		obs_view_set_source(multiCanvasView, 0, nullptr);
 		multiCanvasVideo = nullptr;
 	}
-	if (multiCanvasView)
+	if (multiCanvasView) {
 		obs_view_destroy(multiCanvasView);
+		multiCanvasView = nullptr;
+	}
 
 	if (video) {
 		obs_view_remove(view);
@@ -6894,10 +6900,12 @@ void CanvasDock::StopOutputs()
 void CanvasDock::LoadScenes()
 {
 	for (uint32_t i = MAX_CHANNELS - 1; i > 0; i--) {
-		if (obs_get_output_source(i) == nullptr) {
+		auto s = obs_get_output_source(i);
+		if (s == nullptr) {
 			obs_set_output_source(i, transitionAudioWrapper);
 			break;
 		}
+		obs_source_release(s);
 	}
 	auto sl = GetGlobalScenesList();
 	if (scenesCombo)
