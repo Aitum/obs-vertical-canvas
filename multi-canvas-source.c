@@ -68,7 +68,11 @@ static void multi_canvas_video_render(void *data, gs_effect_t *effect)
 			obs_source_release(s);
 			continue;
 		}
+		gs_matrix_push();
+		gs_blend_state_push();
 		obs_source_video_render(s);
+		gs_blend_state_pop();
+		gs_matrix_pop();
 		obs_source_release(s);
 	}
 
@@ -194,7 +198,8 @@ void multi_canvas_source_remove_view(void *data, obs_view_t *view)
 struct obs_source_info multi_canvas_source = {
 	.id = "vertical_multi_canvas_source",
 	.type = OBS_SOURCE_TYPE_INPUT,
-	.output_flags = OBS_SOURCE_VIDEO | OBS_SOURCE_CAP_DISABLED,
+	.output_flags = OBS_SOURCE_VIDEO | OBS_SOURCE_CAP_DISABLED |
+			OBS_SOURCE_CUSTOM_DRAW,
 	.get_name = multi_canvas_get_name,
 	.create = multi_canvas_create,
 	.destroy = multi_canvas_destroy,
