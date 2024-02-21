@@ -2237,7 +2237,7 @@ void CanvasDock::DrawSpacingHelpers(obs_scene_t *scene, float x, float y,
 	float rot = obs_sceneitem_get_rot(item);
 
 	if (parentGroup) {
-		
+
 		//Correct the scene item rotation angle
 		rot += obs_sceneitem_get_rot(parentGroup);
 
@@ -3013,8 +3013,12 @@ static bool CenterAlignSelectedItems(obs_scene_t *scene, obs_sceneitem_t *item,
 		 float(obs_source_get_base_height(scene_source)));
 	itemInfo.bounds_type = boundsType;
 	itemInfo.bounds_alignment = OBS_ALIGN_CENTER;
-
+#if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(30, 1, 0)
 	obs_sceneitem_set_info(item, &itemInfo);
+#else
+	itemInfo.crop_to_bounds = obs_sceneitem_get_bounds_crop(item);
+	obs_sceneitem_set_info2(item, &itemInfo);
+#endif
 
 	UNUSED_PARAMETER(scene);
 	return true;
@@ -6985,9 +6989,10 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 			auto ost = obs_source_get_type(oldSource);
 			if (ost == OBS_SOURCE_TYPE_TRANSITION) {
 				auto data = obs_source_get_private_settings(s);
-				if (SwapTransition(
-					    GetTransition(obs_data_get_string(
-						    data, "transition")))) {
+				obs_source_t *override_transition =
+					GetTransition(obs_data_get_string(
+						data, "transition"));
+				if (SwapTransition(override_transition)) {
 					obs_source_release(oldSource);
 					oldSource = obs_weak_source_get_source(
 						source);
@@ -6998,6 +7003,13 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 						handler, "transition_stop",
 						transition_override_stop, this);
 				}
+				int duration = 0;
+				if (override_transition)
+					duration = obs_data_get_int(
+						data, "transition_duration");
+				if (duration <= 0)
+					duration =
+						obs_frontend_get_transition_duration();
 				obs_data_release(data);
 
 				auto sourceA = obs_transition_get_source(
@@ -7011,8 +7023,7 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 					obs_transition_start(
 						oldSource,
 						OBS_TRANSITION_MODE_AUTO,
-						obs_frontend_get_transition_duration(),
-						s);
+						duration, s);
 				} else {
 					obs_transition_set(oldSource, s);
 				}
