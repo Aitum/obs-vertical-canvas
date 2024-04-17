@@ -1607,25 +1607,26 @@ CanvasDock::~CanvasDock()
 	}
 
 	if (multiCanvasVideo) {
+		multiCanvasVideo = nullptr;
 		obs_view_remove(multiCanvasView);
 		obs_view_set_source(multiCanvasView, 0, nullptr);
-		multiCanvasVideo = nullptr;
 	}
 	if (multiCanvasView) {
 		obs_view_destroy(multiCanvasView);
 		multiCanvasView = nullptr;
 	}
 
-	if (video) {
-		obs_view_remove(view);
-		obs_view_set_source(view, 0, nullptr);
-		video = nullptr;
-	}
 	auto ph = obs_get_proc_handler();
 	calldata_t cd = {0};
 	calldata_set_string(&cd, "view_name", "Vertical");
 	proc_handler_call(ph, "downstream_keyer_remove_view", &cd);
 	calldata_free(&cd);
+
+	if (video) {
+		video = nullptr;
+		obs_view_remove(view);
+		obs_view_set_source(view, 0, nullptr);
+	}
 	obs_view_destroy(view);
 
 	obs_enter_graphics();
@@ -5270,9 +5271,9 @@ void CanvasDock::OnVirtualCamStop()
 	}
 
 	if (multiCanvasVideo) {
+		multiCanvasVideo = nullptr;
 		obs_view_remove(multiCanvasView);
 		obs_view_set_source(multiCanvasView, 0, nullptr);
-		multiCanvasVideo = nullptr;
 	}
 	if (multiCanvasView) {
 		obs_view_destroy(multiCanvasView);
@@ -5674,9 +5675,9 @@ void CanvasDock::StartRecord()
 			      QString::fromUtf8(obs_output_get_last_error(
 				      recordOutput))));
 		if (started_video) {
+			video = nullptr;
 			obs_view_remove(view);
 			obs_view_set_source(view, 0, nullptr);
-			video = nullptr;
 		}
 	}
 }
@@ -6014,9 +6015,9 @@ void CanvasDock::StartReplayBuffer()
 			      QString::fromUtf8(obs_output_get_last_error(
 				      replayOutput))));
 		if (started_video) {
+			video = nullptr;
 			obs_view_remove(view);
 			obs_view_set_source(view, 0, nullptr);
-			video = nullptr;
 		}
 	} else {
 		QMetaObject::invokeMethod(this, "OnReplayBufferStart");
@@ -6660,9 +6661,9 @@ void CanvasDock::StartStream()
 				      QString::fromUtf8(it->stream_key)));
 	}
 	if (!success && started_video) {
+		video = nullptr;
 		obs_view_remove(view);
 		obs_view_set_source(view, 0, nullptr);
-		video = nullptr;
 	}
 }
 
@@ -6719,9 +6720,9 @@ void CanvasDock::DestroyVideo()
 {
 	if (!video)
 		return;
+	video = nullptr;
 	obs_view_remove(view);
 	obs_view_set_source(view, 0, nullptr);
-	video = nullptr;
 }
 
 obs_scene_t *CanvasDock::GetCurrentScene()
