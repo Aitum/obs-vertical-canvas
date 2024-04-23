@@ -6471,14 +6471,24 @@ void CanvasDock::CreateStreamOutput(std::vector<StreamServer>::iterator it)
 					       nullptr, nullptr);
 		obs_output_set_service(it->output, it->service);
 	}
+	config_t *config = obs_frontend_get_profile_config();
+	if (config) {
+		OBSDataAutoRelease output_settings = obs_data_create();
+		obs_data_set_string(output_settings, "bind_ip",
+				    config_get_string(config, "Output",
+						      "BindIP"));
+		obs_data_set_string(output_settings, "ip_family",
+				    config_get_string(config, "Output",
+						      "IPFamily"));
+		obs_output_update(it->output, output_settings);
+	}
+
 	if (stream_advanced_settings) {
 		obs_output_set_delay(
 			it->output,
 			stream_delay_enabled ? stream_delay_duration : 0,
 			stream_delay_preserve ? OBS_OUTPUT_DELAY_PRESERVE : 0);
 	} else {
-		config_t *config = obs_frontend_get_profile_config();
-
 		bool useDelay =
 			config_get_bool(config, "Output", "DelayEnable");
 		int delaySec = config_get_int(config, "Output", "DelaySec");
@@ -6647,10 +6657,22 @@ void CanvasDock::StartStream()
 
 	SendVendorEvent("streaming_starting");
 
+	config_t *config = obs_frontend_get_profile_config();
 	bool success = false;
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
 		if (!it->enabled)
 			continue;
+		if (config) {
+			OBSDataAutoRelease output_settings = obs_data_create();
+			obs_data_set_string(output_settings, "bind_ip",
+					    config_get_string(config, "Output",
+							      "BindIP"));
+			obs_data_set_string(output_settings, "ip_family",
+					    config_get_string(config, "Output",
+							      "IPFamily"));
+			obs_output_update(it->output, output_settings);
+		}
+
 		if (obs_output_start(it->output))
 			success = true;
 		else
