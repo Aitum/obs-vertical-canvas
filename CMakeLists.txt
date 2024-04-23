@@ -61,6 +61,7 @@ if(BUILD_OUT_OF_TREE)
   find_qt(COMPONENTS Widgets COMPONENTS_LINUX Gui)
   set(OBS_FRONTEND_API_NAME "obs-frontend-api")
 else()
+	find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
 	set(OBS_FRONTEND_API_NAME "frontend-api")
 endif()
 
