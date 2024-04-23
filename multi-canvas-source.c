@@ -21,8 +21,7 @@ const char *multi_canvas_get_name(void *type_data)
 void *multi_canvas_create(obs_data_t *settings, obs_source_t *source)
 {
 	UNUSED_PARAMETER(settings);
-	struct multi_canvas_info *multi_canvas =
-		bzalloc(sizeof(struct multi_canvas_info));
+	struct multi_canvas_info *multi_canvas = bzalloc(sizeof(struct multi_canvas_info));
 	multi_canvas->source = source;
 	return multi_canvas;
 }
@@ -84,27 +83,23 @@ static void multi_canvas_video_render(void *data, gs_effect_t *effect)
 
 	for (size_t i = 0; i < mc->views.num; i++) {
 		obs_view_t *view = mc->views.array[i];
-		const enum gs_color_format format =
-			gs_get_format_from_space(gs_get_color_space());
+		const enum gs_color_format format = gs_get_format_from_space(gs_get_color_space());
 		if (gs_texrender_get_format(mc->renders.array[i]) != format) {
 			gs_texrender_destroy(mc->renders.array[i]);
-			mc->renders.array[i] =
-				gs_texrender_create(format, GS_ZS_NONE);
+			mc->renders.array[i] = gs_texrender_create(format, GS_ZS_NONE);
 		}
 
 		gs_texrender_reset(mc->renders.array[i]);
 		gs_blend_state_push();
 		gs_blend_function(GS_BLEND_ONE, GS_BLEND_ZERO);
-		if (gs_texrender_begin_with_color_space(
-			    mc->renders.array[i], mc->widths.array[i],
-			    mc->heights.array[i], gs_get_color_space())) {
+		if (gs_texrender_begin_with_color_space(mc->renders.array[i], mc->widths.array[i], mc->heights.array[i],
+							gs_get_color_space())) {
 
 			struct vec4 clear_color;
 
 			vec4_zero(&clear_color);
 			gs_clear(GS_CLEAR_COLOR, &clear_color, 0.0f, 0);
-			gs_ortho(0.0f, (float)mc->widths.array[i], 0.0f,
-				 (float)mc->heights.array[i], -100.0f, 100.0f);
+			gs_ortho(0.0f, (float)mc->widths.array[i], 0.0f, (float)mc->heights.array[i], -100.0f, 100.0f);
 
 			obs_view_render(view);
 
@@ -112,19 +107,15 @@ static void multi_canvas_video_render(void *data, gs_effect_t *effect)
 		}
 		gs_blend_state_pop();
 
-		gs_texture_t *tex =
-			gs_texrender_get_texture(mc->renders.array[i]);
+		gs_texture_t *tex = gs_texrender_get_texture(mc->renders.array[i]);
 		if (tex) {
 			const bool previous = gs_framebuffer_srgb_enabled();
 			gs_enable_framebuffer_srgb(true);
 
-			gs_effect_set_texture_srgb(
-				gs_effect_get_param_by_name(effect, "image"),
-				tex);
+			gs_effect_set_texture_srgb(gs_effect_get_param_by_name(effect, "image"), tex);
 
 			while (gs_effect_loop(effect, "Draw"))
-				gs_draw_sprite(tex, 0, mc->widths.array[i],
-					       mc->heights.array[i]);
+				gs_draw_sprite(tex, 0, mc->widths.array[i], mc->heights.array[i]);
 
 			gs_enable_framebuffer_srgb(previous);
 		}
@@ -162,8 +153,7 @@ void multi_canvas_update_size(struct multi_canvas_info *mc)
 	mc->height = height;
 }
 
-void multi_canvas_source_add_view(void *data, obs_view_t *view, uint32_t width,
-				  uint32_t height)
+void multi_canvas_source_add_view(void *data, obs_view_t *view, uint32_t width, uint32_t height)
 {
 	struct multi_canvas_info *mc = data;
 	for (size_t i = 0; i < mc->views.num; i++) {
@@ -198,8 +188,7 @@ void multi_canvas_source_remove_view(void *data, obs_view_t *view)
 struct obs_source_info multi_canvas_source = {
 	.id = "vertical_multi_canvas_source",
 	.type = OBS_SOURCE_TYPE_INPUT,
-	.output_flags = OBS_SOURCE_VIDEO | OBS_SOURCE_CAP_DISABLED |
-			OBS_SOURCE_CUSTOM_DRAW,
+	.output_flags = OBS_SOURCE_VIDEO | OBS_SOURCE_CAP_DISABLED | OBS_SOURCE_CUSTOM_DRAW,
 	.get_name = multi_canvas_get_name,
 	.create = multi_canvas_create,
 	.destroy = multi_canvas_destroy,

@@ -12,10 +12,8 @@ struct file_download_data {
 	DARRAY(uint8_t) buffer;
 };
 
-typedef bool (*confirm_file_callback_t)(void *param,
-					struct file_download_data *file);
+typedef bool (*confirm_file_callback_t)(void *param, struct file_download_data *file);
 
-update_info_t *update_info_create_single(
-	const char *log_prefix, const char *user_agent, const char *file_url,
-	confirm_file_callback_t confirm_callback, void *param);
+update_info_t *update_info_create_single(const char *log_prefix, const char *user_agent, const char *file_url,
+					 confirm_file_callback_t confirm_callback, void *param);
 void update_info_destroy(update_info_t *info);

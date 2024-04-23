@@ -18,22 +18,14 @@ class CanvasDock;
 
 class OBSBasicSettings : public QDialog {
 	Q_OBJECT
-	Q_PROPERTY(QIcon generalIcon READ GetGeneralIcon WRITE SetGeneralIcon
-			   DESIGNABLE true)
-	Q_PROPERTY(QIcon streamIcon READ GetStreamIcon WRITE SetStreamIcon
-			   DESIGNABLE true)
-	Q_PROPERTY(QIcon outputIcon READ GetOutputIcon WRITE SetOutputIcon
-			   DESIGNABLE true)
-	Q_PROPERTY(QIcon audioIcon READ GetAudioIcon WRITE SetAudioIcon
-			   DESIGNABLE true)
-	Q_PROPERTY(QIcon videoIcon READ GetVideoIcon WRITE SetVideoIcon
-			   DESIGNABLE true)
-	Q_PROPERTY(QIcon hotkeysIcon READ GetHotkeysIcon WRITE SetHotkeysIcon
-			   DESIGNABLE true)
-	Q_PROPERTY(QIcon accessibilityIcon READ GetAccessibilityIcon WRITE
-			   SetAccessibilityIcon DESIGNABLE true)
-	Q_PROPERTY(QIcon advancedIcon READ GetAdvancedIcon WRITE SetAdvancedIcon
-			   DESIGNABLE true)
+	Q_PROPERTY(QIcon generalIcon READ GetGeneralIcon WRITE SetGeneralIcon DESIGNABLE true)
+	Q_PROPERTY(QIcon streamIcon READ GetStreamIcon WRITE SetStreamIcon DESIGNABLE true)
+	Q_PROPERTY(QIcon outputIcon READ GetOutputIcon WRITE SetOutputIcon DESIGNABLE true)
+	Q_PROPERTY(QIcon audioIcon READ GetAudioIcon WRITE SetAudioIcon DESIGNABLE true)
+	Q_PROPERTY(QIcon videoIcon READ GetVideoIcon WRITE SetVideoIcon DESIGNABLE true)
+	Q_PROPERTY(QIcon hotkeysIcon READ GetHotkeysIcon WRITE SetHotkeysIcon DESIGNABLE true)
+	Q_PROPERTY(QIcon accessibilityIcon READ GetAccessibilityIcon WRITE SetAccessibilityIcon DESIGNABLE true)
+	Q_PROPERTY(QIcon advancedIcon READ GetAdvancedIcon WRITE SetAdvancedIcon DESIGNABLE true)
 private:
 	CanvasDock *canvasDock;
 	QLabel *newVersion;
@@ -100,21 +92,16 @@ private:
 	QIcon GetAccessibilityIcon() const;
 	QIcon GetAdvancedIcon() const;
 
-	std::vector<obs_hotkey_t *>
-	GetHotKeysFromOutput(obs_output_t *obs_output);
-	std::vector<obs_key_combination_t>
-	GetCombosForHotkey(obs_hotkey_id hotkey);
+	std::vector<obs_hotkey_t *> GetHotKeysFromOutput(obs_output_t *obs_output);
+	std::vector<obs_key_combination_t> GetCombosForHotkey(obs_hotkey_id hotkey);
 	std::vector<obs_hotkey_t *> GetHotkeyById(obs_hotkey_id hotkey);
 	obs_hotkey_t *GetHotkeyByName(QString name);
 
 	void SetEncoderBitrate(obs_encoder_t *obs_encoder, bool record);
-	void AddProperty(obs_property_t *property, obs_data_t *settings,
-			 QFormLayout *layout,
+	void AddProperty(obs_property_t *property, obs_data_t *settings, QFormLayout *layout,
 			 std::map<obs_property_t *, QWidget *> *widgets);
-	void LoadProperty(obs_property_t *property, obs_data_t *settings,
-			  QWidget *widget);
-	void RefreshProperties(std::map<obs_property_t *, QWidget *> *widgets,
-			       QFormLayout *layout);
+	void LoadProperty(obs_property_t *property, obs_data_t *settings, QWidget *widget);
+	void RefreshProperties(std::map<obs_property_t *, QWidget *> *widgets, QFormLayout *layout);
 	void AddServer();
 
 private slots:
@@ -128,8 +115,7 @@ private slots:
 	void SetAdvancedIcon(const QIcon &icon);
 
 public:
-	OBSBasicSettings(CanvasDock *canvas_dock,
-			 QMainWindow *parent = nullptr);
+	OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent = nullptr);
 	~OBSBasicSettings();
 
 	void LoadSettings();

@@ -53,10 +53,7 @@ public:
 	OBSEventFilter(EventFilterFunc filter_) : filter(filter_) {}
 
 protected:
-	bool eventFilter(QObject *obj, QEvent *event)
-	{
-		return filter(obj, event);
-	}
+	bool eventFilter(QObject *obj, QEvent *event) { return filter(obj, event); }
 
 public:
 	EventFilterFunc filter;
@@ -164,8 +161,7 @@ private:
 	QIcon replayInactiveIcon = QIcon(":/aitum/media/backtrack_off.svg");
 
 	QIcon virtualCamActiveIcon = QIcon(":/aitum/media/virtual_cam_on.svg");
-	QIcon virtualCamInactiveIcon =
-		QIcon(":/aitum/media/virtual_cam_off.svg");
+	QIcon virtualCamInactiveIcon = QIcon(":/aitum/media/virtual_cam_off.svg");
 	QComboBox *scenesCombo = nullptr;
 	QCheckBox *linkedButton = nullptr;
 	CanvasScenesDock *scenesDock = nullptr;
@@ -259,8 +255,7 @@ private:
 	QMenu *CreateAddSourcePopupMenu();
 	void AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem);
 	void LoadSourceTypeMenu(QMenu *menu, const char *type);
-	QMenu *CreateVisibilityTransitionMenu(bool visible,
-					      obs_sceneitem_t *sceneItem);
+	QMenu *CreateVisibilityTransitionMenu(bool visible, obs_sceneitem_t *sceneItem);
 	QIcon GetIconFromType(enum obs_icon_type icon_type) const;
 	QIcon GetGroupIcon() const;
 	QIcon GetSceneIcon() const;
@@ -270,14 +265,11 @@ private:
 	bool SelectedAtPos(obs_scene_t *scene, const vec2 &pos);
 	void DrawOverflow(float scale);
 	void DrawBackdrop(float cx, float cy);
-	void DrawSpacingHelpers(obs_scene_t *scene, float x, float y, float cx,
-				float cy, float scale, float sourceX,
+	void DrawSpacingHelpers(obs_scene_t *scene, float x, float y, float cx, float cy, float scale, float sourceX,
 				float sourceY);
-	void DrawSpacingLine(vec3 &start, vec3 &end, vec3 &viewport,
-			     float pixelRatio);
+	void DrawSpacingLine(vec3 &start, vec3 &end, vec3 &viewport, float pixelRatio);
 	void SetLabelText(int sourceIndex, int px);
-	void RenderSpacingHelper(int sourceIndex, vec3 &start, vec3 &end,
-				 vec3 &viewport, float pixelRatio);
+	void RenderSpacingHelper(int sourceIndex, vec3 &start, vec3 &end, vec3 &viewport, float pixelRatio);
 	bool GetSourceRelativeXY(int mouseX, int mouseY, int &relX, int &relY);
 
 	void RotateItem(const vec2 &pos);
@@ -292,8 +284,7 @@ private:
 	void ClampAspect(vec3 &tl, vec3 &br, vec2 &size, const vec2 &baseSize);
 	vec3 CalculateStretchPos(const vec3 &tl, const vec3 &br);
 
-	bool DrawSelectionBox(float x1, float y1, float x2, float y2,
-			      gs_vertbuffer_t *rectFill);
+	bool DrawSelectionBox(float x1, float y1, float x2, float y2, gs_vertbuffer_t *rectFill);
 
 	vec2 GetMouseEventPos(QMouseEvent *event);
 	float GetDevicePixelRatio();
@@ -322,8 +313,7 @@ private:
 	void ResizeScene(QString scene_name);
 	void DeleteProjector(OBSProjector *projector);
 	OBSProjector *OpenProjector(int monitor);
-	void AddProjectorMenuMonitors(QMenu *parent, QObject *target,
-				      const char *slot);
+	void AddProjectorMenuMonitors(QMenu *parent, QObject *target, const char *slot);
 
 	void TryRemux(QString path);
 	void CreateStreamOutput(std::vector<StreamServer>::iterator it);
@@ -333,15 +323,11 @@ private:
 	enum class MoveDir { Up, Down, Left, Right };
 	void Nudge(int dist, MoveDir dir);
 
-	static bool DrawSelectedOverflow(obs_scene_t *scene,
-					 obs_sceneitem_t *item, void *param);
-	static bool FindSelected(obs_scene_t *scene, obs_sceneitem_t *item,
-				 void *param);
+	static bool DrawSelectedOverflow(obs_scene_t *scene, obs_sceneitem_t *item, void *param);
+	static bool FindSelected(obs_scene_t *scene, obs_sceneitem_t *item, void *param);
 	static void DrawPreview(void *data, uint32_t cx, uint32_t cy);
-	static bool DrawSelectedItem(obs_scene_t *scene, obs_sceneitem_t *item,
-				     void *param);
-	static bool add_sources_of_type_to_menu(void *param,
-						obs_source_t *source);
+	static bool DrawSelectedItem(obs_scene_t *scene, obs_sceneitem_t *item, void *param);
+	static bool add_sources_of_type_to_menu(void *param, obs_source_t *source);
 
 	static void virtual_cam_output_start(void *p, calldata_t *calldata);
 	static void virtual_cam_output_stop(void *p, calldata_t *calldata);
@@ -356,19 +342,12 @@ private:
 	static void source_rename(void *p, calldata_t *calldata);
 	static void source_remove(void *p, calldata_t *calldata);
 	static void source_save(void *p, calldata_t *calldata);
-	static bool start_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id,
-					     obs_hotkey_t *hotkey,
-					     bool pressed);
-	static bool stop_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id,
-					    obs_hotkey_t *hotkey, bool pressed);
-	static bool start_recording_hotkey(void *data, obs_hotkey_pair_id id,
-					   obs_hotkey_t *hotkey, bool pressed);
-	static bool stop_recording_hotkey(void *data, obs_hotkey_pair_id id,
-					  obs_hotkey_t *hotkey, bool pressed);
-	static bool start_streaming_hotkey(void *data, obs_hotkey_pair_id id,
-					   obs_hotkey_t *hotkey, bool pressed);
-	static bool stop_streaming_hotkey(void *data, obs_hotkey_pair_id id,
-					  obs_hotkey_t *hotkey, bool pressed);
+	static bool start_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed);
+	static bool stop_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed);
+	static bool start_recording_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed);
+	static bool stop_recording_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed);
+	static bool start_streaming_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed);
+	static bool stop_streaming_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed);
 
 	static void SceneItemAdded(void *data, calldata_t *params);
 	static void SceneReordered(void *data, calldata_t *params);
@@ -376,8 +355,7 @@ private:
 
 	static void transition_override_stop(void *data, calldata_t *);
 
-	static void get_transitions(void *data,
-				    struct obs_frontend_source_list *sources);
+	static void get_transitions(void *data, struct obs_frontend_source_list *sources);
 
 private slots:
 	void AddSourceFromAction();
@@ -392,8 +370,7 @@ private slots:
 	void OnRecordStop(int code, QString last_error);
 	void OnReplaySaved();
 	void OnStreamStart();
-	void OnStreamStop(int code, QString last_error, QString stream_server,
-			  QString stream_key);
+	void OnStreamStop(int code, QString last_error, QString stream_server, QString stream_key);
 	void OnReplayBufferStart();
 	void OnReplayBufferStop(int code, QString last_error);
 	void SwitchScene(const QString &scene_name, bool transition = true);

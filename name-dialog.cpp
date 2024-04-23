@@ -17,8 +17,7 @@ NameDialog::NameDialog(QWidget *parent, const QString &title) : QDialog(parent)
 	userText = new QLineEdit(this);
 	layout->addWidget(userText);
 
-	QDialogButtonBox *buttonbox = new QDialogButtonBox(
-		QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+	QDialogButtonBox *buttonbox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
 	layout->addWidget(buttonbox);
 	buttonbox->setCenterButtons(true);
 	connect(buttonbox, &QDialogButtonBox::accepted, this, &QDialog::accept);
@@ -38,8 +37,7 @@ static void CleanWhitespace(std::string &str)
 		str.erase(str.begin());
 }
 
-bool NameDialog::AskForName(QWidget *parent, const QString &title,
-			    std::string &name)
+bool NameDialog::AskForName(QWidget *parent, const QString &title, std::string &name)
 {
 	NameDialog dialog(parent, title);
 	dialog.userText->setMaxLength(170);

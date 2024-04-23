@@ -11,8 +11,7 @@ const char *audio_wrapper_get_name(void *type_data)
 void *audio_wrapper_create(obs_data_t *settings, obs_source_t *source)
 {
 	UNUSED_PARAMETER(settings);
-	struct audio_wrapper_info *audio_wrapper =
-		bzalloc(sizeof(struct audio_wrapper_info));
+	struct audio_wrapper_info *audio_wrapper = bzalloc(sizeof(struct audio_wrapper_info));
 	audio_wrapper->source = source;
 	return audio_wrapper;
 }
@@ -22,9 +21,8 @@ void audio_wrapper_destroy(void *data)
 	bfree(data);
 }
 
-bool audio_wrapper_render(void *data, uint64_t *ts_out,
-			  struct obs_source_audio_mix *audio, uint32_t mixers,
-			  size_t channels, size_t sample_rate)
+bool audio_wrapper_render(void *data, uint64_t *ts_out, struct obs_source_audio_mix *audio, uint32_t mixers, size_t channels,
+			  size_t sample_rate)
 {
 	UNUSED_PARAMETER(sample_rate);
 	struct audio_wrapper_info *aw = (struct audio_wrapper_info *)data;
@@ -67,9 +65,7 @@ bool audio_wrapper_render(void *data, uint64_t *ts_out,
 	return true;
 }
 
-static void audio_wrapper_enum_sources(void *data,
-				       obs_source_enum_proc_t enum_callback,
-				       void *param, bool active)
+static void audio_wrapper_enum_sources(void *data, obs_source_enum_proc_t enum_callback, void *param, bool active)
 {
 	UNUSED_PARAMETER(active);
 	struct audio_wrapper_info *aw = (struct audio_wrapper_info *)data;
@@ -82,16 +78,12 @@ static void audio_wrapper_enum_sources(void *data,
 	obs_source_release(source);
 }
 
-void audio_wrapper_enum_active_sources(void *data,
-				       obs_source_enum_proc_t enum_callback,
-				       void *param)
+void audio_wrapper_enum_active_sources(void *data, obs_source_enum_proc_t enum_callback, void *param)
 {
 	audio_wrapper_enum_sources(data, enum_callback, param, true);
 }
 
-void audio_wrapper_enum_all_sources(void *data,
-				    obs_source_enum_proc_t enum_callback,
-				    void *param)
+void audio_wrapper_enum_all_sources(void *data, obs_source_enum_proc_t enum_callback, void *param)
 {
 	audio_wrapper_enum_sources(data, enum_callback, param, false);
 }

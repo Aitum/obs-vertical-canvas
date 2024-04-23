@@ -20,7 +20,6 @@ private:
 	QPushButton *propsButton;
 
 public:
-	CanvasTransitionsDock(CanvasDock *canvas_dock,
-			      QWidget *parent = nullptr);
+	CanvasTransitionsDock(CanvasDock *canvas_dock, QWidget *parent = nullptr);
 	~CanvasTransitionsDock();
 };

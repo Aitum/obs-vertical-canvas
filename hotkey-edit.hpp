@@ -27,14 +27,12 @@
 
 #include <obs.hpp>
 
-static inline bool operator!=(const obs_key_combination_t &c1,
-			      const obs_key_combination_t &c2)
+static inline bool operator!=(const obs_key_combination_t &c1, const obs_key_combination_t &c2)
 {
 	return c1.modifiers != c2.modifiers || c1.key != c2.key;
 }
 
-static inline bool operator==(const obs_key_combination_t &c1,
-			      const obs_key_combination_t &c2)
+static inline bool operator==(const obs_key_combination_t &c1, const obs_key_combination_t &c2)
 {
 	return !(c1 != c2);
 }
@@ -61,8 +59,7 @@ class OBSHotkeyEdit : public QLineEdit {
 	Q_OBJECT;
 
 public:
-	OBSHotkeyEdit(QWidget *parent, obs_key_combination_t original)
-		: QLineEdit(parent), original(original)
+	OBSHotkeyEdit(QWidget *parent, obs_key_combination_t original) : QLineEdit(parent), original(original)
 	{
 #ifdef __APPLE__
 		// disable the input cursor on OSX, focus should be clear
@@ -75,8 +72,7 @@ public:
 		CreateDupeIcon();
 		ResetKey();
 	}
-	OBSHotkeyEdit(QWidget *parent = nullptr)
-		: QLineEdit(parent), original({})
+	OBSHotkeyEdit(QWidget *parent = nullptr) : QLineEdit(parent), original({})
 	{
 #ifdef __APPLE__
 		// disable the input cursor on OSX, focus should be clear
@@ -127,14 +123,11 @@ class OBSHotkeyWidget : public QWidget {
 	Q_OBJECT;
 
 public:
-	OBSHotkeyWidget(QWidget *parent, obs_hotkey_id id, std::string name,
-			const std::vector<obs_key_combination_t> &combos = {})
+	OBSHotkeyWidget(QWidget *parent, obs_hotkey_id id, std::string name, const std::vector<obs_key_combination_t> &combos = {})
 		: QWidget(parent),
 		  id(id),
 		  name(name),
-		  bindingsChanged(obs_get_signal_handler(),
-				  "hotkey_bindings_changed",
-				  &OBSHotkeyWidget::BindingsChanged, this)
+		  bindingsChanged(obs_get_signal_handler(), "hotkey_bindings_changed", &OBSHotkeyWidget::BindingsChanged, this)
 	{
 		auto layout = new QVBoxLayout;
 		layout->setSpacing(0);
@@ -186,10 +179,7 @@ private:
 	OBSSignal bindingsChanged;
 	bool ignoreChangedBindings = false;
 
-	QVBoxLayout *layout() const
-	{
-		return dynamic_cast<QVBoxLayout *>(QWidget::layout());
-	}
+	QVBoxLayout *layout() const { return dynamic_cast<QVBoxLayout *>(QWidget::layout()); }
 
 private slots:
 	void HandleChangedBindings(obs_hotkey_id id_);

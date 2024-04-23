@@ -6,10 +6,7 @@
 #include "name-dialog.hpp"
 #include <QMessageBox>
 
-CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
-					     QWidget *parent)
-	: QFrame(parent),
-	  canvasDock(canvas_dock)
+CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock, QWidget *parent) : QFrame(parent), canvasDock(canvas_dock)
 {
 
 	setMinimumWidth(100);
@@ -42,10 +39,8 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 	hl->addStretch();
 	auto addButton = new QPushButton();
 	addButton->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-	addButton->setAccessibleName(QString::fromUtf8(
-		obs_frontend_get_locale_string("Basic.AddTransition")));
-	addButton->setToolTip(QString::fromUtf8(
-		obs_frontend_get_locale_string("Basic.AddTransition")));
+	addButton->setAccessibleName(QString::fromUtf8(obs_frontend_get_locale_string("Basic.AddTransition")));
+	addButton->setToolTip(QString::fromUtf8(obs_frontend_get_locale_string("Basic.AddTransition")));
 	addButton->setIcon(QIcon(":/res/images/add.png"));
 	addButton->setProperty("themeID", "addIconSmall");
 	addButton->setProperty("toolButton", true);
@@ -53,17 +48,14 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 
 	connect(addButton, &QPushButton::clicked, [this] {
 		auto menu = QMenu(this);
-		auto subMenu = menu.addMenu(
-			QString::fromUtf8(obs_module_text("CopyFromMain")));
+		auto subMenu = menu.addMenu(QString::fromUtf8(obs_module_text("CopyFromMain")));
 		struct obs_frontend_source_list transitions = {};
 		obs_frontend_get_transitions(&transitions);
 		for (size_t i = 0; i < transitions.sources.num; i++) {
 			auto tr = transitions.sources.array[i];
 			const char *name = obs_source_get_name(tr);
-			auto action =
-				subMenu->addAction(QString::fromUtf8(name));
-			if (!obs_is_source_configurable(
-				    obs_source_get_unversioned_id(tr))) {
+			auto action = subMenu->addAction(QString::fromUtf8(name));
+			if (!obs_is_source_configurable(obs_source_get_unversioned_id(tr))) {
 				action->setEnabled(false);
 			}
 			for (auto t : canvasDock->transitions) {
@@ -74,12 +66,10 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 			}
 			connect(action, &QAction::triggered, [this, tr] {
 				OBSDataAutoRelease d = obs_save_source(tr);
-				OBSSourceAutoRelease t =
-					obs_load_private_source(d);
+				OBSSourceAutoRelease t = obs_load_private_source(d);
 				if (t) {
 					canvasDock->transitions.emplace_back(t);
-					auto n = QString::fromUtf8(
-						obs_source_get_name(t));
+					auto n = QString::fromUtf8(obs_source_get_name(t));
 					transition->addItem(n);
 					transition->setCurrentText(n);
 				}
@@ -96,32 +86,20 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 
 			auto action = menu.addAction(QString::fromUtf8(name));
 			connect(action, &QAction::triggered, [this, id] {
-				OBSSourceAutoRelease t =
-					obs_source_create_private(
-						id,
-						obs_source_get_display_name(id),
-						nullptr);
+				OBSSourceAutoRelease t = obs_source_create_private(id, obs_source_get_display_name(id), nullptr);
 				if (t) {
-					std::string name =
-						obs_source_get_name(t);
+					std::string name = obs_source_get_name(t);
 					while (true) {
 						if (!NameDialog::AskForName(
-							    this,
-							    QString::fromUtf8(obs_module_text(
-								    "TransitionName")),
-							    name)) {
+							    this, QString::fromUtf8(obs_module_text("TransitionName")), name)) {
 							obs_source_release(t);
 							return;
 						}
 						if (name.empty())
 							continue;
 						bool found = false;
-						for (auto tr :
-						     canvasDock->transitions) {
-							if (strcmp(obs_source_get_name(
-									   tr),
-								   name.c_str()) ==
-							    0) {
+						for (auto tr : canvasDock->transitions) {
+							if (strcmp(obs_source_get_name(tr), name.c_str()) == 0) {
 								found = true;
 								break;
 							}
@@ -129,13 +107,11 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 						if (found)
 							continue;
 
-						obs_source_set_name(
-							t, name.c_str());
+						obs_source_set_name(t, name.c_str());
 						break;
 					}
 					canvasDock->transitions.emplace_back(t);
-					auto n = QString::fromUtf8(
-						obs_source_get_name(t));
+					auto n = QString::fromUtf8(obs_source_get_name(t));
 					transition->addItem(n);
 					transition->setCurrentText(n);
 					obs_frontend_open_source_properties(t);
@@ -149,36 +125,26 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 
 	removeButton = new QPushButton();
 	removeButton->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-	removeButton->setAccessibleName(QString::fromUtf8(
-		obs_frontend_get_locale_string("Basic.RemoveTransition")));
-	removeButton->setToolTip(QString::fromUtf8(
-		obs_frontend_get_locale_string("Basic.RemoveTransition")));
+	removeButton->setAccessibleName(QString::fromUtf8(obs_frontend_get_locale_string("Basic.RemoveTransition")));
+	removeButton->setToolTip(QString::fromUtf8(obs_frontend_get_locale_string("Basic.RemoveTransition")));
 	removeButton->setIcon(QIcon(":/res/images/list_remove.png"));
 	removeButton->setProperty("themeID", "removeIconSmall");
 	removeButton->setProperty("toolButton", true);
 	removeButton->setFlat(false);
 
 	connect(removeButton, &QPushButton::clicked, [this] {
-		QMessageBox mb(QMessageBox::Question,
-			       QString::fromUtf8(obs_frontend_get_locale_string(
-				       "ConfirmRemove.Title")),
-			       QString::fromUtf8(obs_frontend_get_locale_string(
-							 "ConfirmRemove.Text"))
-				       .arg(transition->currentText()),
-			       QMessageBox::StandardButtons(QMessageBox::Yes |
-							    QMessageBox::No));
+		QMessageBox mb(
+			QMessageBox::Question, QString::fromUtf8(obs_frontend_get_locale_string("ConfirmRemove.Title")),
+			QString::fromUtf8(obs_frontend_get_locale_string("ConfirmRemove.Text")).arg(transition->currentText()),
+			QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No));
 		mb.setDefaultButton(QMessageBox::NoButton);
 		if (mb.exec() != QMessageBox::Yes)
 			return;
 
 		auto n = transition->currentText().toUtf8();
-		for (auto it = canvasDock->transitions.begin();
-		     it != canvasDock->transitions.end(); ++it) {
-			if (strcmp(n.constData(),
-				   obs_source_get_name(it->Get())) == 0) {
-				if (!obs_is_source_configurable(
-					    obs_source_get_unversioned_id(
-						    it->Get())))
+		for (auto it = canvasDock->transitions.begin(); it != canvasDock->transitions.end(); ++it) {
+			if (strcmp(n.constData(), obs_source_get_name(it->Get())) == 0) {
+				if (!obs_is_source_configurable(obs_source_get_unversioned_id(it->Get())))
 					return;
 				canvasDock->transitions.erase(it);
 				break;
@@ -193,10 +159,8 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 
 	propsButton = new QPushButton();
 	propsButton->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-	propsButton->setAccessibleName(QString::fromUtf8(
-		obs_frontend_get_locale_string("Basic.TransitionProperties")));
-	propsButton->setToolTip(QString::fromUtf8(
-		obs_frontend_get_locale_string("Basic.TransitionProperties")));
+	propsButton->setAccessibleName(QString::fromUtf8(obs_frontend_get_locale_string("Basic.TransitionProperties")));
+	propsButton->setToolTip(QString::fromUtf8(obs_frontend_get_locale_string("Basic.TransitionProperties")));
 	propsButton->setIcon(QIcon(":/settings/images/settings/general.svg"));
 	propsButton->setProperty("themeID", "menuIconSmall");
 	propsButton->setProperty("toolButton", true);
@@ -204,29 +168,22 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 
 	connect(propsButton, &QPushButton::clicked, [this] {
 		auto menu = QMenu(this);
-		auto action = menu.addAction(QString::fromUtf8(
-			obs_frontend_get_locale_string("Rename")));
+		auto action = menu.addAction(QString::fromUtf8(obs_frontend_get_locale_string("Rename")));
 		connect(action, &QAction::triggered, [this] {
 			auto tn = transition->currentText().toUtf8();
-			obs_source_t *t =
-				canvasDock->GetTransition(tn.constData());
+			obs_source_t *t = canvasDock->GetTransition(tn.constData());
 			if (!t)
 				return;
 			std::string name = obs_source_get_name(t);
 			while (true) {
-				if (!NameDialog::AskForName(
-					    this,
-					    QString::fromUtf8(obs_module_text(
-						    "TransitionName")),
-					    name)) {
+				if (!NameDialog::AskForName(this, QString::fromUtf8(obs_module_text("TransitionName")), name)) {
 					return;
 				}
 				if (name.empty())
 					continue;
 				bool found = false;
 				for (auto tr : canvasDock->transitions) {
-					if (strcmp(obs_source_get_name(tr),
-						   name.c_str()) == 0) {
+					if (strcmp(obs_source_get_name(tr), name.c_str()) == 0) {
 						found = true;
 						break;
 					}
@@ -234,15 +191,12 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 				if (found)
 					continue;
 
-				transition->setItemText(
-					transition->currentIndex(),
-					QString::fromUtf8(name.c_str()));
+				transition->setItemText(transition->currentIndex(), QString::fromUtf8(name.c_str()));
 				obs_source_set_name(t, name.c_str());
 				break;
 			}
 		});
-		action = menu.addAction(QString::fromUtf8(
-			obs_frontend_get_locale_string("Properties")));
+		action = menu.addAction(QString::fromUtf8(obs_frontend_get_locale_string("Properties")));
 		connect(action, &QAction::triggered, [this] {
 			auto tn = transition->currentText().toUtf8();
 			auto t = canvasDock->GetTransition(tn.constData());
@@ -266,8 +220,7 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 		transition->addItem(name);
 		if (obs_weak_source_references_source(canvasDock->source, t)) {
 			transition->setCurrentText(name);
-			bool config = obs_is_source_configurable(
-				obs_source_get_unversioned_id(t));
+			bool config = obs_is_source_configurable(obs_source_get_unversioned_id(t));
 			removeButton->setEnabled(config);
 			propsButton->setEnabled(config);
 		}
@@ -278,8 +231,7 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock,
 		if (!t)
 			return;
 		canvasDock->SwapTransition(t);
-		bool config = obs_is_source_configurable(
-			obs_source_get_unversioned_id(t));
+		bool config = obs_is_source_configurable(obs_source_get_unversioned_id(t));
 		removeButton->setEnabled(config);
 		propsButton->setEnabled(config);
 	});

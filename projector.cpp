@@ -13,9 +13,7 @@
 #include <windows.h>
 #endif
 
-static inline void GetScaleAndCenterPos(int baseCX, int baseCY, int windowCX,
-					int windowCY, int &x, int &y,
-					float &scale)
+static inline void GetScaleAndCenterPos(int baseCX, int baseCY, int windowCX, int windowCY, int &x, int &y, float &scale)
 {
 	double windowAspect, baseAspect;
 	int newCX, newCY;
@@ -37,8 +35,7 @@ static inline void GetScaleAndCenterPos(int baseCX, int baseCY, int windowCX,
 	y = windowCY / 2 - newCY / 2;
 }
 
-static inline void startRegion(int vX, int vY, int vCX, int vCY, float oL,
-			       float oR, float oT, float oB)
+static inline void startRegion(int vX, int vY, int vCX, int vCY, float oL, float oR, float oT, float oB)
 {
 	gs_projection_push();
 	gs_viewport_push();
@@ -52,11 +49,9 @@ static inline void endRegion()
 	gs_projection_pop();
 }
 
-OBSProjector::OBSProjector(CanvasDock *canvas_, int monitor)
-	: OBSQTDisplay(nullptr, Qt::Window), canvas(canvas_)
+OBSProjector::OBSProjector(CanvasDock *canvas_, int monitor) : OBSQTDisplay(nullptr, Qt::Window), canvas(canvas_)
 {
-	isAlwaysOnTop = config_get_bool(obs_frontend_get_global_config(),
-					"BasicWindow", "ProjectorAlwaysOnTop");
+	isAlwaysOnTop = config_get_bool(obs_frontend_get_global_config(), "BasicWindow", "ProjectorAlwaysOnTop");
 
 	if (isAlwaysOnTop)
 		setWindowFlags(Qt::WindowStaysOnTopHint);
@@ -71,8 +66,7 @@ OBSProjector::OBSProjector(CanvasDock *canvas_, int monitor)
 #endif
 
 #ifdef __APPLE__
-	setWindowIcon(
-		QIcon::fromTheme("obs", QIcon(":/res/images/obs_256x256.png")));
+	setWindowIcon(QIcon::fromTheme("obs", QIcon(":/res/images/obs_256x256.png")));
 #else
 	setWindowIcon(QIcon::fromTheme("obs", QIcon(":/res/images/obs.png")));
 #endif
@@ -137,8 +131,7 @@ void OBSProjector::SetHideCursor()
 	if (savedMonitor == -1)
 		return;
 
-	bool hideCursor = config_get_bool(obs_frontend_get_global_config(),
-					  "BasicWindow", "HideProjectorCursor");
+	bool hideCursor = config_get_bool(obs_frontend_get_global_config(), "BasicWindow", "HideProjectorCursor");
 
 	if (hideCursor)
 		setCursor(Qt::BlankCursor);
@@ -169,8 +162,7 @@ void OBSProjector::OBSRender(void *data, uint32_t cx, uint32_t cy)
 	newCX = int(scale * float(targetCX));
 	newCY = int(scale * float(targetCY));
 
-	startRegion(x, y, newCX, newCY, 0.0f, float(targetCX), 0.0f,
-		    float(targetCY));
+	startRegion(x, y, newCX, newCY, 0.0f, float(targetCX), 0.0f, float(targetCY));
 
 	obs_view_render(view);
 
@@ -184,41 +176,29 @@ void OBSProjector::mousePressEvent(QMouseEvent *event)
 	if (event->button() == Qt::RightButton) {
 		QMenu popup(this);
 
-		QMenu *projectorMenu = new QMenu(QString::fromUtf8(
-			obs_frontend_get_locale_string("Fullscreen")));
-		canvas->AddProjectorMenuMonitors(
-			projectorMenu, this, SLOT(OpenFullScreenProjector()));
+		QMenu *projectorMenu = new QMenu(QString::fromUtf8(obs_frontend_get_locale_string("Fullscreen")));
+		canvas->AddProjectorMenuMonitors(projectorMenu, this, SLOT(OpenFullScreenProjector()));
 		popup.addMenu(projectorMenu);
 
 		if (GetMonitor() > -1) {
-			popup.addAction(QString::fromUtf8(
-						obs_frontend_get_locale_string(
-							"Windowed")),
-					this, SLOT(OpenWindowedProjector()));
+			popup.addAction(QString::fromUtf8(obs_frontend_get_locale_string("Windowed")), this,
+					SLOT(OpenWindowedProjector()));
 
 		} else if (!this->isMaximized()) {
-			popup.addAction(
-				QString::fromUtf8(obs_frontend_get_locale_string(
-					"ResizeProjectorWindowToContent")),
-				this, SLOT(ResizeToContent()));
+			popup.addAction(QString::fromUtf8(obs_frontend_get_locale_string("ResizeProjectorWindowToContent")), this,
+					SLOT(ResizeToContent()));
 		}
 
-		QAction *alwaysOnTopButton = new QAction(
-			QString::fromUtf8(obs_frontend_get_locale_string(
-				"Basic.MainMenu.View.AlwaysOnTop")),
-			this);
+		QAction *alwaysOnTopButton =
+			new QAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.View.AlwaysOnTop")), this);
 		alwaysOnTopButton->setCheckable(true);
 		alwaysOnTopButton->setChecked(isAlwaysOnTop);
 
-		connect(alwaysOnTopButton, &QAction::toggled, this,
-			&OBSProjector::AlwaysOnTopToggled);
+		connect(alwaysOnTopButton, &QAction::toggled, this, &OBSProjector::AlwaysOnTopToggled);
 
 		popup.addAction(alwaysOnTopButton);
 
-		popup.addAction(
-			QString::fromUtf8(
-				obs_frontend_get_locale_string("Close")),
-			this, SLOT(EscapeTriggered()));
+		popup.addAction(QString::fromUtf8(obs_frontend_get_locale_string("Close")), this, SLOT(EscapeTriggered()));
 		popup.exec(QCursor::pos());
 	}
 }
@@ -233,8 +213,7 @@ void OBSProjector::UpdateProjectorTitle(QString name)
 	UNUSED_PARAMETER(name);
 	bool window = (GetMonitor() == -1);
 
-	QString title = QString::fromUtf8(obs_frontend_get_locale_string(
-		window ? "PreviewWindow" : "PreviewProjector"));
+	QString title = QString::fromUtf8(obs_frontend_get_locale_string(window ? "PreviewWindow" : "PreviewProjector"));
 
 	setWindowTitle(title);
 }
@@ -288,8 +267,7 @@ void OBSProjector::ResizeToContent()
 	float scale;
 
 	QSize size = this->size();
-	GetScaleAndCenterPos(targetCX, targetCY, size.width(), size.height(), x,
-			     y, scale);
+	GetScaleAndCenterPos(targetCX, targetCY, size.width(), size.height(), x, y, scale);
 
 	newX = size.width() - (x * 2);
 	newY = size.height() - (y * 2);
@@ -351,8 +329,7 @@ bool IsAlwaysOnTop(QWidget *window)
 void SetAlwaysOnTop(QWidget *window, bool enable)
 {
 	HWND hwnd = (HWND)window->winId();
-	SetWindowPos(hwnd, enable ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0,
-		     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+	SetWindowPos(hwnd, enable ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 #else
 void SetAlwaysOnTop(QWidget *window, bool enable)
@@ -380,8 +357,7 @@ struct MonitorData {
 	bool found;
 };
 
-static BOOL CALLBACK GetMonitorCallback(HMONITOR monitor, HDC, LPRECT,
-					LPARAM param)
+static BOOL CALLBACK GetMonitorCallback(HMONITOR monitor, HDC, LPRECT, LPARAM param)
 {
 	MonitorData *data = (MonitorData *)param;
 
@@ -401,24 +377,20 @@ QString GetMonitorName(const QString &id)
 	data.id = (const wchar_t *)id.utf16();
 	data.info.cbSize = sizeof(data.info);
 
-	EnumDisplayMonitors(nullptr, nullptr, GetMonitorCallback,
-			    (LPARAM)&data);
+	EnumDisplayMonitors(nullptr, nullptr, GetMonitorCallback, (LPARAM)&data);
 	if (!data.found) {
 		return GENERIC_MONITOR_NAME;
 	}
 
 	UINT32 numPath, numMode;
-	if (GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, &numPath,
-					&numMode) != ERROR_SUCCESS) {
+	if (GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, &numPath, &numMode) != ERROR_SUCCESS) {
 		return GENERIC_MONITOR_NAME;
 	}
 
 	std::vector<DISPLAYCONFIG_PATH_INFO> paths(numPath);
 	std::vector<DISPLAYCONFIG_MODE_INFO> modes(numMode);
 
-	if (QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, &numPath, paths.data(),
-			       &numMode, modes.data(),
-			       nullptr) != ERROR_SUCCESS) {
+	if (QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, &numPath, paths.data(), &numMode, modes.data(), nullptr) != ERROR_SUCCESS) {
 		return GENERIC_MONITOR_NAME;
 	}
 
@@ -437,13 +409,11 @@ QString GetMonitorName(const QString &id)
 
 		if (DisplayConfigGetDeviceInfo(&s.header) == ERROR_SUCCESS &&
 		    wcscmp(data.info.szDevice, s.viewGdiDeviceName) == 0) {
-			target.header.type =
-				DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME;
+			target.header.type = DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME;
 			target.header.size = sizeof(target);
 			target.header.adapterId = path.sourceInfo.adapterId;
 			target.header.id = path.targetInfo.id;
-			found = DisplayConfigGetDeviceInfo(&target.header) ==
-				ERROR_SUCCESS;
+			found = DisplayConfigGetDeviceInfo(&target.header) == ERROR_SUCCESS;
 			break;
 		}
 	}

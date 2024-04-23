@@ -6,10 +6,8 @@
 #include <obs-data.h>
 #include "file-updater.h"
 
-#define warn(msg, ...) \
-	blog(LOG_WARNING, "%s" msg, info->log_prefix, ##__VA_ARGS__)
-#define info(msg, ...) \
-	blog(LOG_WARNING, "%s" msg, info->log_prefix, ##__VA_ARGS__)
+#define warn(msg, ...) blog(LOG_WARNING, "%s" msg, info->log_prefix, ##__VA_ARGS__)
+#define info(msg, ...) blog(LOG_WARNING, "%s" msg, info->log_prefix, ##__VA_ARGS__)
 
 struct update_info {
 	char error[CURL_ERROR_SIZE];
@@ -58,8 +56,7 @@ static size_t http_write(void *ptr, size_t size, size_t nmemb, void *uinfo)
 	return total;
 }
 
-static bool do_http_request(struct update_info *info, const char *url,
-			    long *response_code)
+static bool do_http_request(struct update_info *info, const char *url, long *response_code)
 {
 	CURLcode code;
 	uint8_t null_terminator = 0;
@@ -77,18 +74,15 @@ static bool do_http_request(struct update_info *info, const char *url,
 
 	code = curl_easy_perform(info->curl);
 	if (code != CURLE_OK) {
-		warn("Remote update of URL \"%s\" failed: %s", url,
-		     info->error);
+		warn("Remote update of URL \"%s\" failed: %s", url, info->error);
 		return false;
 	}
 
-	if (curl_easy_getinfo(info->curl, CURLINFO_RESPONSE_CODE,
-			      response_code) != CURLE_OK)
+	if (curl_easy_getinfo(info->curl, CURLINFO_RESPONSE_CODE, response_code) != CURLE_OK)
 		return false;
 
 	if (*response_code >= 400) {
-		warn("Remote update of URL \"%s\" failed: HTTP/%ld", url,
-		     *response_code);
+		warn("Remote update of URL \"%s\" failed: HTTP/%ld", url, *response_code);
 		return false;
 	}
 
@@ -129,10 +123,8 @@ static void *single_file_thread(void *data)
 	return NULL;
 }
 
-update_info_t *
-update_info_create_single(const char *log_prefix, const char *user_agent,
-			  const char *file_url,
-			  confirm_file_callback_t confirm_callback, void *param)
+update_info_t *update_info_create_single(const char *log_prefix, const char *user_agent, const char *file_url,
+					 confirm_file_callback_t confirm_callback, void *param)
 {
 	struct update_info *info;
 

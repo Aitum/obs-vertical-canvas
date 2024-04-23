@@ -111,16 +111,14 @@ static void save_canvas()
 void transition_start(void *, calldata_t *)
 {
 	for (const auto &it : canvas_docks) {
-		QMetaObject::invokeMethod(it, "MainSceneChanged",
-					  Qt::QueuedConnection);
+		QMetaObject::invokeMethod(it, "MainSceneChanged", Qt::QueuedConnection);
 	}
 }
 
 void frontend_event(obs_frontend_event event, void *private_data)
 {
 	UNUSED_PARAMETER(private_data);
-	if (event == OBS_FRONTEND_EVENT_EXIT ||
-	    event == OBS_FRONTEND_EVENT_SCRIPTING_SHUTDOWN) {
+	if (event == OBS_FRONTEND_EVENT_EXIT || event == OBS_FRONTEND_EVENT_SCRIPTING_SHUTDOWN) {
 		save_canvas();
 		clear_canvas_docks();
 	} else if (event == OBS_FRONTEND_EVENT_SCENE_COLLECTION_CLEANUP) {
@@ -131,10 +129,8 @@ void frontend_event(obs_frontend_event event, void *private_data)
 		struct obs_frontend_source_list transitions = {};
 		obs_frontend_get_transitions(&transitions);
 		for (size_t i = 0; i < transitions.sources.num; i++) {
-			auto sh = obs_source_get_signal_handler(
-				transitions.sources.array[i]);
-			signal_handler_connect(sh, "transition_start",
-					       transition_start, nullptr);
+			auto sh = obs_source_get_signal_handler(transitions.sources.array[i]);
+			signal_handler_connect(sh, "transition_start", transition_start, nullptr);
 		}
 		obs_frontend_source_list_free(&transitions);
 		for (const auto &it : canvas_docks) {
@@ -144,10 +140,8 @@ void frontend_event(obs_frontend_event event, void *private_data)
 		struct obs_frontend_source_list transitions = {};
 		obs_frontend_get_transitions(&transitions);
 		for (size_t i = 0; i < transitions.sources.num; i++) {
-			auto sh = obs_source_get_signal_handler(
-				transitions.sources.array[i]);
-			signal_handler_connect(sh, "transition_start",
-					       transition_start, nullptr);
+			auto sh = obs_source_get_signal_handler(transitions.sources.array[i]);
+			signal_handler_connect(sh, "transition_start", transition_start, nullptr);
 		}
 		obs_frontend_source_list_free(&transitions);
 		for (const auto &it : canvas_docks) {
@@ -156,96 +150,69 @@ void frontend_event(obs_frontend_event event, void *private_data)
 		}
 	} else if (event == OBS_FRONTEND_EVENT_SCENE_CHANGED) {
 		for (const auto &it : canvas_docks) {
-			QMetaObject::invokeMethod(it, "MainSceneChanged",
-						  Qt::QueuedConnection);
+			QMetaObject::invokeMethod(it, "MainSceneChanged", Qt::QueuedConnection);
 		}
-	} else if (event == OBS_FRONTEND_EVENT_STREAMING_STARTING ||
-		   event == OBS_FRONTEND_EVENT_STREAMING_STARTED) {
+	} else if (event == OBS_FRONTEND_EVENT_STREAMING_STARTING || event == OBS_FRONTEND_EVENT_STREAMING_STARTED) {
 		for (const auto &it : canvas_docks) {
-			QMetaObject::invokeMethod(it, "MainStreamStart",
-						  Qt::QueuedConnection);
+			QMetaObject::invokeMethod(it, "MainStreamStart", Qt::QueuedConnection);
 		}
-	} else if (event == OBS_FRONTEND_EVENT_STREAMING_STOPPING ||
-		   event == OBS_FRONTEND_EVENT_STREAMING_STOPPED) {
+	} else if (event == OBS_FRONTEND_EVENT_STREAMING_STOPPING || event == OBS_FRONTEND_EVENT_STREAMING_STOPPED) {
 		for (const auto &it : canvas_docks) {
-			QMetaObject::invokeMethod(it, "MainStreamStop",
-						  Qt::QueuedConnection);
-			QTimer::singleShot(200, it, [it] {
-				QMetaObject::invokeMethod(it, "MainStreamStop",
-							  Qt::QueuedConnection);
-			});
+			QMetaObject::invokeMethod(it, "MainStreamStop", Qt::QueuedConnection);
+			QTimer::singleShot(200, it,
+					   [it] { QMetaObject::invokeMethod(it, "MainStreamStop", Qt::QueuedConnection); });
 		}
-	} else if (event == OBS_FRONTEND_EVENT_RECORDING_STARTING ||
-		   event == OBS_FRONTEND_EVENT_RECORDING_STARTED) {
+	} else if (event == OBS_FRONTEND_EVENT_RECORDING_STARTING || event == OBS_FRONTEND_EVENT_RECORDING_STARTED) {
 		for (const auto &it : canvas_docks) {
-			QMetaObject::invokeMethod(it, "MainRecordStart",
-						  Qt::QueuedConnection);
+			QMetaObject::invokeMethod(it, "MainRecordStart", Qt::QueuedConnection);
 		}
-	} else if (event == OBS_FRONTEND_EVENT_RECORDING_STOPPING ||
-		   event == OBS_FRONTEND_EVENT_RECORDING_STOPPED) {
+	} else if (event == OBS_FRONTEND_EVENT_RECORDING_STOPPING || event == OBS_FRONTEND_EVENT_RECORDING_STOPPED) {
 		for (const auto &it : canvas_docks) {
-			QMetaObject::invokeMethod(it, "MainRecordStop",
-						  Qt::QueuedConnection);
-			QTimer::singleShot(200, it, [it] {
-				QMetaObject::invokeMethod(it, "MainRecordStop",
-							  Qt::QueuedConnection);
-			});
+			QMetaObject::invokeMethod(it, "MainRecordStop", Qt::QueuedConnection);
+			QTimer::singleShot(200, it,
+					   [it] { QMetaObject::invokeMethod(it, "MainRecordStop", Qt::QueuedConnection); });
 		}
 
 	} else if ( //event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTING ||
 		event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTED) {
 		for (const auto &it : canvas_docks) {
-			QMetaObject::invokeMethod(it, "MainReplayBufferStart",
-						  Qt::QueuedConnection);
+			QMetaObject::invokeMethod(it, "MainReplayBufferStart", Qt::QueuedConnection);
 		}
-	} else if (event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STOPPING ||
-		   event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STOPPED) {
+	} else if (event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STOPPING || event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STOPPED) {
 		for (const auto &it : canvas_docks) {
-			QMetaObject::invokeMethod(it, "MainReplayBufferStop",
-						  Qt::QueuedConnection);
-			QTimer::singleShot(200, it, [it] {
-				QMetaObject::invokeMethod(
-					it, "MainReplayBufferStop",
-					Qt::QueuedConnection);
-			});
+			QMetaObject::invokeMethod(it, "MainReplayBufferStop", Qt::QueuedConnection);
+			QTimer::singleShot(200, it,
+					   [it] { QMetaObject::invokeMethod(it, "MainReplayBufferStop", Qt::QueuedConnection); });
 		}
 
 	} else if (event == OBS_FRONTEND_EVENT_VIRTUALCAM_STARTED) {
 		for (const auto &it : canvas_docks) {
-			QMetaObject::invokeMethod(it, "MainVirtualCamStart",
-						  Qt::QueuedConnection);
+			QMetaObject::invokeMethod(it, "MainVirtualCamStart", Qt::QueuedConnection);
 		}
 
 	} else if (event == OBS_FRONTEND_EVENT_VIRTUALCAM_STOPPED) {
 		for (const auto &it : canvas_docks) {
-			QMetaObject::invokeMethod(it, "MainVirtualCamStop",
-						  Qt::QueuedConnection);
-			QTimer::singleShot(200, it, [it] {
-				QMetaObject::invokeMethod(it,
-							  "MainVirtualCamStop",
-							  Qt::QueuedConnection);
-			});
+			QMetaObject::invokeMethod(it, "MainVirtualCamStop", Qt::QueuedConnection);
+			QTimer::singleShot(200, it,
+					   [it] { QMetaObject::invokeMethod(it, "MainVirtualCamStop", Qt::QueuedConnection); });
 		}
 	} else if (event == OBS_FRONTEND_EVENT_PROFILE_CHANGED) {
 		for (const auto &it : canvas_docks) {
-			QMetaObject::invokeMethod(it, "ProfileChanged",
-						  Qt::QueuedConnection);
+			QMetaObject::invokeMethod(it, "ProfileChanged", Qt::QueuedConnection);
 		}
 	}
 }
 
 obs_websocket_vendor vendor = nullptr;
 
-void vendor_request_version(obs_data_t *request_data, obs_data_t *response_data,
-			    void *)
+void vendor_request_version(obs_data_t *request_data, obs_data_t *response_data, void *)
 {
 	UNUSED_PARAMETER(request_data);
 	obs_data_set_string(response_data, "version", PROJECT_VERSION);
 	obs_data_set_bool(response_data, "success", true);
 }
 
-void vendor_request_switch_scene(obs_data_t *request_data,
-				 obs_data_t *response_data, void *)
+void vendor_request_switch_scene(obs_data_t *request_data, obs_data_t *response_data, void *)
 {
 	const char *scene_name = obs_data_get_string(request_data, "scene");
 	if (!scene_name || !strlen(scene_name)) {
@@ -255,16 +222,14 @@ void vendor_request_switch_scene(obs_data_t *request_data,
 	}
 	const auto scene_source = obs_get_source_by_name(scene_name);
 	if (!scene_source) {
-		obs_data_set_string(response_data, "error",
-				    "'scene' not found");
+		obs_data_set_string(response_data, "error", "'scene' not found");
 		obs_data_set_bool(response_data, "success", false);
 		return;
 	}
 	const auto scene = obs_scene_from_source(scene_source);
 	if (!scene) {
 		obs_source_release(scene_source);
-		obs_data_set_string(response_data, "error",
-				    "'scene' not a scene");
+		obs_data_set_string(response_data, "error", "'scene' not a scene");
 		obs_data_set_bool(response_data, "success", false);
 		return;
 	}
@@ -272,8 +237,7 @@ void vendor_request_switch_scene(obs_data_t *request_data,
 	obs_source_release(scene_source);
 	if (!settings || !obs_data_get_bool(settings, "custom_size")) {
 		obs_data_release(settings);
-		obs_data_set_string(response_data, "error",
-				    "'scene' not a vertical canvas scene");
+		obs_data_set_string(response_data, "error", "'scene' not a vertical canvas scene");
 		obs_data_set_bool(response_data, "success", false);
 		return;
 	}
@@ -281,30 +245,24 @@ void vendor_request_switch_scene(obs_data_t *request_data,
 	const auto height = obs_data_get_int(settings, "cy");
 	obs_data_release(settings);
 	for (const auto &it : canvas_docks) {
-		if (it->GetCanvasWidth() != width ||
-		    it->GetCanvasHeight() != height)
+		if (it->GetCanvasWidth() != width || it->GetCanvasHeight() != height)
 			continue;
-		QMetaObject::invokeMethod(it, "SwitchScene",
-					  Q_ARG(QString,
-						QString::fromUtf8(scene_name)));
+		QMetaObject::invokeMethod(it, "SwitchScene", Q_ARG(QString, QString::fromUtf8(scene_name)));
 	}
 
 	obs_data_set_bool(response_data, "success", true);
 }
 
-void vendor_request_current_scene(obs_data_t *request_data,
-				  obs_data_t *response_data, void *)
+void vendor_request_current_scene(obs_data_t *request_data, obs_data_t *response_data, void *)
 {
 	const auto width = obs_data_get_int(request_data, "width");
 	const auto height = obs_data_get_int(request_data, "height");
 	for (const auto &it : canvas_docks) {
-		if ((width && it->GetCanvasWidth() != width) ||
-		    (height && it->GetCanvasHeight() != height))
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
 			continue;
 		auto scene = obs_scene_get_source(it->GetCurrentScene());
 		if (scene) {
-			obs_data_set_string(response_data, "scene",
-					    obs_source_get_name(scene));
+			obs_data_set_string(response_data, "scene", obs_source_get_name(scene));
 		} else {
 			obs_data_set_string(response_data, "scene", "");
 		}
@@ -314,21 +272,18 @@ void vendor_request_current_scene(obs_data_t *request_data,
 	obs_data_set_bool(response_data, "success", false);
 }
 
-void vendor_request_get_scenes(obs_data_t *request_data,
-			       obs_data_t *response_data, void *)
+void vendor_request_get_scenes(obs_data_t *request_data, obs_data_t *response_data, void *)
 {
 	const auto width = obs_data_get_int(request_data, "width");
 	const auto height = obs_data_get_int(request_data, "height");
 	auto sa = obs_data_array_create();
 	for (const auto &it : canvas_docks) {
-		if ((width && it->GetCanvasWidth() != width) ||
-		    (height && it->GetCanvasHeight() != height))
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
 			continue;
 		auto scenes = it->GetScenes();
 		for (auto &scene : scenes) {
 			auto s = obs_data_create();
-			obs_data_set_string(s, "name",
-					    scene.toUtf8().constData());
+			obs_data_set_string(s, "name", scene.toUtf8().constData());
 			obs_data_array_push_back(sa, s);
 			obs_data_release(s);
 		}
@@ -338,38 +293,30 @@ void vendor_request_get_scenes(obs_data_t *request_data,
 	obs_data_set_bool(response_data, "success", true);
 }
 
-void vendor_request_status(obs_data_t *request_data, obs_data_t *response_data,
-			   void *)
+void vendor_request_status(obs_data_t *request_data, obs_data_t *response_data, void *)
 {
 	const auto width = obs_data_get_int(request_data, "width");
 	const auto height = obs_data_get_int(request_data, "height");
 	for (const auto &it : canvas_docks) {
-		if ((width && it->GetCanvasWidth() != width) ||
-		    (height && it->GetCanvasHeight() != height))
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
 			continue;
-		obs_data_set_bool(response_data, "streaming",
-				  it->StreamingActive());
-		obs_data_set_bool(response_data, "recording",
-				  it->RecordingActive());
-		obs_data_set_bool(response_data, "backtrack",
-				  it->BacktrackActive());
-		obs_data_set_bool(response_data, "virtual_camera",
-				  it->VirtualCameraActive());
+		obs_data_set_bool(response_data, "streaming", it->StreamingActive());
+		obs_data_set_bool(response_data, "recording", it->RecordingActive());
+		obs_data_set_bool(response_data, "backtrack", it->BacktrackActive());
+		obs_data_set_bool(response_data, "virtual_camera", it->VirtualCameraActive());
 		obs_data_set_bool(response_data, "success", true);
 		return;
 	}
 	obs_data_set_bool(response_data, "success", false);
 }
 
-void vendor_request_invoke(obs_data_t *request_data, obs_data_t *response_data,
-			   void *p)
+void vendor_request_invoke(obs_data_t *request_data, obs_data_t *response_data, void *p)
 {
 	const char *method = static_cast<char *>(p);
 	const auto width = obs_data_get_int(request_data, "width");
 	const auto height = obs_data_get_int(request_data, "height");
 	for (const auto &it : canvas_docks) {
-		if ((width && it->GetCanvasWidth() != width) ||
-		    (height && it->GetCanvasHeight() != height))
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
 			continue;
 		QMetaObject::invokeMethod(it, method);
 		obs_data_set_bool(response_data, "success", true);
@@ -378,53 +325,43 @@ void vendor_request_invoke(obs_data_t *request_data, obs_data_t *response_data,
 	obs_data_set_bool(response_data, "success", false);
 }
 
-void vendor_request_save_replay(obs_data_t *request_data,
-				obs_data_t *response_data, void *p)
+void vendor_request_save_replay(obs_data_t *request_data, obs_data_t *response_data, void *p)
 {
 	UNUSED_PARAMETER(p);
 	const auto width = obs_data_get_int(request_data, "width");
 	const auto height = obs_data_get_int(request_data, "height");
 	for (const auto &it : canvas_docks) {
-		if ((width && it->GetCanvasWidth() != width) ||
-		    (height && it->GetCanvasHeight() != height))
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
 			continue;
-		QMetaObject::invokeMethod(
-			it, "ReplayButtonClicked",
-			Q_ARG(QString, QString::fromUtf8(obs_data_get_string(
-					       request_data, "filename"))));
+		QMetaObject::invokeMethod(it, "ReplayButtonClicked",
+					  Q_ARG(QString, QString::fromUtf8(obs_data_get_string(request_data, "filename"))));
 		obs_data_set_bool(response_data, "success", true);
 		return;
 	}
 	obs_data_set_bool(response_data, "success", false);
 }
 
-void vendor_request_update_stream_key(obs_data_t *request_data,
-				      obs_data_t *response_data, void *)
+void vendor_request_update_stream_key(obs_data_t *request_data, obs_data_t *response_data, void *)
 {
 	// Parse request_data to get the new stream_key
-	const char *new_stream_key =
-		obs_data_get_string(request_data, "stream_key");
+	const char *new_stream_key = obs_data_get_string(request_data, "stream_key");
 	const auto width = obs_data_get_int(request_data, "width");
 	const auto height = obs_data_get_int(request_data, "height");
 
 	if (!new_stream_key || !strlen(new_stream_key)) {
-		obs_data_set_string(response_data, "error",
-				    "'stream_key' not set");
+		obs_data_set_string(response_data, "error", "'stream_key' not set");
 		obs_data_set_bool(response_data, "success", false);
 		return;
 	}
 
 	// Loop through each CanvasDock to find the right one
 	for (const auto &it : canvas_docks) {
-		if ((width && it->GetCanvasWidth() != width) ||
-		    (height && it->GetCanvasHeight() != height))
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
 			continue;
 
 		// Update stream_key using the UpdateStreamKey method of CanvasDock
-		QMetaObject::invokeMethod(
-			it, "updateStreamKey",
-			Q_ARG(QString, QString::fromUtf8(new_stream_key)),
-			Q_ARG(int, obs_data_get_int(request_data, "index")));
+		QMetaObject::invokeMethod(it, "updateStreamKey", Q_ARG(QString, QString::fromUtf8(new_stream_key)),
+					  Q_ARG(int, obs_data_get_int(request_data, "index")));
 
 		obs_data_set_bool(response_data, "success", true);
 		return;
@@ -432,33 +369,27 @@ void vendor_request_update_stream_key(obs_data_t *request_data,
 	obs_data_set_bool(response_data, "success", false);
 }
 
-void vendor_request_update_stream_server(obs_data_t *request_data,
-					 obs_data_t *response_data, void *)
+void vendor_request_update_stream_server(obs_data_t *request_data, obs_data_t *response_data, void *)
 {
 	// Parse request_data to get the new stream_server
-	const char *new_stream_server =
-		obs_data_get_string(request_data, "stream_server");
+	const char *new_stream_server = obs_data_get_string(request_data, "stream_server");
 	const auto width = obs_data_get_int(request_data, "width");
 	const auto height = obs_data_get_int(request_data, "height");
 
 	if (!new_stream_server || !strlen(new_stream_server)) {
-		obs_data_set_string(response_data, "error",
-				    "'stream_server' not set");
+		obs_data_set_string(response_data, "error", "'stream_server' not set");
 		obs_data_set_bool(response_data, "success", false);
 		return;
 	}
 
 	// Loop through each CanvasDock to find the right one
 	for (const auto &it : canvas_docks) {
-		if ((width && it->GetCanvasWidth() != width) ||
-		    (height && it->GetCanvasHeight() != height))
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
 			continue;
 
 		// Update stream_server using the UpdateStreamServer method of CanvasDock
-		QMetaObject::invokeMethod(
-			it, "updateStreamServer",
-			Q_ARG(QString, QString::fromUtf8(new_stream_server)),
-			Q_ARG(int, obs_data_get_int(request_data, "index")));
+		QMetaObject::invokeMethod(it, "updateStreamServer", Q_ARG(QString, QString::fromUtf8(new_stream_server)),
+					  Q_ARG(int, obs_data_get_int(request_data, "index")));
 
 		obs_data_set_bool(response_data, "success", true);
 		return;
@@ -488,13 +419,9 @@ bool version_info_downloaded(void *param, struct file_download_data *file)
 		auto minor = pieces[1].toInt();
 		auto patch = pieces[2].toInt();
 		auto sv = MAKE_SEMANTIC_VERSION(major, minor, patch);
-		if (sv > MAKE_SEMANTIC_VERSION(PROJECT_VERSION_MAJOR,
-					       PROJECT_VERSION_MINOR,
-					       PROJECT_VERSION_PATCH)) {
+		if (sv > MAKE_SEMANTIC_VERSION(PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR, PROJECT_VERSION_PATCH)) {
 			for (const auto &it : canvas_docks) {
-				QMetaObject::invokeMethod(
-					it, "NewerVersionAvailable",
-					Q_ARG(QString, version));
+				QMetaObject::invokeMethod(it, "NewerVersionAvailable", Q_ARG(QString, version));
 			}
 		}
 	}
@@ -505,9 +432,8 @@ bool version_info_downloaded(void *param, struct file_download_data *file)
 bool obs_module_load(void)
 {
 	if (obs_get_version() < MAKE_SEMANTIC_VERSION(29, 0, 0)) {
-		blog(LOG_ERROR,
-		     "[Vertical Canvas] loading version %s failed, OBS version %s is to low",
-		     PROJECT_VERSION, obs_get_version_string());
+		blog(LOG_ERROR, "[Vertical Canvas] loading version %s failed, OBS version %s is to low", PROJECT_VERSION,
+		     obs_get_version_string());
 		return false;
 	}
 	blog(LOG_INFO, "[Vertical Canvas] loaded version %s", PROJECT_VERSION);
@@ -526,37 +452,31 @@ void obs_module_post_load(void)
 	bfree(path);
 	if (!config) {
 		config = obs_data_create();
-		blog(LOG_WARNING,
-		     "[Vertical Canvas] No configuration file loaded");
+		blog(LOG_WARNING, "[Vertical Canvas] No configuration file loaded");
 	} else {
 		blog(LOG_INFO, "[Vertical Canvas] Loaded configuration file");
 	}
 
-	const auto main_window =
-		static_cast<QMainWindow *>(obs_frontend_get_main_window());
+	const auto main_window = static_cast<QMainWindow *>(obs_frontend_get_main_window());
 	auto canvas = obs_data_get_array(config, "canvas");
 	obs_data_release(config);
 	if (!canvas) {
 		canvas = obs_data_array_create();
-		blog(LOG_WARNING,
-		     "[Vertical Canvas] no canvas found in configuration");
+		blog(LOG_WARNING, "[Vertical Canvas] no canvas found in configuration");
 	}
 	const auto count = obs_data_array_count(canvas);
 	if (!count) {
 		const auto canvasDock = new CanvasDock(nullptr, main_window);
-		const QString title =
-			QString::fromUtf8(obs_module_text("Vertical"));
+		const QString title = QString::fromUtf8(obs_module_text("Vertical"));
 		const auto name = "VerticalCanvasDock";
 #if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
-		obs_frontend_add_dock_by_id(name, title.toUtf8().constData(),
-					    canvasDock);
+		obs_frontend_add_dock_by_id(name, title.toUtf8().constData(), canvasDock);
 #else
 		auto dock = new QDockWidget(main_window);
 		dock->setObjectName(QString::fromUtf8(name));
 		dock->setWindowTitle(title);
 		dock->setWidget(canvasDock);
-		dock->setFeatures(QDockWidget::DockWidgetMovable |
-				  QDockWidget::DockWidgetFloatable);
+		dock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 		dock->setFloating(true);
 		dock->hide();
 		auto *a = static_cast<QAction *>(obs_frontend_add_dock(dock));
@@ -570,19 +490,16 @@ void obs_module_post_load(void)
 	for (size_t i = 0; i < count; i++) {
 		const auto item = obs_data_array_item(canvas, i);
 		const auto canvasDock = new CanvasDock(item, main_window);
-		const QString title =
-			QString::fromUtf8(obs_module_text("Vertical"));
+		const QString title = QString::fromUtf8(obs_module_text("Vertical"));
 		const auto name = "VerticalCanvasDock";
 #if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
-		obs_frontend_add_dock_by_id(name, title.toUtf8().constData(),
-					    canvasDock);
+		obs_frontend_add_dock_by_id(name, title.toUtf8().constData(), canvasDock);
 #else
 		auto dock = new QDockWidget(main_window);
 		dock->setObjectName(QString::fromUtf8(name));
 		dock->setWindowTitle(title);
 		dock->setWidget(canvasDock);
-		dock->setFeatures(QDockWidget::DockWidgetMovable |
-				  QDockWidget::DockWidgetFloatable);
+		dock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 		dock->setFloating(true);
 		dock->hide();
 		auto *a = static_cast<QAction *>(obs_frontend_add_dock(dock));
@@ -597,58 +514,27 @@ void obs_module_post_load(void)
 		vendor = obs_websocket_register_vendor("aitum-vertical-canvas");
 	if (!vendor)
 		return;
-	obs_websocket_vendor_register_request(vendor, "version",
-					      vendor_request_version, nullptr);
-	obs_websocket_vendor_register_request(
-		vendor, "switch_scene", vendor_request_switch_scene, nullptr);
-	obs_websocket_vendor_register_request(
-		vendor, "current_scene", vendor_request_current_scene, nullptr);
-	obs_websocket_vendor_register_request(
-		vendor, "get_scenes", vendor_request_get_scenes, nullptr);
-	obs_websocket_vendor_register_request(vendor, "status",
-					      vendor_request_status, nullptr);
-	obs_websocket_vendor_register_request(vendor, "start_streaming",
-					      vendor_request_invoke,
-					      (void *)"StartStream");
-	obs_websocket_vendor_register_request(vendor, "stop_streaming",
-					      vendor_request_invoke,
-					      (void *)"StopStream");
-	obs_websocket_vendor_register_request(vendor, "toggle_streaming",
-					      vendor_request_invoke,
-					      (void *)"StreamButtonClicked");
-	obs_websocket_vendor_register_request(vendor, "start_recording",
-					      vendor_request_invoke,
-					      (void *)"StartRecord");
-	obs_websocket_vendor_register_request(vendor, "stop_recording",
-					      vendor_request_invoke,
-					      (void *)"StopRecord");
-	obs_websocket_vendor_register_request(vendor, "toggle_recording",
-					      vendor_request_invoke,
-					      (void *)"RecordButtonClicked");
-	obs_websocket_vendor_register_request(vendor, "start_backtrack",
-					      vendor_request_invoke,
-					      (void *)"StartReplayBuffer");
-	obs_websocket_vendor_register_request(vendor, "stop_backtrack",
-					      vendor_request_invoke,
-					      (void *)"StopReplayBuffer");
-	obs_websocket_vendor_register_request(
-		vendor, "save_backtrack", vendor_request_save_replay, nullptr);
-	obs_websocket_vendor_register_request(vendor, "start_virtual_camera",
-					      vendor_request_invoke,
-					      (void *)"StartVirtualCam");
-	obs_websocket_vendor_register_request(vendor, "stop_virtual_camera",
-					      vendor_request_invoke,
-					      (void *)"StopVirtualCam");
-	obs_websocket_vendor_register_request(vendor, "update_stream_key",
-					      vendor_request_update_stream_key,
-					      nullptr);
-	obs_websocket_vendor_register_request(
-		vendor, "update_stream_server",
-		vendor_request_update_stream_server, nullptr);
+	obs_websocket_vendor_register_request(vendor, "version", vendor_request_version, nullptr);
+	obs_websocket_vendor_register_request(vendor, "switch_scene", vendor_request_switch_scene, nullptr);
+	obs_websocket_vendor_register_request(vendor, "current_scene", vendor_request_current_scene, nullptr);
+	obs_websocket_vendor_register_request(vendor, "get_scenes", vendor_request_get_scenes, nullptr);
+	obs_websocket_vendor_register_request(vendor, "status", vendor_request_status, nullptr);
+	obs_websocket_vendor_register_request(vendor, "start_streaming", vendor_request_invoke, (void *)"StartStream");
+	obs_websocket_vendor_register_request(vendor, "stop_streaming", vendor_request_invoke, (void *)"StopStream");
+	obs_websocket_vendor_register_request(vendor, "toggle_streaming", vendor_request_invoke, (void *)"StreamButtonClicked");
+	obs_websocket_vendor_register_request(vendor, "start_recording", vendor_request_invoke, (void *)"StartRecord");
+	obs_websocket_vendor_register_request(vendor, "stop_recording", vendor_request_invoke, (void *)"StopRecord");
+	obs_websocket_vendor_register_request(vendor, "toggle_recording", vendor_request_invoke, (void *)"RecordButtonClicked");
+	obs_websocket_vendor_register_request(vendor, "start_backtrack", vendor_request_invoke, (void *)"StartReplayBuffer");
+	obs_websocket_vendor_register_request(vendor, "stop_backtrack", vendor_request_invoke, (void *)"StopReplayBuffer");
+	obs_websocket_vendor_register_request(vendor, "save_backtrack", vendor_request_save_replay, nullptr);
+	obs_websocket_vendor_register_request(vendor, "start_virtual_camera", vendor_request_invoke, (void *)"StartVirtualCam");
+	obs_websocket_vendor_register_request(vendor, "stop_virtual_camera", vendor_request_invoke, (void *)"StopVirtualCam");
+	obs_websocket_vendor_register_request(vendor, "update_stream_key", vendor_request_update_stream_key, nullptr);
+	obs_websocket_vendor_register_request(vendor, "update_stream_server", vendor_request_update_stream_server, nullptr);
 
-	verison_update_info = update_info_create_single(
-		"[Vertical Canvas]", "OBS", "https://api.aitum.tv/vertical",
-		version_info_downloaded, nullptr);
+	verison_update_info = update_info_create_single("[Vertical Canvas]", "OBS", "https://api.aitum.tv/vertical",
+							version_info_downloaded, nullptr);
 }
 
 void obs_module_unload(void)
@@ -656,36 +542,22 @@ void obs_module_unload(void)
 	if (vendor && obs_get_module("obs-websocket")) {
 		obs_websocket_vendor_unregister_request(vendor, "version");
 		obs_websocket_vendor_unregister_request(vendor, "switch_scene");
-		obs_websocket_vendor_unregister_request(vendor,
-							"current_scene");
+		obs_websocket_vendor_unregister_request(vendor, "current_scene");
 		obs_websocket_vendor_unregister_request(vendor, "get_scenes");
 		obs_websocket_vendor_unregister_request(vendor, "status");
-		obs_websocket_vendor_unregister_request(vendor,
-							"start_streaming");
-		obs_websocket_vendor_unregister_request(vendor,
-							"stop_streaming");
-		obs_websocket_vendor_unregister_request(vendor,
-							"toggle_streaming");
-		obs_websocket_vendor_unregister_request(vendor,
-							"start_recording");
-		obs_websocket_vendor_unregister_request(vendor,
-							"stop_recording");
-		obs_websocket_vendor_unregister_request(vendor,
-							"toggle_recording");
-		obs_websocket_vendor_unregister_request(vendor,
-							"start_backtrack");
-		obs_websocket_vendor_unregister_request(vendor,
-							"stop_backtrack");
-		obs_websocket_vendor_unregister_request(vendor,
-							"save_backtrack");
-		obs_websocket_vendor_unregister_request(vendor,
-							"start_virtual_camera");
-		obs_websocket_vendor_unregister_request(vendor,
-							"stop_virtual_camera");
-		obs_websocket_vendor_unregister_request(vendor,
-							"update_stream_key");
-		obs_websocket_vendor_unregister_request(vendor,
-							"update_stream_server");
+		obs_websocket_vendor_unregister_request(vendor, "start_streaming");
+		obs_websocket_vendor_unregister_request(vendor, "stop_streaming");
+		obs_websocket_vendor_unregister_request(vendor, "toggle_streaming");
+		obs_websocket_vendor_unregister_request(vendor, "start_recording");
+		obs_websocket_vendor_unregister_request(vendor, "stop_recording");
+		obs_websocket_vendor_unregister_request(vendor, "toggle_recording");
+		obs_websocket_vendor_unregister_request(vendor, "start_backtrack");
+		obs_websocket_vendor_unregister_request(vendor, "stop_backtrack");
+		obs_websocket_vendor_unregister_request(vendor, "save_backtrack");
+		obs_websocket_vendor_unregister_request(vendor, "start_virtual_camera");
+		obs_websocket_vendor_unregister_request(vendor, "stop_virtual_camera");
+		obs_websocket_vendor_unregister_request(vendor, "update_stream_key");
+		obs_websocket_vendor_unregister_request(vendor, "update_stream_server");
 	}
 	obs_frontend_remove_event_callback(frontend_event, nullptr);
 	update_info_destroy(verison_update_info);
@@ -714,8 +586,7 @@ QListWidget *CanvasDock::GetGlobalScenesList()
 	p = p->parentWidget();
 	if (!p)
 		return nullptr;
-	auto scenesDock =
-		p->findChild<QDockWidget *>(QStringLiteral("scenesDock"));
+	auto scenesDock = p->findChild<QDockWidget *>(QStringLiteral("scenesDock"));
 	if (!scenesDock)
 		return nullptr;
 	return scenesDock->findChild<QListWidget *>(QStringLiteral("scenes"));
@@ -723,9 +594,7 @@ QListWidget *CanvasDock::GetGlobalScenesList()
 
 void CanvasDock::AddScene(QString duplicate, bool ask_name)
 {
-	std::string name = duplicate.isEmpty()
-				   ? obs_module_text("VerticalScene")
-				   : duplicate.toUtf8().constData();
+	std::string name = duplicate.isEmpty() ? obs_module_text("VerticalScene") : duplicate.toUtf8().constData();
 	obs_source_t *s = obs_get_source_by_name(name.c_str());
 	int i = 0;
 	while (s) {
@@ -738,11 +607,7 @@ void CanvasDock::AddScene(QString duplicate, bool ask_name)
 	}
 	do {
 		obs_source_release(s);
-		if (ask_name &&
-		    !NameDialog::AskForName(
-			    this,
-			    QString::fromUtf8(obs_module_text("SceneName")),
-			    name)) {
+		if (ask_name && !NameDialog::AskForName(this, QString::fromUtf8(obs_module_text("SceneName")), name)) {
 			break;
 		}
 		s = obs_get_source_by_name(name.c_str());
@@ -751,28 +616,20 @@ void CanvasDock::AddScene(QString duplicate, bool ask_name)
 
 		obs_source_t *new_scene = nullptr;
 		if (!duplicate.isEmpty()) {
-			auto origScene = obs_get_source_by_name(
-				duplicate.toUtf8().constData());
+			auto origScene = obs_get_source_by_name(duplicate.toUtf8().constData());
 			if (origScene) {
 				auto scene = obs_scene_from_source(origScene);
 				if (scene) {
-					new_scene = obs_scene_get_source(
-						obs_scene_duplicate(
-							scene, name.c_str(),
-							OBS_SCENE_DUP_REFS));
+					new_scene =
+						obs_scene_get_source(obs_scene_duplicate(scene, name.c_str(), OBS_SCENE_DUP_REFS));
 				}
 				obs_source_release(origScene);
 				if (new_scene) {
 					obs_source_save(new_scene);
-					obs_data_t *settings =
-						obs_source_get_settings(
-							new_scene);
-					obs_data_set_bool(settings,
-							  "custom_size", true);
-					obs_data_set_int(settings, "cx",
-							 canvas_width);
-					obs_data_set_int(settings, "cy",
-							 canvas_height);
+					obs_data_t *settings = obs_source_get_settings(new_scene);
+					obs_data_set_bool(settings, "custom_size", true);
+					obs_data_set_int(settings, "cx", canvas_width);
+					obs_data_set_int(settings, "cy", canvas_height);
 					obs_source_load(new_scene);
 					obs_data_release(settings);
 				}
@@ -786,8 +643,7 @@ void CanvasDock::AddScene(QString duplicate, bool ask_name)
 			obs_data_array_t *items = obs_data_array_create();
 			obs_data_set_array(settings, "items", items);
 			obs_data_array_release(items);
-			new_scene = obs_source_create("scene", name.c_str(),
-						      settings, nullptr);
+			new_scene = obs_source_create("scene", name.c_str(), settings, nullptr);
 			obs_data_release(settings);
 			obs_source_load(new_scene);
 		}
@@ -823,14 +679,10 @@ void CanvasDock::RemoveScene(const QString &sceneName)
 		return;
 	}
 
-	QMessageBox mb(QMessageBox::Question,
-		       QString::fromUtf8(obs_frontend_get_locale_string(
-			       "ConfirmRemove.Title")),
-		       QString::fromUtf8(obs_frontend_get_locale_string(
-						 "ConfirmRemove.Text"))
+	QMessageBox mb(QMessageBox::Question, QString::fromUtf8(obs_frontend_get_locale_string("ConfirmRemove.Title")),
+		       QString::fromUtf8(obs_frontend_get_locale_string("ConfirmRemove.Text"))
 			       .arg(QString::fromUtf8(obs_source_get_name(s))),
-		       QMessageBox::StandardButtons(QMessageBox::Yes |
-						    QMessageBox::No));
+		       QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No));
 	mb.setDefaultButton(QMessageBox::NoButton);
 	if (mb.exec() == QMessageBox::Yes) {
 		obs_source_remove(s);
@@ -850,8 +702,7 @@ void CanvasDock::SetLinkedScene(obs_source_t *scene, const QString &linkedScene)
 		auto item = obs_data_array_item(c, i);
 		if (!item)
 			continue;
-		if (obs_data_get_int(item, "width") == canvas_width &&
-		    obs_data_get_int(item, "height") == canvas_height) {
+		if (obs_data_get_int(item, "width") == canvas_width && obs_data_get_int(item, "height") == canvas_height) {
 			found = item;
 			if (linkedScene.isEmpty()) {
 				obs_data_array_erase(c, i);
@@ -871,8 +722,7 @@ void CanvasDock::SetLinkedScene(obs_source_t *scene, const QString &linkedScene)
 			obs_data_set_int(found, "height", canvas_height);
 			obs_data_array_push_back(c, found);
 		}
-		obs_data_set_string(found, "scene",
-				    linkedScene.toUtf8().constData());
+		obs_data_set_string(found, "scene", linkedScene.toUtf8().constData());
 	}
 	obs_data_release(ss);
 	obs_data_release(found);
@@ -904,13 +754,10 @@ void CanvasDock::CheckReplayBuffer(bool start)
 		StartReplayBuffer();
 		return;
 	}
-	bool active = obs_frontend_streaming_active() ||
-		      obs_frontend_recording_active() ||
+	bool active = obs_frontend_streaming_active() || obs_frontend_recording_active() ||
 		      (recordOutput && obs_output_active(recordOutput));
-	for (auto it = streamOutputs.begin();
-	     !active && it != streamOutputs.end(); ++it) {
-		active = it->enabled && it->output &&
-			 obs_output_active(it->output);
+	for (auto it = streamOutputs.begin(); !active && it != streamOutputs.end(); ++it) {
+		active = it->enabled && it->output && obs_output_active(it->output);
 	}
 
 	if (!start && !active)
@@ -923,8 +770,7 @@ void CanvasDock::CreateScenesRow()
 {
 	const auto sceneRow = new QHBoxLayout(this);
 	scenesCombo = new QComboBox;
-	connect(scenesCombo, &QComboBox::currentTextChanged,
-		[this]() { SwitchScene(scenesCombo->currentText()); });
+	connect(scenesCombo, &QComboBox::currentTextChanged, [this]() { SwitchScene(scenesCombo->currentText()); });
 	sceneRow->addWidget(scenesCombo, 1);
 
 	linkedButton = new LockedCheckBox;
@@ -932,9 +778,7 @@ void CanvasDock::CreateScenesRow()
 		auto scene = obs_frontend_get_current_scene();
 		if (!scene)
 			return;
-		SetLinkedScene(scene, linkedButton->isChecked()
-					      ? scenesCombo->currentText()
-					      : "");
+		SetLinkedScene(scene, linkedButton->isChecked() ? scenesCombo->currentText() : "");
 		obs_source_release(scene);
 	});
 
@@ -942,16 +786,13 @@ void CanvasDock::CreateScenesRow()
 
 	auto addButton = new QPushButton;
 	addButton->setProperty("themeID", "addIconSmall");
-	addButton->setToolTip(
-		QString::fromUtf8(obs_module_text("AddVerticalScene")));
+	addButton->setToolTip(QString::fromUtf8(obs_module_text("AddVerticalScene")));
 	connect(addButton, &QPushButton::clicked, [this] { AddScene(); });
 	sceneRow->addWidget(addButton);
 	auto removeButton = new QPushButton;
 	removeButton->setProperty("themeID", "removeIconSmall");
-	removeButton->setToolTip(
-		QString::fromUtf8(obs_module_text("RemoveVerticalScene")));
-	connect(removeButton, &QPushButton::clicked,
-		[this] { RemoveScene(scenesCombo->currentText()); });
+	removeButton->setToolTip(QString::fromUtf8(obs_module_text("RemoveVerticalScene")));
+	connect(removeButton, &QPushButton::clicked, [this] { RemoveScene(scenesCombo->currentText()); });
 	sceneRow->addWidget(removeButton);
 	mainLayout->insertLayout(0, sceneRow);
 }
@@ -968,8 +809,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	calldata_t cd = {0};
 	calldata_set_ptr(&cd, "view", view);
 	calldata_set_string(&cd, "view_name", "Vertical");
-	calldata_set_ptr(&cd, "get_transitions",
-			 (void *)CanvasDock::get_transitions);
+	calldata_set_ptr(&cd, "get_transitions", (void *)CanvasDock::get_transitions);
 	calldata_set_ptr(&cd, "get_transitions_data", this);
 	proc_handler_call(ph, "downstream_keyer_add_view", &cd);
 	calldata_free(&cd);
@@ -986,26 +826,19 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		canvas_width = 1080;
 		canvas_height = 1920;
 	}
-	streamingVideoBitrate =
-		(uint32_t)obs_data_get_int(settings, "streaming_video_bitrate");
+	streamingVideoBitrate = (uint32_t)obs_data_get_int(settings, "streaming_video_bitrate");
 	if (!streamingVideoBitrate)
-		streamingVideoBitrate =
-			(uint32_t)obs_data_get_int(settings, "video_bitrate");
-	streamingMatchMain =
-		obs_data_get_bool(settings, "streaming_match_main");
-	recordVideoBitrate =
-		(uint32_t)obs_data_get_int(settings, "record_video_bitrate");
+		streamingVideoBitrate = (uint32_t)obs_data_get_int(settings, "video_bitrate");
+	streamingMatchMain = obs_data_get_bool(settings, "streaming_match_main");
+	recordVideoBitrate = (uint32_t)obs_data_get_int(settings, "record_video_bitrate");
 	if (!recordVideoBitrate)
-		recordVideoBitrate =
-			(uint32_t)obs_data_get_int(settings, "video_bitrate");
-	recordingMatchMain =
-		obs_data_get_bool(settings, "recording_match_main");
+		recordVideoBitrate = (uint32_t)obs_data_get_int(settings, "video_bitrate");
+	recordingMatchMain = obs_data_get_bool(settings, "recording_match_main");
 
 	audioBitrate = (uint32_t)obs_data_get_int(settings, "audio_bitrate");
 	startReplay = obs_data_get_bool(settings, "backtrack");
 	replayAlwaysOn = obs_data_get_bool(settings, "backtrack_always");
-	replayDuration =
-		(uint32_t)obs_data_get_int(settings, "backtrack_seconds");
+	replayDuration = (uint32_t)obs_data_get_int(settings, "backtrack_seconds");
 	replayPath = obs_data_get_string(settings, "backtrack_path");
 
 	virtual_cam_mode = obs_data_get_int(settings, "virtual_camera_mode");
@@ -1024,53 +857,40 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 			enabled_count++;
 		std::string service_name = "vertical_canvas_stream_service_";
 		service_name += std::to_string(i);
-		ss.service = obs_service_create(
-			"rtmp_custom", service_name.c_str(), nullptr, nullptr);
+		ss.service = obs_service_create("rtmp_custom", service_name.c_str(), nullptr, nullptr);
 		streamOutputs.push_back(ss);
 		obs_data_release(item);
 	}
 	obs_data_array_release(so);
 	multi_rtmp = enabled_count > 1;
-	if (streamOutputs.empty() &&
-	    strlen(obs_data_get_string(settings, "stream_server"))) {
+	if (streamOutputs.empty() && strlen(obs_data_get_string(settings, "stream_server"))) {
 		StreamServer ss;
-		ss.stream_server =
-			obs_data_get_string(settings, "stream_server");
+		ss.stream_server = obs_data_get_string(settings, "stream_server");
 		ss.stream_key = obs_data_get_string(settings, "stream_key");
-		ss.service = obs_service_create(
-			"rtmp_custom", "vertical_canvas_stream_service_0",
-			nullptr, nullptr);
+		ss.service = obs_service_create("rtmp_custom", "vertical_canvas_stream_service_0", nullptr, nullptr);
 		streamOutputs.push_back(ss);
 	}
 
-	stream_delay_enabled =
-		obs_data_get_bool(settings, "stream_delay_enabled");
-	stream_delay_duration =
-		obs_data_get_int(settings, "stream_delay_duration");
-	stream_delay_preserve =
-		obs_data_get_bool(settings, "stream_delay_preserve");
+	stream_delay_enabled = obs_data_get_bool(settings, "stream_delay_enabled");
+	stream_delay_duration = obs_data_get_int(settings, "stream_delay_duration");
+	stream_delay_preserve = obs_data_get_bool(settings, "stream_delay_preserve");
 
-	stream_advanced_settings =
-		obs_data_get_bool(settings, "stream_advanced_settings");
+	stream_advanced_settings = obs_data_get_bool(settings, "stream_advanced_settings");
 	stream_audio_track = obs_data_get_int(settings, "stream_audio_track");
 	stream_encoder = obs_data_get_string(settings, "stream_encoder");
-	stream_encoder_settings =
-		obs_data_get_obj(settings, "stream_encoder_settings");
+	stream_encoder_settings = obs_data_get_obj(settings, "stream_encoder_settings");
 	if (!stream_encoder_settings)
 		stream_encoder_settings = obs_data_create();
 
 	recordPath = obs_data_get_string(settings, "record_path");
-	record_advanced_settings =
-		obs_data_get_bool(settings, "record_advanced_settings");
-	filename_formatting =
-		obs_data_get_string(settings, "filename_formatting");
+	record_advanced_settings = obs_data_get_bool(settings, "record_advanced_settings");
+	filename_formatting = obs_data_get_string(settings, "filename_formatting");
 	file_format = obs_data_get_string(settings, "file_format");
 	record_audio_tracks = obs_data_get_int(settings, "record_audio_tracks");
 	if (!record_audio_tracks)
 		record_audio_tracks = 1;
 	record_encoder = obs_data_get_string(settings, "record_encoder");
-	record_encoder_settings =
-		obs_data_get_obj(settings, "record_encoder_settings");
+	record_encoder_settings = obs_data_get_obj(settings, "record_encoder_settings");
 	if (!record_encoder_settings)
 		record_encoder_settings = obs_data_create();
 
@@ -1082,10 +902,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		const auto profile_config = obs_frontend_get_profile_config();
 		if (!config_get_bool(profile_config, "AdvOut", "RecRB") ||
 		    !config_get_bool(profile_config, "SimpleOutput", "RecRB")) {
-			config_set_bool(profile_config, "AdvOut", "RecRB",
-					true);
-			config_set_bool(profile_config, "SimpleOutput", "RecRB",
-					true);
+			config_set_bool(profile_config, "AdvOut", "RecRB", true);
+			config_set_bool(profile_config, "SimpleOutput", "RecRB", true);
 			config_save(profile_config);
 		}
 	}
@@ -1097,25 +915,21 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 			continue;
 		const char *name = obs_source_get_display_name(id);
 
-		OBSSourceAutoRelease tr =
-			obs_source_create_private(id, name, NULL);
+		OBSSourceAutoRelease tr = obs_source_create_private(id, name, NULL);
 		transitions.emplace_back(tr);
 
 		//signals "transition_stop" and "transition_video_stop"
 		//        TransitionFullyStopped TransitionStopped
 	}
 
-	obs_data_array_t *transition_array =
-		obs_data_get_array(settings, "transitions");
+	obs_data_array_t *transition_array = obs_data_get_array(settings, "transitions");
 	if (transition_array) {
 		size_t c = obs_data_array_count(transition_array);
 		for (size_t i = 0; i < c; i++) {
-			obs_data_t *td =
-				obs_data_array_item(transition_array, i);
+			obs_data_t *td = obs_data_array_item(transition_array, i);
 			if (!td)
 				continue;
-			OBSSourceAutoRelease transition =
-				obs_load_private_source(td);
+			OBSSourceAutoRelease transition = obs_load_private_source(td);
 			if (transition)
 				transitions.emplace_back(transition);
 
@@ -1124,11 +938,9 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		obs_data_array_release(transition_array);
 	}
 
-	auto transition =
-		GetTransition(obs_data_get_string(settings, "transition"));
+	auto transition = GetTransition(obs_data_get_string(settings, "transition"));
 	if (!transition)
-		transition = GetTransition(
-			obs_source_get_display_name("fade_transition"));
+		transition = GetTransition(obs_source_get_display_name("fade_transition"));
 
 	SwapTransition(transition);
 
@@ -1138,12 +950,9 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	const QString title = QString::fromUtf8(obs_module_text("Vertical"));
 
-	const QString replayName =
-		title + " " + QString::fromUtf8(obs_module_text("Backtrack"));
+	const QString replayName = title + " " + QString::fromUtf8(obs_module_text("Backtrack"));
 	auto hotkeyData = obs_data_get_obj(settings, "backtrack_hotkeys");
-	replayOutput = obs_output_create("replay_buffer",
-					 replayName.toUtf8().constData(),
-					 nullptr, hotkeyData);
+	replayOutput = obs_output_create("replay_buffer", replayName.toUtf8().constData(), nullptr, hotkeyData);
 	obs_data_release(hotkeyData);
 	auto rpsh = obs_output_get_signal_handler(replayOutput);
 	signal_handler_connect(rpsh, "saved", replay_saved, this);
@@ -1155,22 +964,16 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	scenesDock->SetGridMode(obs_data_get_bool(settings, "grid_mode"));
 
 	const auto scenesName = "VerticalCanvasDockScenes";
-	const auto scenesTitle =
-		title + " " +
-		QString::fromUtf8(
-			obs_frontend_get_locale_string("Basic.Main.Scenes"));
+	const auto scenesTitle = title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.Scenes"));
 #if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
-	obs_frontend_add_dock_by_id(
-		scenesName, scenesTitle.toUtf8().constData(), scenesDock);
+	obs_frontend_add_dock_by_id(scenesName, scenesTitle.toUtf8().constData(), scenesDock);
 #else
-	const auto mainDialog =
-		static_cast<QMainWindow *>(obs_frontend_get_main_window());
+	const auto mainDialog = static_cast<QMainWindow *>(obs_frontend_get_main_window());
 	auto dock = new QDockWidget(mainDialog);
 	dock->setObjectName(QString::fromUtf8(scenesName));
 	dock->setWindowTitle(scenesTitle);
 	dock->setWidget(scenesDock);
-	dock->setFeatures(QDockWidget::DockWidgetMovable |
-			  QDockWidget::DockWidgetFloatable);
+	dock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 	dock->setFloating(true);
 	dock->hide();
 	scenesDockAction = (QAction *)obs_frontend_add_dock(dock);
@@ -1178,20 +981,15 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	sourcesDock = new CanvasSourcesDock(this, parent);
 	const auto sourcesName = "VerticalCanvasDockSources";
-	const auto sourcesTitle =
-		title + " " +
-		QString::fromUtf8(
-			obs_frontend_get_locale_string("Basic.Main.Sources"));
+	const auto sourcesTitle = title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.Sources"));
 #if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
-	obs_frontend_add_dock_by_id(
-		sourcesName, sourcesTitle.toUtf8().constData(), sourcesDock);
+	obs_frontend_add_dock_by_id(sourcesName, sourcesTitle.toUtf8().constData(), sourcesDock);
 #else
 	dock = new QDockWidget(mainDialog);
 	dock->setObjectName(QString::fromUtf8(sourcesName));
 	dock->setWindowTitle(sourcesTitle);
 	dock->setWidget(sourcesDock);
-	dock->setFeatures(QDockWidget::DockWidgetMovable |
-			  QDockWidget::DockWidgetFloatable);
+	dock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 	dock->setFloating(true);
 	dock->hide();
 	sourcesDockAction = (QAction *)obs_frontend_add_dock(dock);
@@ -1199,21 +997,15 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	transitionsDock = new CanvasTransitionsDock(this, parent);
 	const auto transitionsName = "VerticalCanvasDockTransitions";
-	const auto transitionsTitle =
-		title + " " +
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.SceneTransitions"));
+	const auto transitionsTitle = title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.SceneTransitions"));
 #if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(30, 0, 0)
-	obs_frontend_add_dock_by_id(transitionsName,
-				    transitionsTitle.toUtf8().constData(),
-				    transitionsDock);
+	obs_frontend_add_dock_by_id(transitionsName, transitionsTitle.toUtf8().constData(), transitionsDock);
 #else
 	dock = new QDockWidget(mainDialog);
 	dock->setObjectName(QString::fromUtf8(transitionsName));
 	dock->setWindowTitle(transitionsTitle);
 	dock->setWidget(transitionsDock);
-	dock->setFeatures(QDockWidget::DockWidgetMovable |
-			  QDockWidget::DockWidgetFloatable);
+	dock->setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
 	dock->setFloating(true);
 	dock->hide();
 	transitionsDockAction = (QAction *)obs_frontend_add_dock(dock);
@@ -1224,8 +1016,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	QSizePolicy sizePolicy1(QSizePolicy::Expanding, QSizePolicy::Expanding);
 	sizePolicy1.setHorizontalStretch(0);
 	sizePolicy1.setVerticalStretch(0);
-	sizePolicy1.setHeightForWidth(
-		preview->sizePolicy().hasHeightForWidth());
+	sizePolicy1.setHeightForWidth(preview->sizePolicy().hasHeightForWidth());
 	preview->setSizePolicy(sizePolicy1);
 
 	preview->setMouseTracking(true);
@@ -1233,24 +1024,19 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	preview->installEventFilter(eventFilter.get());
 
 	auto addDrawCallback = [this]() {
-		obs_display_add_draw_callback(preview->GetDisplay(),
-					      DrawPreview, this);
+		obs_display_add_draw_callback(preview->GetDisplay(), DrawPreview, this);
 	};
 	preview->show();
 	connect(preview, &OBSQTDisplay::DisplayCreated, addDrawCallback);
 	preview->setVisible(!preview_disabled);
 	obs_display_set_enabled(preview->GetDisplay(), !preview_disabled);
 
-	auto addNudge = [this](const QKeySequence &seq, MoveDir direction,
-			       int distance) {
+	auto addNudge = [this](const QKeySequence &seq, MoveDir direction, int distance) {
 		QAction *nudge = new QAction(preview);
 		nudge->setShortcut(seq);
 		nudge->setShortcutContext(Qt::WidgetShortcut);
 		preview->addAction(nudge);
-		connect(nudge, &QAction::triggered,
-			[this, distance, direction]() {
-				Nudge(distance, direction);
-			});
+		connect(nudge, &QAction::triggered, [this, distance, direction]() { Nudge(distance, direction); });
 	};
 
 	addNudge(Qt::Key_Up, MoveDir::Up, 1);
@@ -1267,9 +1053,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	previewDisabledWidget = new QFrame;
 	auto l = new QVBoxLayout;
 
-	auto enablePreviewButton = new QPushButton(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.Main.PreviewConextMenu.Enable")));
+	auto enablePreviewButton =
+		new QPushButton(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.PreviewConextMenu.Enable")));
 	connect(enablePreviewButton, &QPushButton::clicked, [this] {
 		preview_disabled = false;
 		obs_display_set_enabled(preview->GetDisplay(), true);
@@ -1303,27 +1088,21 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	streamButton->setCheckable(true);
 	streamButton->setChecked(false);
 	streamButton->setSizePolicy(sp2);
-	streamButton->setToolTip(
-		QString::fromUtf8(obs_module_text("StreamVertical")));
-	streamButton->setStyleSheet(QString::fromUtf8(
-		multi_rtmp
-			? "border-top-right-radius: 0; border-bottom-right-radius: 0;"
-			: ""));
-	connect(streamButton, SIGNAL(clicked()), this,
-		SLOT(StreamButtonClicked()));
+	streamButton->setToolTip(QString::fromUtf8(obs_module_text("StreamVertical")));
+	streamButton->setStyleSheet(
+		QString::fromUtf8(multi_rtmp ? "border-top-right-radius: 0; border-bottom-right-radius: 0;" : ""));
+	connect(streamButton, SIGNAL(clicked()), this, SLOT(StreamButtonClicked()));
 	streamButtonGroup->layout()->addWidget(streamButton);
 
 	// Little up arrow in the case of there being multiple enabled outputs
 	streamButtonMulti = new QPushButton;
 	streamButtonMulti->setMinimumHeight(30);
 	streamButtonMulti->setObjectName(QStringLiteral("canvasStreamMulti"));
-	streamButtonMulti->setToolTip(
-		QString::fromUtf8(obs_module_text("StreamVerticalMulti")));
+	streamButtonMulti->setToolTip(QString::fromUtf8(obs_module_text("StreamVerticalMulti")));
 	streamButtonMulti->setChecked(false);
 	streamButtonMulti->setSizePolicy(sp2);
 	auto multi_menu = new QMenu(this);
-	connect(multi_menu, &QMenu::aboutToShow,
-		[this, multi_menu] { StreamButtonMultiMenu(multi_menu); });
+	connect(multi_menu, &QMenu::aboutToShow, [this, multi_menu] { StreamButtonMultiMenu(multi_menu); });
 	streamButtonMulti->setMenu(multi_menu);
 	streamButtonMulti->setStyleSheet(QString::fromUtf8(
 		"width: 16px; padding-left: 4px; padding-right: 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;"));
@@ -1339,10 +1118,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	recordButton->setCheckable(true);
 	recordButton->setChecked(false);
 	recordButton->setSizePolicy(sp2);
-	recordButton->setToolTip(
-		QString::fromUtf8(obs_module_text("RecordVertical")));
-	connect(recordButton, SIGNAL(clicked()), this,
-		SLOT(RecordButtonClicked()));
+	recordButton->setToolTip(QString::fromUtf8(obs_module_text("RecordVertical")));
+	connect(recordButton, SIGNAL(clicked()), this, SLOT(RecordButtonClicked()));
 	buttonRow->addWidget(recordButton);
 
 	replayButton = new QPushButton;
@@ -1351,10 +1128,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	replayButton->setIcon(replayInactiveIcon);
 	replayButton->setContentsMargins(0, 0, 0, 0);
 	replayButton->setSizePolicy(sp2);
-	replayButton->setToolTip(
-		QString::fromUtf8(obs_module_text("BacktrackClipVertical")));
-	connect(replayButton, SIGNAL(clicked()), this,
-		SLOT(ReplayButtonClicked()));
+	replayButton->setToolTip(QString::fromUtf8(obs_module_text("BacktrackClipVertical")));
+	connect(replayButton, SIGNAL(clicked()), this, SLOT(ReplayButtonClicked()));
 	buttonRow->addWidget(replayButton);
 
 	virtualCamButton = new QPushButton;
@@ -1364,14 +1139,11 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	virtualCamButton->setCheckable(true);
 	virtualCamButton->setChecked(false);
 	virtualCamButton->setSizePolicy(sp2);
-	virtualCamButton->setToolTip(
-		QString::fromUtf8(obs_module_text("VirtualCameraVertical")));
-	if (obs_get_version() < MAKE_SEMANTIC_VERSION(29, 1, 0) &&
-	    strncmp(obs_get_version_string(), "29.1.", 5) != 0) {
+	virtualCamButton->setToolTip(QString::fromUtf8(obs_module_text("VirtualCameraVertical")));
+	if (obs_get_version() < MAKE_SEMANTIC_VERSION(29, 1, 0) && strncmp(obs_get_version_string(), "29.1.", 5) != 0) {
 		virtualCamButton->setVisible(false);
 	}
-	connect(virtualCamButton, SIGNAL(clicked()), this,
-		SLOT(VirtualCamButtonClicked()));
+	connect(virtualCamButton, SIGNAL(clicked()), this, SLOT(VirtualCamButtonClicked()));
 	buttonRow->addWidget(virtualCamButton);
 
 	statusLabel = new QLabel;
@@ -1382,33 +1154,24 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	recordDurationTimer.setSingleShot(false);
 	connect(&recordDurationTimer, &QTimer::timeout, [this] {
 		if (obs_output_active(recordOutput)) {
-			int totalFrames =
-				obs_output_get_total_frames(recordOutput);
+			int totalFrames = obs_output_get_total_frames(recordOutput);
 			video_t *video = obs_output_video(recordOutput);
-			uint64_t frameTimeNs =
-				video_output_get_frame_time(video);
-			auto t = QTime::fromMSecsSinceStartOfDay(util_mul_div64(
-				totalFrames, frameTimeNs, 1000000ULL));
-			recordButton->setText(
-				t.toString(t.hour() ? "hh:mm:ss" : "mm:ss"));
+			uint64_t frameTimeNs = video_output_get_frame_time(video);
+			auto t = QTime::fromMSecsSinceStartOfDay(util_mul_div64(totalFrames, frameTimeNs, 1000000ULL));
+			recordButton->setText(t.toString(t.hour() ? "hh:mm:ss" : "mm:ss"));
 		} else if (!recordButton->text().isEmpty()) {
 			recordButton->setText("");
 		}
 		QString streamButtonText;
-		for (auto it = streamOutputs.begin(); it != streamOutputs.end();
-		     ++it) {
+		for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
 			if (!obs_output_active(it->output))
 				continue;
 
-			int totalFrames =
-				obs_output_get_total_frames(it->output);
+			int totalFrames = obs_output_get_total_frames(it->output);
 			video_t *video = obs_output_video(it->output);
-			uint64_t frameTimeNs =
-				video_output_get_frame_time(video);
-			auto t = QTime::fromMSecsSinceStartOfDay(util_mul_div64(
-				totalFrames, frameTimeNs, 1000000ULL));
-			streamButtonText =
-				t.toString(t.hour() ? "hh:mm:ss" : "mm:ss");
+			uint64_t frameTimeNs = video_output_get_frame_time(video);
+			auto t = QTime::fromMSecsSinceStartOfDay(util_mul_div64(totalFrames, frameTimeNs, 1000000ULL));
+			streamButtonText = t.toString(t.hour() ? "hh:mm:ss" : "mm:ss");
 			break;
 		}
 		if (streamButton->text() != streamButtonText) {
@@ -1419,8 +1182,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	replayStatusResetTimer.setInterval(4000);
 	replayStatusResetTimer.setSingleShot(true);
-	connect(&replayStatusResetTimer, &QTimer::timeout,
-		[this] { statusLabel->setText(""); });
+	connect(&replayStatusResetTimer, &QTimer::timeout, [this] { statusLabel->setText(""); });
 
 	configButton = new QPushButton(this);
 	configButton->setMinimumHeight(30);
@@ -1428,10 +1190,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	configButton->setFlat(true);
 	configButton->setAutoDefault(false);
 	configButton->setSizePolicy(sp2);
-	configButton->setToolTip(
-		QString::fromUtf8(obs_module_text("VerticalSettings")));
-	connect(configButton, SIGNAL(clicked()), this,
-		SLOT(ConfigButtonClicked()));
+	configButton->setToolTip(QString::fromUtf8(obs_module_text("VerticalSettings")));
+	connect(configButton, SIGNAL(clicked()), this, SLOT(ConfigButtonClicked()));
 	buttonRow->addWidget(configButton);
 
 	auto aitumButton = new QPushButton;
@@ -1439,8 +1199,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	aitumButton->setSizePolicy(sp2);
 	aitumButton->setIcon(QIcon(":/aitum/media/aitum.png"));
 	aitumButton->setToolTip(QString::fromUtf8("https://aitum.tv"));
-	connect(aitumButton, &QPushButton::clicked,
-		[] { QDesktopServices::openUrl(QUrl("https://aitum.tv")); });
+	connect(aitumButton, &QPushButton::clicked, [] { QDesktopServices::openUrl(QUrl("https://aitum.tv")); });
 	buttonRow->addWidget(aitumButton);
 
 	mainLayout->addLayout(buttonRow);
@@ -1456,8 +1215,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	obs_leave_graphics();
 
-	currentSceneName = QString::fromUtf8(
-		obs_data_get_string(settings, "current_scene"));
+	currentSceneName = QString::fromUtf8(obs_data_get_string(settings, "current_scene"));
 
 	auto sh = obs_get_signal_handler();
 	signal_handler_connect(sh, "source_rename", source_rename, this);
@@ -1469,40 +1227,22 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	virtual_cam_hotkey = obs_hotkey_pair_register_frontend(
 		"VerticalCanvasDockStartVirtualCam",
-		(title + " " +
-		 QString::fromUtf8(obs_frontend_get_locale_string(
-			 "Basic.Main.StartVirtualCam")))
-			.toUtf8()
-			.constData(),
+		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.StartVirtualCam"))).toUtf8().constData(),
 		"VerticalCanvasDockStopVirtualCam",
-		(title + " " +
-		 QString::fromUtf8(obs_frontend_get_locale_string(
-			 "Basic.Main.StopVirtualCam")))
-			.toUtf8()
-			.constData(),
+		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.StopVirtualCam"))).toUtf8().constData(),
 		start_virtual_cam_hotkey, stop_virtual_cam_hotkey, this, this);
 
-	obs_data_array_t *start_hotkey =
-		obs_data_get_array(settings, "start_virtual_cam_hotkey");
-	obs_data_array_t *stop_hotkey =
-		obs_data_get_array(settings, "stop_virtual_cam_hotkey");
+	obs_data_array_t *start_hotkey = obs_data_get_array(settings, "start_virtual_cam_hotkey");
+	obs_data_array_t *stop_hotkey = obs_data_get_array(settings, "stop_virtual_cam_hotkey");
 	obs_hotkey_pair_load(virtual_cam_hotkey, start_hotkey, stop_hotkey);
 	obs_data_array_release(start_hotkey);
 	obs_data_array_release(stop_hotkey);
 
 	record_hotkey = obs_hotkey_pair_register_frontend(
 		"VerticalCanvasDockStartRecording",
-		(title + " " +
-		 QString::fromUtf8(obs_frontend_get_locale_string(
-			 "Basic.Main.StartRecording")))
-			.toUtf8()
-			.constData(),
+		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.StartRecording"))).toUtf8().constData(),
 		"VerticalCanvasDockStopRecording",
-		(title + " " +
-		 QString::fromUtf8(obs_frontend_get_locale_string(
-			 "Basic.Main.StopRecording")))
-			.toUtf8()
-			.constData(),
+		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.StopRecording"))).toUtf8().constData(),
 		start_recording_hotkey, stop_recording_hotkey, this, this);
 
 	start_hotkey = obs_data_get_array(settings, "start_record_hotkey");
@@ -1513,17 +1253,9 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	stream_hotkey = obs_hotkey_pair_register_frontend(
 		"VerticalCanvasDockStartStreaming",
-		(title + " " +
-		 QString::fromUtf8(obs_frontend_get_locale_string(
-			 "Basic.Main.StartStreaming")))
-			.toUtf8()
-			.constData(),
+		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.StartStreaming"))).toUtf8().constData(),
 		"VerticalCanvasDockStopStreaming",
-		(title + " " +
-		 QString::fromUtf8(obs_frontend_get_locale_string(
-			 "Basic.Main.StopStreaming")))
-			.toUtf8()
-			.constData(),
+		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.StopStreaming"))).toUtf8().constData(),
 		start_streaming_hotkey, stop_streaming_hotkey, this, this);
 
 	start_hotkey = obs_data_get_array(settings, "start_stream_hotkey");
@@ -1536,11 +1268,9 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	}
 	hide();
 
-	transitionAudioWrapper = obs_source_create_private(
-		"vertical_audio_wrapper_source",
-		"vertical_audio_wrapper_source", nullptr);
-	auto aw = (struct audio_wrapper_info *)obs_obj_get_data(
-		transitionAudioWrapper);
+	transitionAudioWrapper =
+		obs_source_create_private("vertical_audio_wrapper_source", "vertical_audio_wrapper_source", nullptr);
+	auto aw = (struct audio_wrapper_info *)obs_obj_get_data(transitionAudioWrapper);
 	aw->param = this;
 	aw->target = [](void *param) {
 		CanvasDock *dock = reinterpret_cast<CanvasDock *>(param);
@@ -1558,8 +1288,7 @@ CanvasDock::~CanvasDock()
 	obs_hotkey_pair_unregister(virtual_cam_hotkey);
 	obs_hotkey_pair_unregister(record_hotkey);
 	obs_hotkey_pair_unregister(stream_hotkey);
-	obs_display_remove_draw_callback(preview->GetDisplay(), DrawPreview,
-					 this);
+	obs_display_remove_draw_callback(preview->GetDisplay(), DrawPreview, this);
 	for (uint32_t i = MAX_CHANNELS - 1; i > 0; i--) {
 		auto s = obs_get_output_source(i);
 		if (s == transitionAudioWrapper) {
@@ -1606,8 +1335,7 @@ CanvasDock::~CanvasDock()
 	obs_data_release(record_encoder_settings);
 
 	if (multiCanvasSource) {
-		multi_canvas_source_remove_view(
-			obs_obj_get_data(multiCanvasSource), view);
+		multi_canvas_source_remove_view(obs_obj_get_data(multiCanvasSource), view);
 		obs_source_release(multiCanvasSource);
 		multiCanvasSource = nullptr;
 	}
@@ -1648,14 +1376,11 @@ CanvasDock::~CanvasDock()
 	obs_leave_graphics();
 
 	obs_source_t *oldTransition = obs_weak_source_get_source(source);
-	if (oldTransition &&
-	    obs_source_get_type(oldTransition) == OBS_SOURCE_TYPE_TRANSITION) {
+	if (oldTransition && obs_source_get_type(oldTransition) == OBS_SOURCE_TYPE_TRANSITION) {
 		obs_weak_source_release(source);
 		source = nullptr;
-		signal_handler_t *handler =
-			obs_source_get_signal_handler(oldTransition);
-		signal_handler_disconnect(handler, "transition_stop",
-					  transition_override_stop, this);
+		signal_handler_t *handler = obs_source_get_signal_handler(oldTransition);
+		signal_handler_disconnect(handler, "transition_stop", transition_override_stop, this);
 		obs_source_dec_showing(oldTransition);
 		obs_source_dec_active(oldTransition);
 	}
@@ -1715,8 +1440,7 @@ static bool CloseFloat(float a, float b, float epsilon = 0.01f)
 	return std::abs(a - b) <= epsilon;
 }
 
-bool CanvasDock::DrawSelectedOverflow(obs_scene_t *scene, obs_sceneitem_t *item,
-				      void *param)
+bool CanvasDock::DrawSelectedOverflow(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
 	if (obs_sceneitem_locked(item))
 		return true;
@@ -1728,8 +1452,7 @@ bool CanvasDock::DrawSelectedOverflow(obs_scene_t *scene, obs_sceneitem_t *item,
 	if (!config)
 		return true;
 
-	bool select = config_get_bool(config, "BasicWindow",
-				      "OverflowSelectionHidden");
+	bool select = config_get_bool(config, "BasicWindow", "OverflowSelectionHidden");
 
 	if (!select && !obs_sceneitem_visible(item))
 		return true;
@@ -1740,13 +1463,11 @@ bool CanvasDock::DrawSelectedOverflow(obs_scene_t *scene, obs_sceneitem_t *item,
 
 		gs_matrix_push();
 		gs_matrix_mul(&mat);
-		obs_sceneitem_group_enum_items(item, DrawSelectedOverflow,
-					       param);
+		obs_sceneitem_group_enum_items(item, DrawSelectedOverflow, param);
 		gs_matrix_pop();
 	}
 
-	bool always =
-		config_get_bool(config, "BasicWindow", "OverflowAlwaysVisible");
+	bool always = config_get_bool(config, "BasicWindow", "OverflowAlwaysVisible");
 
 	if (!always && !obs_sceneitem_selected(item))
 		return true;
@@ -1765,13 +1486,12 @@ bool CanvasDock::DrawSelectedOverflow(obs_scene_t *scene, obs_sceneitem_t *item,
 		{{{1.f, 1.f, 0.f}}},
 	};
 
-	bool visible = std::all_of(
-		std::begin(bounds), std::end(bounds), [&](const vec3 &b) {
-			vec3 pos;
-			vec3_transform(&pos, &b, &boxTransform);
-			vec3_transform(&pos, &pos, &invBoxTransform);
-			return CloseFloat(pos.x, b.x) && CloseFloat(pos.y, b.y);
-		});
+	bool visible = std::all_of(std::begin(bounds), std::end(bounds), [&](const vec3 &b) {
+		vec3 pos;
+		vec3_transform(&pos, &b, &boxTransform);
+		vec3_transform(&pos, &pos, &invBoxTransform);
+		return CloseFloat(pos.x, b.x) && CloseFloat(pos.y, b.y);
+	});
 
 	if (!visible)
 		return true;
@@ -1868,8 +1588,7 @@ void CanvasDock::DrawPreview(void *data, uint32_t cx, uint32_t cy)
 	gs_viewport_push();
 	gs_projection_push();
 
-	gs_ortho(float(-x), newCX + float(x), float(-y), newCY + float(y),
-		 -100.0f, 100.0f);
+	gs_ortho(float(-x), newCX + float(x), float(-y), newCY + float(y), -100.0f, 100.0f);
 	gs_reset_viewport();
 
 	window->DrawOverflow(scale);
@@ -1884,8 +1603,7 @@ void CanvasDock::DrawPreview(void *data, uint32_t cx, uint32_t cy)
 
 	gs_set_linear_srgb(previous);
 
-	gs_ortho(float(-x), newCX + float(x), float(-y), newCY + float(y),
-		 -100.0f, 100.0f);
+	gs_ortho(float(-x), newCX + float(x), float(-y), newCY + float(y), -100.0f, 100.0f);
 	gs_reset_viewport();
 
 	gs_effect_t *solid = obs_get_base_effect(OBS_EFFECT_SOLID);
@@ -1913,11 +1631,8 @@ void CanvasDock::DrawPreview(void *data, uint32_t cx, uint32_t cy)
 			window->rectFill = gs_render_save();
 		}
 
-		window->DrawSelectionBox(window->startPos.x * scale,
-					 window->startPos.y * scale,
-					 window->mousePos.x * scale,
-					 window->mousePos.y * scale,
-					 window->rectFill);
+		window->DrawSelectionBox(window->startPos.x * scale, window->startPos.y * scale, window->mousePos.x * scale,
+					 window->mousePos.y * scale, window->rectFill);
 	}
 	gs_load_vertexbuffer(nullptr);
 
@@ -1925,9 +1640,7 @@ void CanvasDock::DrawPreview(void *data, uint32_t cx, uint32_t cy)
 	gs_technique_end(tech);
 
 	if (window->drawSpacingHelpers)
-		window->DrawSpacingHelpers(window->scene, x, y, newCX, newCY,
-					   scale, float(sourceCX),
-					   float(sourceCY));
+		window->DrawSpacingHelpers(window->scene, x, y, newCX, newCY, scale, float(sourceCX), float(sourceCY));
 
 	gs_projection_pop();
 	gs_viewport_pop();
@@ -1945,11 +1658,7 @@ struct SceneFindData {
 	SceneFindData &operator=(const SceneFindData &) = delete;
 	SceneFindData &operator=(SceneFindData &&) = delete;
 
-	inline SceneFindData(const vec2 &pos_, bool selectBelow_)
-		: pos(pos_),
-		  selectBelow(selectBelow_)
-	{
-	}
+	inline SceneFindData(const vec2 &pos_, bool selectBelow_) : pos(pos_), selectBelow(selectBelow_) {}
 };
 
 struct SceneFindBoxData {
@@ -1962,15 +1671,10 @@ struct SceneFindBoxData {
 	SceneFindBoxData &operator=(const SceneFindData &) = delete;
 	SceneFindBoxData &operator=(SceneFindData &&) = delete;
 
-	inline SceneFindBoxData(const vec2 &startPos_, const vec2 &pos_)
-		: startPos(startPos_),
-		  pos(pos_)
-	{
-	}
+	inline SceneFindBoxData(const vec2 &startPos_, const vec2 &pos_) : startPos(startPos_), pos(pos_) {}
 };
 
-bool CanvasDock::FindSelected(obs_scene_t *scene, obs_sceneitem_t *item,
-			      void *param)
+bool CanvasDock::FindSelected(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
 	SceneFindBoxData *data = reinterpret_cast<SceneFindBoxData *>(param);
 
@@ -1995,12 +1699,8 @@ static vec2 GetItemSize(obs_sceneitem_t *item)
 
 		obs_sceneitem_get_scale(item, &scale);
 		obs_sceneitem_get_crop(item, &crop);
-		size.x = float(obs_source_get_width(source) - crop.left -
-			       crop.right) *
-			 scale.x;
-		size.y = float(obs_source_get_height(source) - crop.top -
-			       crop.bottom) *
-			 scale.y;
+		size.x = float(obs_source_get_width(source) - crop.left - crop.right) * scale.x;
+		size.y = float(obs_source_get_height(source) - crop.top - crop.bottom) * scale.y;
 	}
 
 	return size;
@@ -2014,8 +1714,7 @@ static vec3 GetTransformedPos(float x, float y, const matrix4 &mat)
 	return result;
 }
 
-static void DrawLine(float x1, float y1, float x2, float y2, float thickness,
-		     vec2 scale)
+static void DrawLine(float x1, float y1, float x2, float y2, float thickness, vec2 scale)
 {
 	float ySide = (y1 == y2) ? (y1 < 0.5f ? 1.0f : -1.0f) : 0.0f;
 	float xSide = (x1 == x2) ? (x1 < 0.5f ? 1.0f : -1.0f) : 0.0f;
@@ -2023,10 +1722,8 @@ static void DrawLine(float x1, float y1, float x2, float y2, float thickness,
 	gs_render_start(true);
 
 	gs_vertex2f(x1, y1);
-	gs_vertex2f(x1 + (xSide * (thickness / scale.x)),
-		    y1 + (ySide * (thickness / scale.y)));
-	gs_vertex2f(x2 + (xSide * (thickness / scale.x)),
-		    y2 + (ySide * (thickness / scale.y)));
+	gs_vertex2f(x1 + (xSide * (thickness / scale.x)), y1 + (ySide * (thickness / scale.y)));
+	gs_vertex2f(x2 + (xSide * (thickness / scale.x)), y2 + (ySide * (thickness / scale.y)));
 	gs_vertex2f(x2, y2);
 	gs_vertex2f(x1, y1);
 
@@ -2037,8 +1734,7 @@ static void DrawLine(float x1, float y1, float x2, float y2, float thickness,
 	gs_vertexbuffer_destroy(line);
 }
 
-void CanvasDock::DrawSpacingLine(vec3 &start, vec3 &end, vec3 &viewport,
-				 float pixelRatio)
+void CanvasDock::DrawSpacingLine(vec3 &start, vec3 &end, vec3 &viewport, float pixelRatio)
 {
 	matrix4 transform;
 	matrix4_identity(&transform);
@@ -2050,8 +1746,7 @@ void CanvasDock::DrawSpacingLine(vec3 &start, vec3 &end, vec3 &viewport,
 
 	QColor selColor = GetSelectionColor();
 	vec4 color;
-	vec4_set(&color, selColor.redF(), selColor.greenF(), selColor.blueF(),
-		 1.0f);
+	vec4_set(&color, selColor.redF(), selColor.greenF(), selColor.blueF(), 1.0f);
 
 	gs_effect_set_vec4(gs_effect_get_param_by_name(solid, "color"), &color);
 
@@ -2064,8 +1759,7 @@ void CanvasDock::DrawSpacingLine(vec3 &start, vec3 &end, vec3 &viewport,
 	vec2 scale;
 	vec2_set(&scale, viewport.x, viewport.y);
 
-	DrawLine(start.x, start.y, end.x, end.y,
-		 pixelRatio * (HANDLE_RADIUS / 2), scale);
+	DrawLine(start.x, start.y, end.x, end.y, pixelRatio * (HANDLE_RADIUS / 2), scale);
 
 	gs_matrix_pop();
 
@@ -2106,14 +1800,12 @@ static void DrawLabel(OBSSource source, vec3 &pos, vec3 &viewport)
 	gs_matrix_pop();
 }
 
-void CanvasDock::RenderSpacingHelper(int sourceIndex, vec3 &start, vec3 &end,
-				     vec3 &viewport, float pixelRatio)
+void CanvasDock::RenderSpacingHelper(int sourceIndex, vec3 &start, vec3 &end, vec3 &viewport, float pixelRatio)
 {
 	bool horizontal = (sourceIndex == 2 || sourceIndex == 3);
 
 	// If outside of preview, don't render
-	if (!((horizontal && (end.x >= start.x)) ||
-	      (!horizontal && (end.y >= start.y))))
+	if (!((horizontal && (end.x >= start.x)) || (!horizontal && (end.y >= start.y))))
 		return;
 
 	float length = vec3_dist(&start, &end);
@@ -2131,22 +1823,19 @@ void CanvasDock::RenderSpacingHelper(int sourceIndex, vec3 &start, vec3 &end,
 
 	obs_source_t *source = spacerLabel[sourceIndex];
 	vec3 labelSize, labelPos;
-	vec3_set(&labelSize, obs_source_get_width(source),
-		 obs_source_get_height(source), 1.0f);
+	vec3_set(&labelSize, obs_source_get_width(source), obs_source_get_height(source), 1.0f);
 
 	vec3_div(&labelSize, &labelSize, &viewport);
 
 	vec3 labelMargin;
-	vec3_set(&labelMargin, SPACER_LABEL_MARGIN * pixelRatio,
-		 SPACER_LABEL_MARGIN * pixelRatio, 1.0f);
+	vec3_set(&labelMargin, SPACER_LABEL_MARGIN * pixelRatio, SPACER_LABEL_MARGIN * pixelRatio, 1.0f);
 	vec3_div(&labelMargin, &labelMargin, &viewport);
 
 	vec3_set(&labelPos, end.x, end.y, end.z);
 	if (horizontal) {
 		labelPos.x -= (end.x - start.x) / 2;
 		labelPos.x -= labelSize.x / 2;
-		labelPos.y -= labelMargin.y + (labelSize.y / 2) +
-			      (HANDLE_RADIUS / viewport.y);
+		labelPos.y -= labelMargin.y + (labelSize.y / 2) + (HANDLE_RADIUS / viewport.y);
 	} else {
 		labelPos.y -= (end.y - start.y) / 2;
 		labelPos.y -= labelSize.y / 2;
@@ -2184,8 +1873,7 @@ static obs_source_t *CreateLabel(float pixelRatio)
 	const char *text_source_id = "text_ft2_source";
 #endif
 
-	OBSSource txtSource =
-		obs_source_create_private(text_source_id, nullptr, settings);
+	OBSSource txtSource = obs_source_create_private(text_source_id, nullptr, settings);
 
 	return txtSource;
 }
@@ -2205,9 +1893,8 @@ obs_scene_item *CanvasDock::GetSelectedItem(obs_scene_t *s)
 	return data.sceneItems.at(0);
 }
 
-void CanvasDock::DrawSpacingHelpers(obs_scene_t *scene, float x, float y,
-				    float cx, float cy, float scale,
-				    float sourceX, float sourceY)
+void CanvasDock::DrawSpacingHelpers(obs_scene_t *scene, float x, float y, float cx, float cy, float scale, float sourceX,
+				    float sourceY)
 {
 	UNUSED_PARAMETER(x);
 	UNUSED_PARAMETER(y);
@@ -2261,13 +1948,9 @@ void CanvasDock::DrawSpacingHelpers(obs_scene_t *scene, float x, float y,
 
 		// Correct the scene item box transform
 		// Based on scale, rotation angle, position of parent's group
-		matrix4_scale3f(&boxTransform, &boxTransform, group_scale.x,
-				group_scale.y, 1.0f);
-		matrix4_rotate_aa4f(&boxTransform, &boxTransform, 0.0f, 0.0f,
-				    1.0f,
-				    RAD(obs_sceneitem_get_rot(parentGroup)));
-		matrix4_translate3f(&boxTransform, &boxTransform, group_pos.x,
-				    group_pos.y, 0.0f);
+		matrix4_scale3f(&boxTransform, &boxTransform, group_scale.x, group_scale.y, 1.0f);
+		matrix4_rotate_aa4f(&boxTransform, &boxTransform, 0.0f, 0.0f, 1.0f, RAD(obs_sceneitem_get_rot(parentGroup)));
+		matrix4_translate3f(&boxTransform, &boxTransform, group_pos.x, group_pos.y, 0.0f);
 	}
 
 	if (rot >= HELPER_ROT_BREAKPONT) {
@@ -2286,8 +1969,7 @@ void CanvasDock::DrawSpacingHelpers(obs_scene_t *scene, float x, float y,
 			vec3_copy(&left, &b);
 		}
 	} else if (rot <= -HELPER_ROT_BREAKPONT) {
-		for (float i = -HELPER_ROT_BREAKPONT; i >= -360.0f;
-		     i -= 90.0f) {
+		for (float i = -HELPER_ROT_BREAKPONT; i >= -360.0f; i -= 90.0f) {
 			if (rot > i)
 				break;
 
@@ -2373,8 +2055,7 @@ void CanvasDock::DrawSpacingHelpers(obs_scene_t *scene, float x, float y,
 
 static inline bool crop_enabled(const obs_sceneitem_crop *crop)
 {
-	return crop->left > 0 || crop->top > 0 || crop->right > 0 ||
-	       crop->bottom > 0;
+	return crop->left > 0 || crop->top > 0 || crop->right > 0 || crop->bottom > 0;
 }
 
 static void DrawSquareAtPos(float x, float y, float pixelRatio)
@@ -2390,17 +2071,14 @@ static void DrawSquareAtPos(float x, float y, float pixelRatio)
 	gs_matrix_identity();
 	gs_matrix_translate(&pos);
 
-	gs_matrix_translate3f(-HANDLE_RADIUS * pixelRatio,
-			      -HANDLE_RADIUS * pixelRatio, 0.0f);
-	gs_matrix_scale3f(HANDLE_RADIUS * pixelRatio * 2,
-			  HANDLE_RADIUS * pixelRatio * 2, 1.0f);
+	gs_matrix_translate3f(-HANDLE_RADIUS * pixelRatio, -HANDLE_RADIUS * pixelRatio, 0.0f);
+	gs_matrix_scale3f(HANDLE_RADIUS * pixelRatio * 2, HANDLE_RADIUS * pixelRatio * 2, 1.0f);
 	gs_draw(GS_TRISTRIP, 0, 0);
 
 	gs_matrix_pop();
 }
 
-static void DrawRotationHandle(gs_vertbuffer_t *circle, float rot,
-			       float pixelRatio)
+static void DrawRotationHandle(gs_vertbuffer_t *circle, float rot, float pixelRatio)
 {
 	struct vec3 pos;
 	vec3_set(&pos, 0.5f, 0.0f, 0.0f);
@@ -2426,10 +2104,8 @@ static void DrawRotationHandle(gs_vertbuffer_t *circle, float rot,
 	gs_matrix_translate(&pos);
 
 	gs_matrix_rotaa4f(0.0f, 0.0f, 1.0f, RAD(rot));
-	gs_matrix_translate3f(-HANDLE_RADIUS * 1.5 * pixelRatio,
-			      -HANDLE_RADIUS * 1.5 * pixelRatio, 0.0f);
-	gs_matrix_scale3f(HANDLE_RADIUS * 3 * pixelRatio,
-			  HANDLE_RADIUS * 3 * pixelRatio, 1.0f);
+	gs_matrix_translate3f(-HANDLE_RADIUS * 1.5 * pixelRatio, -HANDLE_RADIUS * 1.5 * pixelRatio, 0.0f);
+	gs_matrix_scale3f(HANDLE_RADIUS * 3 * pixelRatio, HANDLE_RADIUS * 3 * pixelRatio, 1.0f);
 
 	gs_draw(GS_TRISTRIP, 0, 0);
 
@@ -2442,14 +2118,12 @@ static void DrawRotationHandle(gs_vertbuffer_t *circle, float rot,
 	gs_vertexbuffer_destroy(line);
 }
 
-static void DrawStripedLine(float x1, float y1, float x2, float y2,
-			    float thickness, vec2 scale)
+static void DrawStripedLine(float x1, float y1, float x2, float y2, float thickness, vec2 scale)
 {
 	float ySide = (y1 == y2) ? (y1 < 0.5f ? 1.0f : -1.0f) : 0.0f;
 	float xSide = (x1 == x2) ? (x1 < 0.5f ? 1.0f : -1.0f) : 0.0f;
 
-	float dist =
-		sqrt(pow((x1 - x2) * scale.x, 2) + pow((y1 - y2) * scale.y, 2));
+	float dist = sqrt(pow((x1 - x2) * scale.x, 2) + pow((y1 - y2) * scale.y, 2));
 	float offX = (x2 - x1) / dist;
 	float offY = (y2 - y1) / dist;
 
@@ -2475,11 +2149,9 @@ static void DrawStripedLine(float x1, float y1, float x2, float y2,
 		}
 
 		gs_vertex2f(xx1, yy1);
-		gs_vertex2f(xx1 + (xSide * (thickness / scale.x)),
-			    yy1 + (ySide * (thickness / scale.y)));
+		gs_vertex2f(xx1 + (xSide * (thickness / scale.x)), yy1 + (ySide * (thickness / scale.y)));
 		gs_vertex2f(dx, dy);
-		gs_vertex2f(dx + (xSide * (thickness / scale.x)),
-			    dy + (ySide * (thickness / scale.y)));
+		gs_vertex2f(dx + (xSide * (thickness / scale.x)), dy + (ySide * (thickness / scale.y)));
 
 		gs_vertbuffer_t *line = gs_render_save();
 
@@ -2517,8 +2189,7 @@ static void DrawRect(float thickness, vec2 scale)
 	gs_vertexbuffer_destroy(rect);
 }
 
-bool CanvasDock::DrawSelectedItem(obs_scene_t *scene, obs_sceneitem_t *item,
-				  void *param)
+bool CanvasDock::DrawSelectedItem(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
 	if (obs_sceneitem_locked(item))
 		return true;
@@ -2547,8 +2218,7 @@ bool CanvasDock::DrawSelectedItem(obs_scene_t *scene, obs_sceneitem_t *item,
 	bool hovered = false;
 	{
 		std::lock_guard<std::mutex> lock(window->selectMutex);
-		for (size_t i = 0; i < window->hoveredPreviewItems.size();
-		     i++) {
+		for (size_t i = 0; i < window->hoveredPreviewItems.size(); i++) {
 			if (window->hoveredPreviewItems[i] == item) {
 				hovered = true;
 				break;
@@ -2583,20 +2253,16 @@ bool CanvasDock::DrawSelectedItem(obs_scene_t *scene, obs_sceneitem_t *item,
 	vec4 green;
 	vec4 blue;
 
-	vec4_set(&red, selColor.redF(), selColor.greenF(), selColor.blueF(),
-		 1.0f);
-	vec4_set(&green, cropColor.redF(), cropColor.greenF(),
-		 cropColor.blueF(), 1.0f);
-	vec4_set(&blue, hoverColor.redF(), hoverColor.greenF(),
-		 hoverColor.blueF(), 1.0f);
+	vec4_set(&red, selColor.redF(), selColor.greenF(), selColor.blueF(), 1.0f);
+	vec4_set(&green, cropColor.redF(), cropColor.greenF(), cropColor.blueF(), 1.0f);
+	vec4_set(&blue, hoverColor.redF(), hoverColor.greenF(), hoverColor.blueF(), 1.0f);
 
-	bool visible = std::all_of(
-		std::begin(bounds), std::end(bounds), [&](const vec3 &b) {
-			vec3 pos;
-			vec3_transform(&pos, &b, &boxTransform);
-			vec3_transform(&pos, &pos, &invBoxTransform);
-			return CloseFloat(pos.x, b.x) && CloseFloat(pos.y, b.y);
-		});
+	bool visible = std::all_of(std::begin(bounds), std::end(bounds), [&](const vec3 &b) {
+		vec3 pos;
+		vec3_transform(&pos, &b, &boxTransform);
+		vec3_transform(&pos, &pos, &invBoxTransform);
+		return CloseFloat(pos.x, b.x) && CloseFloat(pos.y, b.y);
+	});
 
 	if (!visible)
 		return true;
@@ -2621,21 +2287,17 @@ bool CanvasDock::DrawSelectedItem(obs_scene_t *scene, obs_sceneitem_t *item,
 
 	gs_effect_set_vec4(colParam, &red);
 
-	if (obs_sceneitem_get_bounds_type(item) == OBS_BOUNDS_NONE &&
-	    crop_enabled(&crop)) {
-#define DRAW_SIDE(side, x1, y1, x2, y2)                                        \
-	if (hovered && !selected) {                                            \
-		gs_effect_set_vec4(colParam, &blue);                           \
-		DrawLine(x1, y1, x2, y2, HANDLE_RADIUS *pixelRatio / 2,        \
-			 boxScale);                                            \
-	} else if (crop.side > 0) {                                            \
-		gs_effect_set_vec4(colParam, &green);                          \
-		DrawStripedLine(x1, y1, x2, y2, HANDLE_RADIUS *pixelRatio / 2, \
-				boxScale);                                     \
-	} else {                                                               \
-		DrawLine(x1, y1, x2, y2, HANDLE_RADIUS *pixelRatio / 2,        \
-			 boxScale);                                            \
-	}                                                                      \
+	if (obs_sceneitem_get_bounds_type(item) == OBS_BOUNDS_NONE && crop_enabled(&crop)) {
+#define DRAW_SIDE(side, x1, y1, x2, y2)                                                   \
+	if (hovered && !selected) {                                                       \
+		gs_effect_set_vec4(colParam, &blue);                                      \
+		DrawLine(x1, y1, x2, y2, HANDLE_RADIUS *pixelRatio / 2, boxScale);        \
+	} else if (crop.side > 0) {                                                       \
+		gs_effect_set_vec4(colParam, &green);                                     \
+		DrawStripedLine(x1, y1, x2, y2, HANDLE_RADIUS *pixelRatio / 2, boxScale); \
+	} else {                                                                          \
+		DrawLine(x1, y1, x2, y2, HANDLE_RADIUS *pixelRatio / 2, boxScale);        \
+	}                                                                                 \
 	gs_effect_set_vec4(colParam, &red);
 
 		DRAW_SIDE(left, 0.0f, 0.0f, 0.0f, 1.0f);
@@ -2670,21 +2332,16 @@ bool CanvasDock::DrawSelectedItem(obs_scene_t *scene, obs_sceneitem_t *item,
 
 			float angle = 180;
 			for (int i = 0, l = 40; i < l; i++) {
-				gs_vertex2f(sin(RAD(angle)) / 2 + 0.5f,
-					    cos(RAD(angle)) / 2 + 0.5f);
+				gs_vertex2f(sin(RAD(angle)) / 2 + 0.5f, cos(RAD(angle)) / 2 + 0.5f);
 				angle += 360 / l;
-				gs_vertex2f(sin(RAD(angle)) / 2 + 0.5f,
-					    cos(RAD(angle)) / 2 + 0.5f);
+				gs_vertex2f(sin(RAD(angle)) / 2 + 0.5f, cos(RAD(angle)) / 2 + 0.5f);
 				gs_vertex2f(0.5f, 1.0f);
 			}
 
 			window->circleFill = gs_render_save();
 		}
 
-		DrawRotationHandle(window->circleFill,
-				   obs_sceneitem_get_rot(item) +
-					   window->groupRot,
-				   pixelRatio);
+		DrawRotationHandle(window->circleFill, obs_sceneitem_get_rot(item) + window->groupRot, pixelRatio);
 	}
 
 	gs_matrix_pop();
@@ -2697,17 +2354,14 @@ bool CanvasDock::DrawSelectedItem(obs_scene_t *scene, obs_sceneitem_t *item,
 
 static inline QColor color_from_int(long long val)
 {
-	return QColor(val & 0xff, (val >> 8) & 0xff, (val >> 16) & 0xff,
-		      (val >> 24) & 0xff);
+	return QColor(val & 0xff, (val >> 8) & 0xff, (val >> 16) & 0xff, (val >> 24) & 0xff);
 }
 
 QColor CanvasDock::GetSelectionColor() const
 {
 	config_t *config = obs_frontend_get_global_config();
-	if (config &&
-	    config_get_bool(config, "Accessibility", "OverrideColors")) {
-		return color_from_int(
-			config_get_int(config, "Accessibility", "SelectRed"));
+	if (config && config_get_bool(config, "Accessibility", "OverrideColors")) {
+		return color_from_int(config_get_int(config, "Accessibility", "SelectRed"));
 	}
 	return QColor::fromRgb(255, 0, 0);
 }
@@ -2715,10 +2369,8 @@ QColor CanvasDock::GetSelectionColor() const
 QColor CanvasDock::GetCropColor() const
 {
 	config_t *config = obs_frontend_get_global_config();
-	if (config &&
-	    config_get_bool(config, "Accessibility", "OverrideColors")) {
-		return color_from_int(
-			config_get_int(config, "Accessibility", "SelectGreen"));
+	if (config && config_get_bool(config, "Accessibility", "OverrideColors")) {
+		return color_from_int(config_get_int(config, "Accessibility", "SelectGreen"));
 	}
 	return QColor::fromRgb(0, 255, 0);
 }
@@ -2726,10 +2378,8 @@ QColor CanvasDock::GetCropColor() const
 QColor CanvasDock::GetHoverColor() const
 {
 	config_t *config = obs_frontend_get_global_config();
-	if (config &&
-	    config_get_bool(config, "Accessibility", "OverrideColors")) {
-		return color_from_int(
-			config_get_int(config, "Accessibility", "SelectBlue"));
+	if (config && config_get_bool(config, "Accessibility", "OverrideColors")) {
+		return color_from_int(config_get_int(config, "Accessibility", "SelectBlue"));
 	}
 	return QColor::fromRgb(0, 127, 255);
 }
@@ -2743,38 +2393,30 @@ OBSEventFilter *CanvasDock::BuildEventFilter()
 			return false;
 		switch (event->type()) {
 		case QEvent::MouseButtonPress:
-			return this->HandleMousePressEvent(
-				static_cast<QMouseEvent *>(event));
+			return this->HandleMousePressEvent(static_cast<QMouseEvent *>(event));
 		case QEvent::MouseButtonRelease:
-			return this->HandleMouseReleaseEvent(
-				static_cast<QMouseEvent *>(event));
+			return this->HandleMouseReleaseEvent(static_cast<QMouseEvent *>(event));
 		//case QEvent::MouseButtonDblClick:			return this->HandleMouseClickEvent(				static_cast<QMouseEvent *>(event));
 		case QEvent::MouseMove:
-			return this->HandleMouseMoveEvent(
-				static_cast<QMouseEvent *>(event));
+			return this->HandleMouseMoveEvent(static_cast<QMouseEvent *>(event));
 		//case QEvent::Enter:
 		case QEvent::Leave:
-			return this->HandleMouseLeaveEvent(
-				static_cast<QMouseEvent *>(event));
+			return this->HandleMouseLeaveEvent(static_cast<QMouseEvent *>(event));
 		case QEvent::Wheel:
-			return this->HandleMouseWheelEvent(
-				static_cast<QWheelEvent *>(event));
+			return this->HandleMouseWheelEvent(static_cast<QWheelEvent *>(event));
 		//case QEvent::FocusIn:
 		//case QEvent::FocusOut:
 		case QEvent::KeyPress:
-			return this->HandleKeyPressEvent(
-				static_cast<QKeyEvent *>(event));
+			return this->HandleKeyPressEvent(static_cast<QKeyEvent *>(event));
 		case QEvent::KeyRelease:
-			return this->HandleKeyReleaseEvent(
-				static_cast<QKeyEvent *>(event));
+			return this->HandleKeyReleaseEvent(static_cast<QKeyEvent *>(event));
 		default:
 			return false;
 		}
 	});
 }
 
-bool CanvasDock::GetSourceRelativeXY(int mouseX, int mouseY, int &relX,
-				     int &relY)
+bool CanvasDock::GetSourceRelativeXY(int mouseX, int mouseY, int &relX, int &relY)
 {
 	float pixelRatio = devicePixelRatioF();
 
@@ -2796,8 +2438,7 @@ bool CanvasDock::GetSourceRelativeXY(int mouseX, int mouseY, int &relX,
 	int x, y;
 	float scale;
 
-	GetScaleAndCenterPos(sourceCX, sourceCY, size.width(), size.height(), x,
-			     y, scale);
+	GetScaleAndCenterPos(sourceCX, sourceCY, size.width(), size.height(), x, y, scale);
 
 	auto newCX = scale * float(sourceCX);
 	auto newCY = scale * float(sourceCY);
@@ -2834,8 +2475,7 @@ bool CanvasDock::HandleMousePressEvent(QMouseEvent *event)
 	QPointF pos = event->localPos();
 #endif
 
-	if (scrollMode && IsFixedScaling() &&
-	    event->button() == Qt::LeftButton) {
+	if (scrollMode && IsFixedScaling() && event->button() == Qt::LeftButton) {
 		setCursor(Qt::ClosedHandCursor);
 		scrollingFrom.x = pos.x();
 		scrollingFrom.y = pos.y();
@@ -2858,8 +2498,7 @@ bool CanvasDock::HandleMousePressEvent(QMouseEvent *event)
 	bool shiftDown = (modifiers & Qt::ShiftModifier);
 	bool ctrlDown = (modifiers & Qt::ControlModifier);
 
-	if (event->button() != Qt::LeftButton &&
-	    event->button() != Qt::RightButton)
+	if (event->button() != Qt::LeftButton && event->button() != Qt::RightButton)
 		return false;
 
 	if (event->button() == Qt::LeftButton)
@@ -2940,12 +2579,10 @@ static void SetItemTL(obs_sceneitem_t *item, const vec3 &tl)
 	obs_sceneitem_set_pos(item, &pos);
 }
 
-static bool RotateSelectedSources(obs_scene_t *scene, obs_sceneitem_t *item,
-				  void *param)
+static bool RotateSelectedSources(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
 	if (obs_sceneitem_is_group(item))
-		obs_sceneitem_group_enum_items(item, RotateSelectedSources,
-					       param);
+		obs_sceneitem_group_enum_items(item, RotateSelectedSources, param);
 	if (!obs_sceneitem_selected(item))
 		return true;
 	if (obs_sceneitem_locked(item))
@@ -2970,14 +2607,12 @@ static bool RotateSelectedSources(obs_scene_t *scene, obs_sceneitem_t *item,
 	return true;
 };
 
-static bool MultiplySelectedItemScale(obs_scene_t *scene, obs_sceneitem_t *item,
-				      void *param)
+static bool MultiplySelectedItemScale(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
 	vec2 &mul = *reinterpret_cast<vec2 *>(param);
 
 	if (obs_sceneitem_is_group(item))
-		obs_sceneitem_group_enum_items(item, MultiplySelectedItemScale,
-					       param);
+		obs_sceneitem_group_enum_items(item, MultiplySelectedItemScale, param);
 	if (!obs_sceneitem_selected(item))
 		return true;
 	if (obs_sceneitem_locked(item))
@@ -2998,15 +2633,12 @@ static bool MultiplySelectedItemScale(obs_scene_t *scene, obs_sceneitem_t *item,
 	return true;
 }
 
-static bool CenterAlignSelectedItems(obs_scene_t *scene, obs_sceneitem_t *item,
-				     void *param)
+static bool CenterAlignSelectedItems(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
-	obs_bounds_type boundsType =
-		*reinterpret_cast<obs_bounds_type *>(param);
+	obs_bounds_type boundsType = *reinterpret_cast<obs_bounds_type *>(param);
 
 	if (obs_sceneitem_is_group(item))
-		obs_sceneitem_group_enum_items(item, CenterAlignSelectedItems,
-					       param);
+		obs_sceneitem_group_enum_items(item, CenterAlignSelectedItems, param);
 	if (!obs_sceneitem_selected(item))
 		return true;
 	if (obs_sceneitem_locked(item))
@@ -3020,9 +2652,7 @@ static bool CenterAlignSelectedItems(obs_scene_t *scene, obs_sceneitem_t *item,
 	itemInfo.alignment = OBS_ALIGN_LEFT | OBS_ALIGN_TOP;
 	itemInfo.rot = 0.0f;
 
-	vec2_set(&itemInfo.bounds,
-		 float(obs_source_get_base_width(scene_source)),
-		 float(obs_source_get_base_height(scene_source)));
+	vec2_set(&itemInfo.bounds, float(obs_source_get_base_width(scene_source)), float(obs_source_get_base_height(scene_source)));
 	itemInfo.bounds_type = boundsType;
 	itemInfo.bounds_alignment = OBS_ALIGN_CENTER;
 #if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(30, 1, 0)
@@ -3036,14 +2666,12 @@ static bool CenterAlignSelectedItems(obs_scene_t *scene, obs_sceneitem_t *item,
 	return true;
 }
 
-static bool GetSelectedItemsWithSize(obs_scene_t *scene, obs_sceneitem_t *item,
-				     void *param)
+static bool GetSelectedItemsWithSize(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
 	auto items = static_cast<std::vector<obs_sceneitem_t *> *>(param);
 
 	if (obs_sceneitem_is_group(item))
-		obs_sceneitem_group_enum_items(item, GetSelectedItemsWithSize,
-					       param);
+		obs_sceneitem_group_enum_items(item, GetSelectedItemsWithSize, param);
 	if (!obs_sceneitem_selected(item))
 		return true;
 	if (obs_sceneitem_locked(item))
@@ -3097,8 +2725,7 @@ void CanvasDock::CenterSelectedItems(CenterType centerType)
 
 	// Get coordinates of screen center
 	vec3 screenCenter;
-	vec3_set(&screenCenter, float(canvas_width), float(canvas_height),
-		 0.0f);
+	vec3_set(&screenCenter, float(canvas_width), float(canvas_height), 0.0f);
 
 	vec3_mulf(&screenCenter, &screenCenter, 0.5f);
 
@@ -3130,49 +2757,32 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 
 	obs_source_t *source = obs_sceneitem_get_source(sceneItem);
 
-	popup->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string("Rename")),
-		[this, sceneItem] {
-			obs_source_t *source = obs_source_get_ref(
-				obs_sceneitem_get_source(sceneItem));
-			if (!source)
-				return;
-			std::string name = obs_source_get_name(source);
-			obs_source_t *s = nullptr;
-			do {
-				obs_source_release(s);
-				if (!NameDialog::AskForName(
-					    this,
-					    QString::fromUtf8(obs_module_text(
-						    "SourceName")),
-					    name)) {
-					break;
-				}
-				s = obs_get_source_by_name(name.c_str());
-				if (s)
-					continue;
-				obs_source_set_name(source, name.c_str());
-			} while (s);
-			obs_source_release(source);
-		});
+	popup->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Rename")), [this, sceneItem] {
+		obs_source_t *source = obs_source_get_ref(obs_sceneitem_get_source(sceneItem));
+		if (!source)
+			return;
+		std::string name = obs_source_get_name(source);
+		obs_source_t *s = nullptr;
+		do {
+			obs_source_release(s);
+			if (!NameDialog::AskForName(this, QString::fromUtf8(obs_module_text("SourceName")), name)) {
+				break;
+			}
+			s = obs_get_source_by_name(name.c_str());
+			if (s)
+				continue;
+			obs_source_set_name(source, name.c_str());
+		} while (s);
+		obs_source_release(source);
+	});
 	popup->addAction(
 		//removeButton->icon(),
-		QString::fromUtf8(obs_frontend_get_locale_string("Remove")),
-		this, [sceneItem] {
-			QMessageBox mb(
-				QMessageBox::Question,
-				QString::fromUtf8(
-					obs_frontend_get_locale_string(
-						"ConfirmRemove.Title")),
-				QString::fromUtf8(
-					obs_frontend_get_locale_string(
-						"ConfirmRemove.Text"))
-					.arg(QString::fromUtf8(
-						obs_source_get_name(
-							obs_sceneitem_get_source(
-								sceneItem)))),
-				QMessageBox::StandardButtons(QMessageBox::Yes |
-							     QMessageBox::No));
+		QString::fromUtf8(obs_frontend_get_locale_string("Remove")), this, [sceneItem] {
+			QMessageBox mb(QMessageBox::Question,
+				       QString::fromUtf8(obs_frontend_get_locale_string("ConfirmRemove.Title")),
+				       QString::fromUtf8(obs_frontend_get_locale_string("ConfirmRemove.Text"))
+					       .arg(QString::fromUtf8(obs_source_get_name(obs_sceneitem_get_source(sceneItem)))),
+				       QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No));
 			mb.setDefaultButton(QMessageBox::NoButton);
 			if (mb.exec() == QMessageBox::Yes) {
 				obs_sceneitem_remove(sceneItem);
@@ -3180,303 +2790,173 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 		});
 
 	popup->addSeparator();
-	auto orderMenu = popup->addMenu(QString::fromUtf8(
-		obs_frontend_get_locale_string("Basic.MainMenu.Edit.Order")));
-	orderMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
-				     "Basic.MainMenu.Edit.Order.MoveUp")),
-			     this, [sceneItem] {
-				     obs_sceneitem_set_order(sceneItem,
-							     OBS_ORDER_MOVE_UP);
-			     });
-	orderMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
-				     "Basic.MainMenu.Edit.Order.MoveDown")),
-			     this, [sceneItem] {
-				     obs_sceneitem_set_order(
-					     sceneItem, OBS_ORDER_MOVE_DOWN);
-			     });
+	auto orderMenu = popup->addMenu(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Order")));
+	orderMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Order.MoveUp")), this,
+			     [sceneItem] { obs_sceneitem_set_order(sceneItem, OBS_ORDER_MOVE_UP); });
+	orderMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Order.MoveDown")), this,
+			     [sceneItem] { obs_sceneitem_set_order(sceneItem, OBS_ORDER_MOVE_DOWN); });
 	orderMenu->addSeparator();
-	orderMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
-				     "Basic.MainMenu.Edit.Order.MoveToTop")),
-			     this, [sceneItem] {
-				     obs_sceneitem_set_order(
-					     sceneItem, OBS_ORDER_MOVE_TOP);
-			     });
-	orderMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
-				     "Basic.MainMenu.Edit.Order.MoveToBottom")),
-			     this, [sceneItem] {
-				     obs_sceneitem_set_order(
-					     sceneItem, OBS_ORDER_MOVE_BOTTOM);
-			     });
+	orderMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Order.MoveToTop")), this,
+			     [sceneItem] { obs_sceneitem_set_order(sceneItem, OBS_ORDER_MOVE_TOP); });
+	orderMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Order.MoveToBottom")), this,
+			     [sceneItem] { obs_sceneitem_set_order(sceneItem, OBS_ORDER_MOVE_BOTTOM); });
 
-	auto transformMenu =
-		popup->addMenu(QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.MainMenu.Edit.Transform")));
-	transformMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.MainMenu.Edit.Transform.EditTransform")),
-		[this, sceneItem] {
-			const auto mainDialog = static_cast<QMainWindow *>(
-				obs_frontend_get_main_window());
-			auto transformDialog = mainDialog->findChild<QDialog *>(
-				"OBSBasicTransform");
-			if (!transformDialog) {
-				// make sure there is an item selected on the main canvas before starting the transform dialog
-				const auto currentScene =
-					obs_frontend_preview_program_mode_active()
-						? obs_frontend_get_current_preview_scene()
-						: obs_frontend_get_current_scene();
-				auto selected = GetSelectedItem(
-					obs_scene_from_source(currentScene));
-				if (!selected) {
-					obs_scene_enum_items(
-						obs_scene_from_source(
-							currentScene),
-						[](obs_scene_t *,
-						   obs_sceneitem_t *item,
-						   void *) {
-							obs_sceneitem_select(
-								item, true);
-							return false;
-						},
-						nullptr);
-				}
-				obs_source_release(currentScene);
-				QMetaObject::invokeMethod(
-					mainDialog,
-					"on_actionEditTransform_triggered");
-				transformDialog =
-					mainDialog->findChild<QDialog *>(
-						"OBSBasicTransform");
-			}
-			if (!transformDialog)
-				return;
-			QMetaObject::invokeMethod(
-				transformDialog, "SetItemQt",
-				Q_ARG(OBSSceneItem, OBSSceneItem(sceneItem)));
-		});
-	transformMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.MainMenu.Edit.Transform.ResetTransform")),
-		this, [sceneItem] {
-			obs_sceneitem_set_alignment(
-				sceneItem, OBS_ALIGN_LEFT | OBS_ALIGN_TOP);
-			obs_sceneitem_set_bounds_type(sceneItem,
-						      OBS_BOUNDS_NONE);
-			vec2 scale;
-			scale.x = 1.0f;
-			scale.y = 1.0f;
-			obs_sceneitem_set_scale(sceneItem, &scale);
-			vec2 pos;
-			pos.x = 0.0f;
-			pos.y = 0.0f;
-			obs_sceneitem_set_pos(sceneItem, &pos);
-			obs_sceneitem_crop crop = {0, 0, 0, 0};
-			obs_sceneitem_set_crop(sceneItem, &crop);
-			obs_sceneitem_set_rot(sceneItem, 0.0f);
-		});
+	auto transformMenu = popup->addMenu(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Transform")));
+	transformMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Transform.EditTransform")),
+				 [this, sceneItem] {
+					 const auto mainDialog = static_cast<QMainWindow *>(obs_frontend_get_main_window());
+					 auto transformDialog = mainDialog->findChild<QDialog *>("OBSBasicTransform");
+					 if (!transformDialog) {
+						 // make sure there is an item selected on the main canvas before starting the transform dialog
+						 const auto currentScene = obs_frontend_preview_program_mode_active()
+										   ? obs_frontend_get_current_preview_scene()
+										   : obs_frontend_get_current_scene();
+						 auto selected = GetSelectedItem(obs_scene_from_source(currentScene));
+						 if (!selected) {
+							 obs_scene_enum_items(
+								 obs_scene_from_source(currentScene),
+								 [](obs_scene_t *, obs_sceneitem_t *item, void *) {
+									 obs_sceneitem_select(item, true);
+									 return false;
+								 },
+								 nullptr);
+						 }
+						 obs_source_release(currentScene);
+						 QMetaObject::invokeMethod(mainDialog, "on_actionEditTransform_triggered");
+						 transformDialog = mainDialog->findChild<QDialog *>("OBSBasicTransform");
+					 }
+					 if (!transformDialog)
+						 return;
+					 QMetaObject::invokeMethod(transformDialog, "SetItemQt",
+								   Q_ARG(OBSSceneItem, OBSSceneItem(sceneItem)));
+				 });
+	transformMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Transform.ResetTransform")),
+				 this, [sceneItem] {
+					 obs_sceneitem_set_alignment(sceneItem, OBS_ALIGN_LEFT | OBS_ALIGN_TOP);
+					 obs_sceneitem_set_bounds_type(sceneItem, OBS_BOUNDS_NONE);
+					 vec2 scale;
+					 scale.x = 1.0f;
+					 scale.y = 1.0f;
+					 obs_sceneitem_set_scale(sceneItem, &scale);
+					 vec2 pos;
+					 pos.x = 0.0f;
+					 pos.y = 0.0f;
+					 obs_sceneitem_set_pos(sceneItem, &pos);
+					 obs_sceneitem_crop crop = {0, 0, 0, 0};
+					 obs_sceneitem_set_crop(sceneItem, &crop);
+					 obs_sceneitem_set_rot(sceneItem, 0.0f);
+				 });
 	transformMenu->addSeparator();
-	transformMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.MainMenu.Edit.Transform.Rotate90CW")),
-		this, [this] {
-			float rotation = 90.0f;
-			obs_scene_enum_items(scene, RotateSelectedSources,
-					     &rotation);
-		});
-	transformMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.MainMenu.Edit.Transform.Rotate90CCW")),
-		this, [this] {
-			float rotation = -90.0f;
-			obs_scene_enum_items(scene, RotateSelectedSources,
-					     &rotation);
-		});
-	transformMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.MainMenu.Edit.Transform.Rotate180")),
-		this, [this] {
-			float rotation = 180.0f;
-			obs_scene_enum_items(scene, RotateSelectedSources,
-					     &rotation);
-		});
+	transformMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Transform.Rotate90CW")),
+				 this, [this] {
+					 float rotation = 90.0f;
+					 obs_scene_enum_items(scene, RotateSelectedSources, &rotation);
+				 });
+	transformMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Transform.Rotate90CCW")),
+				 this, [this] {
+					 float rotation = -90.0f;
+					 obs_scene_enum_items(scene, RotateSelectedSources, &rotation);
+				 });
+	transformMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Transform.Rotate180")), this,
+				 [this] {
+					 float rotation = 180.0f;
+					 obs_scene_enum_items(scene, RotateSelectedSources, &rotation);
+				 });
 	transformMenu->addSeparator();
-	transformMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.MainMenu.Edit.Transform.FlipHorizontal")),
-		this, [this] {
-			vec2 scale;
-			vec2_set(&scale, -1.0f, 1.0f);
-			obs_scene_enum_items(scene, MultiplySelectedItemScale,
-					     &scale);
-		});
-	transformMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.MainMenu.Edit.Transform.FlipVertical")),
-		this, [this] {
-			vec2 scale;
-			vec2_set(&scale, 1.0f, -1.0f);
-			obs_scene_enum_items(scene, MultiplySelectedItemScale,
-					     &scale);
-		});
+	transformMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Transform.FlipHorizontal")),
+				 this, [this] {
+					 vec2 scale;
+					 vec2_set(&scale, -1.0f, 1.0f);
+					 obs_scene_enum_items(scene, MultiplySelectedItemScale, &scale);
+				 });
+	transformMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Transform.FlipVertical")),
+				 this, [this] {
+					 vec2 scale;
+					 vec2_set(&scale, 1.0f, -1.0f);
+					 obs_scene_enum_items(scene, MultiplySelectedItemScale, &scale);
+				 });
 	transformMenu->addSeparator();
+	transformMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Transform.FitToScreen")),
+				 this, [this] {
+					 obs_bounds_type boundsType = OBS_BOUNDS_SCALE_INNER;
+					 obs_scene_enum_items(scene, CenterAlignSelectedItems, &boundsType);
+				 });
+	transformMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Transform.StretchToScreen")),
+				 this, [this] {
+					 obs_bounds_type boundsType = OBS_BOUNDS_STRETCH;
+					 obs_scene_enum_items(scene, CenterAlignSelectedItems, &boundsType);
+				 });
+	transformMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Transform.CenterToScreen")),
+				 this, [this] { CenterSelectedItems(CenterType::Scene); });
+	transformMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Transform.VerticalCenter")),
+				 this, [this] { CenterSelectedItems(CenterType::Vertical); });
 	transformMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.MainMenu.Edit.Transform.FitToScreen")),
-		this, [this] {
-			obs_bounds_type boundsType = OBS_BOUNDS_SCALE_INNER;
-			obs_scene_enum_items(scene, CenterAlignSelectedItems,
-					     &boundsType);
-		});
-	transformMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.MainMenu.Edit.Transform.StretchToScreen")),
-		this, [this] {
-			obs_bounds_type boundsType = OBS_BOUNDS_STRETCH;
-			obs_scene_enum_items(scene, CenterAlignSelectedItems,
-					     &boundsType);
-		});
-	transformMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.MainMenu.Edit.Transform.CenterToScreen")),
-		this, [this] { CenterSelectedItems(CenterType::Scene); });
-	transformMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.MainMenu.Edit.Transform.VerticalCenter")),
-		this, [this] { CenterSelectedItems(CenterType::Vertical); });
-	transformMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"Basic.MainMenu.Edit.Transform.HorizontalCenter")),
-		this, [this] { CenterSelectedItems(CenterType::Horizontal); });
+		QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Transform.HorizontalCenter")), this,
+		[this] { CenterSelectedItems(CenterType::Horizontal); });
 
 	popup->addSeparator();
 
 	obs_scale_type scaleFilter = obs_sceneitem_get_scale_filter(sceneItem);
-	auto scaleMenu = popup->addMenu(QString::fromUtf8(
-		obs_frontend_get_locale_string("ScaleFiltering")));
-	auto a = scaleMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string("Disable")),
-		this, [sceneItem] {
-			obs_sceneitem_set_scale_filter(sceneItem,
-						       OBS_SCALE_DISABLE);
-		});
+	auto scaleMenu = popup->addMenu(QString::fromUtf8(obs_frontend_get_locale_string("ScaleFiltering")));
+	auto a = scaleMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Disable")), this,
+				      [sceneItem] { obs_sceneitem_set_scale_filter(sceneItem, OBS_SCALE_DISABLE); });
 	a->setCheckable(true);
 	a->setChecked(scaleFilter == OBS_SCALE_DISABLE);
-	a = scaleMenu->addAction(
-		QString::fromUtf8(
-			obs_frontend_get_locale_string("ScaleFiltering.Point")),
-		this, [sceneItem] {
-			obs_sceneitem_set_scale_filter(sceneItem,
-						       OBS_SCALE_POINT);
-		});
+	a = scaleMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("ScaleFiltering.Point")), this,
+				 [sceneItem] { obs_sceneitem_set_scale_filter(sceneItem, OBS_SCALE_POINT); });
 	a->setCheckable(true);
 	a->setChecked(scaleFilter == OBS_SCALE_POINT);
-	a = scaleMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"ScaleFiltering.Bilinear")),
-		this, [sceneItem] {
-			obs_sceneitem_set_scale_filter(sceneItem,
-						       OBS_SCALE_BILINEAR);
-		});
+	a = scaleMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("ScaleFiltering.Bilinear")), this,
+				 [sceneItem] { obs_sceneitem_set_scale_filter(sceneItem, OBS_SCALE_BILINEAR); });
 	a->setCheckable(true);
 	a->setChecked(scaleFilter == OBS_SCALE_BILINEAR);
-	a = scaleMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"ScaleFiltering.Bicubic")),
-		this, [sceneItem] {
-			obs_sceneitem_set_scale_filter(sceneItem,
-						       OBS_SCALE_BICUBIC);
-		});
+	a = scaleMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("ScaleFiltering.Bicubic")), this,
+				 [sceneItem] { obs_sceneitem_set_scale_filter(sceneItem, OBS_SCALE_BICUBIC); });
 	a->setCheckable(true);
 	a->setChecked(scaleFilter == OBS_SCALE_BICUBIC);
-	a = scaleMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"ScaleFiltering.Lanczos")),
-		this, [sceneItem] {
-			obs_sceneitem_set_scale_filter(sceneItem,
-						       OBS_SCALE_LANCZOS);
-		});
+	a = scaleMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("ScaleFiltering.Lanczos")), this,
+				 [sceneItem] { obs_sceneitem_set_scale_filter(sceneItem, OBS_SCALE_LANCZOS); });
 	a->setCheckable(true);
 	a->setChecked(scaleFilter == OBS_SCALE_LANCZOS);
-	a = scaleMenu->addAction(
-		QString::fromUtf8(
-			obs_frontend_get_locale_string("ScaleFiltering.Area")),
-		this, [sceneItem] {
-			obs_sceneitem_set_scale_filter(sceneItem,
-						       OBS_SCALE_AREA);
-		});
+	a = scaleMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("ScaleFiltering.Area")), this,
+				 [sceneItem] { obs_sceneitem_set_scale_filter(sceneItem, OBS_SCALE_AREA); });
 	a->setCheckable(true);
 	a->setChecked(scaleFilter == OBS_SCALE_AREA);
 
 	auto blendingMode = obs_sceneitem_get_blending_mode(sceneItem);
-	auto blendingMenu = popup->addMenu(QString::fromUtf8(
-		obs_frontend_get_locale_string("BlendingMode")));
-	a = blendingMenu->addAction(
-		QString::fromUtf8(
-			obs_frontend_get_locale_string("BlendingMode.Normal")),
-		this, [sceneItem] {
-			obs_sceneitem_set_blending_mode(sceneItem,
-							OBS_BLEND_NORMAL);
-		});
+	auto blendingMenu = popup->addMenu(QString::fromUtf8(obs_frontend_get_locale_string("BlendingMode")));
+	a = blendingMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("BlendingMode.Normal")), this,
+				    [sceneItem] { obs_sceneitem_set_blending_mode(sceneItem, OBS_BLEND_NORMAL); });
 	a->setCheckable(true);
 	a->setChecked(blendingMode == OBS_BLEND_NORMAL);
 
-	a = blendingMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"BlendingMode.Additive")),
-		this, [sceneItem] {
-			obs_sceneitem_set_blending_mode(sceneItem,
-							OBS_BLEND_ADDITIVE);
-		});
+	a = blendingMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("BlendingMode.Additive")), this,
+				    [sceneItem] { obs_sceneitem_set_blending_mode(sceneItem, OBS_BLEND_ADDITIVE); });
 	a->setCheckable(true);
 	a->setChecked(blendingMode == OBS_BLEND_ADDITIVE);
 
-	a = blendingMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"BlendingMode.Subtract")),
-		this, [sceneItem] {
-			obs_sceneitem_set_blending_mode(sceneItem,
-							OBS_BLEND_SUBTRACT);
-		});
+	a = blendingMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("BlendingMode.Subtract")), this,
+				    [sceneItem] { obs_sceneitem_set_blending_mode(sceneItem, OBS_BLEND_SUBTRACT); });
 	a->setCheckable(true);
 	a->setChecked(blendingMode == OBS_BLEND_SUBTRACT);
 
-	a = blendingMenu->addAction(
-		QString::fromUtf8(
-			obs_frontend_get_locale_string("BlendingMode.Screen")),
-		this, [sceneItem] {
-			obs_sceneitem_set_blending_mode(sceneItem,
-							OBS_BLEND_SCREEN);
-		});
+	a = blendingMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("BlendingMode.Screen")), this,
+				    [sceneItem] { obs_sceneitem_set_blending_mode(sceneItem, OBS_BLEND_SCREEN); });
 	a->setCheckable(true);
 	a->setChecked(blendingMode == OBS_BLEND_SCREEN);
 
-	a = blendingMenu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			"BlendingMode.Multiply")),
-		this, [sceneItem] {
-			obs_sceneitem_set_blending_mode(sceneItem,
-							OBS_BLEND_MULTIPLY);
-		});
+	a = blendingMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("BlendingMode.Multiply")), this,
+				    [sceneItem] { obs_sceneitem_set_blending_mode(sceneItem, OBS_BLEND_MULTIPLY); });
 	a->setCheckable(true);
 	a->setChecked(blendingMode == OBS_BLEND_MULTIPLY);
 
-	a = blendingMenu->addAction(
-		QString::fromUtf8(
-			obs_frontend_get_locale_string("BlendingMode.Lighten")),
-		this, [sceneItem] {
-			obs_sceneitem_set_blending_mode(sceneItem,
-							OBS_BLEND_LIGHTEN);
-		});
+	a = blendingMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("BlendingMode.Lighten")), this,
+				    [sceneItem] { obs_sceneitem_set_blending_mode(sceneItem, OBS_BLEND_LIGHTEN); });
 	a->setCheckable(true);
 	a->setChecked(blendingMode == OBS_BLEND_LIGHTEN);
 
-	a = blendingMenu->addAction(
-		QString::fromUtf8(
-			obs_frontend_get_locale_string("BlendingMode.Darken")),
-		this, [sceneItem] {
-			obs_sceneitem_set_blending_mode(sceneItem,
-							OBS_BLEND_DARKEN);
-		});
+	a = blendingMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("BlendingMode.Darken")), this,
+				    [sceneItem] { obs_sceneitem_set_blending_mode(sceneItem, OBS_BLEND_DARKEN); });
 	a->setCheckable(true);
 	a->setChecked(blendingMode == OBS_BLEND_DARKEN);
 
@@ -3486,36 +2966,23 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 
 	popup->addSeparator();
 
-	auto projectorMenu = popup->addMenu(QString::fromUtf8(
-		obs_frontend_get_locale_string("SourceProjector")));
-	AddProjectorMenuMonitors(projectorMenu, this,
-				 SLOT(OpenSourceProjector()));
-	popup->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
-				 "SourceWindow")),
-			 [sceneItem] {
-				 obs_source_t *source = obs_source_get_ref(
-					 obs_sceneitem_get_source(sceneItem));
-				 if (!source)
-					 return;
-				 obs_frontend_open_projector(
-					 "Source", -1, nullptr,
-					 obs_source_get_name(source));
-				 obs_source_release(source);
-			 });
+	auto projectorMenu = popup->addMenu(QString::fromUtf8(obs_frontend_get_locale_string("SourceProjector")));
+	AddProjectorMenuMonitors(projectorMenu, this, SLOT(OpenSourceProjector()));
+	popup->addAction(QString::fromUtf8(obs_frontend_get_locale_string("SourceWindow")), [sceneItem] {
+		obs_source_t *source = obs_source_get_ref(obs_sceneitem_get_source(sceneItem));
+		if (!source)
+			return;
+		obs_frontend_open_projector("Source", -1, nullptr, obs_source_get_name(source));
+		obs_source_release(source);
+	});
 
-	popup->addAction(QString::fromUtf8(obs_frontend_get_locale_string(
-				 "Screenshot.Source")),
-			 this, [source] {
-				 obs_frontend_take_source_screenshot(source);
-			 });
+	popup->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Screenshot.Source")), this,
+			 [source] { obs_frontend_take_source_screenshot(source); });
 	popup->addSeparator();
-	popup->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string("Filters")),
-		this, [source] { obs_frontend_open_source_filters(source); });
-	a = popup->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string("Properties")),
-		this,
-		[source] { obs_frontend_open_source_properties(source); });
+	popup->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Filters")), this,
+			 [source] { obs_frontend_open_source_filters(source); });
+	a = popup->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Properties")), this,
+			     [source] { obs_frontend_open_source_properties(source); });
 	a->setEnabled(obs_source_configurable(source));
 }
 
@@ -3526,43 +2993,30 @@ bool CanvasDock::HandleMouseReleaseEvent(QMouseEvent *event)
 
 	if (!mouseDown && event->button() == Qt::RightButton) {
 		QMenu popup(this);
-		QAction *action = popup.addAction(
-			QString::fromUtf8(obs_frontend_get_locale_string(
-				"Basic.Main.Preview.Disable")),
-			[this] {
+		QAction *action =
+			popup.addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.Preview.Disable")), [this] {
 				preview_disabled = !preview_disabled;
-				obs_display_set_enabled(preview->GetDisplay(),
-							!preview_disabled);
+				obs_display_set_enabled(preview->GetDisplay(), !preview_disabled);
 				preview->setVisible(!preview_disabled);
-				previewDisabledWidget->setVisible(
-					preview_disabled);
+				previewDisabledWidget->setVisible(preview_disabled);
 			});
-		auto projectorMenu = popup.addMenu(QString::fromUtf8(
-			obs_frontend_get_locale_string("PreviewProjector")));
-		AddProjectorMenuMonitors(projectorMenu, this,
-					 SLOT(OpenPreviewProjector()));
+		auto projectorMenu = popup.addMenu(QString::fromUtf8(obs_frontend_get_locale_string("PreviewProjector")));
+		AddProjectorMenuMonitors(projectorMenu, this, SLOT(OpenPreviewProjector()));
 
-		action = popup.addAction(
-			QString::fromUtf8(obs_frontend_get_locale_string(
-				"PreviewWindow")),
-			[this] { OpenProjector(-1); });
+		action = popup.addAction(QString::fromUtf8(obs_frontend_get_locale_string("PreviewWindow")),
+					 [this] { OpenProjector(-1); });
 
-		action = popup.addAction(
-			QString::fromUtf8(obs_frontend_get_locale_string(
-				"Basic.MainMenu.Edit.LockPreview")),
-			this, [this] { locked = !locked; });
+		action = popup.addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.LockPreview")), this,
+					 [this] { locked = !locked; });
 		action->setCheckable(true);
 		action->setChecked(locked);
 
-		popup.addAction(
-			GetIconFromType(OBS_ICON_TYPE_IMAGE),
-			QString::fromUtf8(
-				obs_frontend_get_locale_string("Screenshot")),
-			this, [this] {
-				auto s = obs_weak_source_get_source(source);
-				obs_frontend_take_source_screenshot(s);
-				obs_source_release(s);
-			});
+		popup.addAction(GetIconFromType(OBS_ICON_TYPE_IMAGE),
+				QString::fromUtf8(obs_frontend_get_locale_string("Screenshot")), this, [this] {
+					auto s = obs_weak_source_get_source(source);
+					obs_frontend_take_source_screenshot(s);
+					obs_source_release(s);
+				});
 
 		popup.addMenu(CreateAddSourcePopupMenu());
 
@@ -3588,8 +3042,7 @@ bool CanvasDock::HandleMouseReleaseEvent(QMouseEvent *event)
 		ProcessClick(pos);
 
 	if (selectionBox) {
-		Qt::KeyboardModifiers modifiers =
-			QGuiApplication::keyboardModifiers();
+		Qt::KeyboardModifiers modifiers = QGuiApplication::keyboardModifiers();
 
 		bool altDown = modifiers & Qt::AltModifier;
 		bool shiftDown = modifiers & Qt::ShiftModifier;
@@ -3679,8 +3132,7 @@ bool CanvasDock::HandleMouseMoveEvent(QMouseEvent *event)
 	if (mouseDown) {
 		vec2 pos = GetMouseEventPos(event);
 
-		if (!mouseMoved && !mouseOverItems &&
-		    stretchHandle == ItemHandle::None) {
+		if (!mouseMoved && !mouseOverItems && stretchHandle == ItemHandle::None) {
 			ProcessClick(startPos);
 			mouseOverItems = SelectedAtPos(scene, startPos);
 		}
@@ -3694,13 +3146,11 @@ bool CanvasDock::HandleMouseMoveEvent(QMouseEvent *event)
 
 			selectionBox = false;
 
-			obs_sceneitem_t *group =
-				obs_sceneitem_get_group(scene, stretchItem);
+			obs_sceneitem_t *group = obs_sceneitem_get_group(scene, stretchItem);
 			if (group) {
 				vec3 group_pos;
 				vec3_set(&group_pos, pos.x, pos.y, 0.0f);
-				vec3_transform(&group_pos, &group_pos,
-					       &invGroupTransform);
+				vec3_transform(&group_pos, &group_pos, &invGroupTransform);
 				pos.x = group_pos.x;
 				pos.y = group_pos.y;
 			}
@@ -3770,8 +3220,7 @@ bool CanvasDock::HandleKeyReleaseEvent(QKeyEvent *event)
 	return true;
 }
 
-static bool CheckItemSelected(obs_scene_t *scene, obs_sceneitem_t *item,
-			      void *param)
+static bool CheckItemSelected(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
 	SceneFindData *data = reinterpret_cast<SceneFindData *>(param);
 	matrix4 transform;
@@ -3796,16 +3245,14 @@ static bool CheckItemSelected(obs_scene_t *scene, obs_sceneitem_t *item,
 
 	if (data->group) {
 		matrix4 parent_transform;
-		obs_sceneitem_get_draw_transform(data->group,
-						 &parent_transform);
+		obs_sceneitem_get_draw_transform(data->group, &parent_transform);
 		matrix4_mul(&transform, &transform, &parent_transform);
 	}
 
 	matrix4_inv(&transform, &transform);
 	vec3_transform(&transformedPos, &pos3, &transform);
 
-	if (transformedPos.x >= 0.0f && transformedPos.x <= 1.0f &&
-	    transformedPos.y >= 0.0f && transformedPos.y <= 1.0f) {
+	if (transformedPos.x >= 0.0f && transformedPos.x <= 1.0f && transformedPos.y >= 0.0f && transformedPos.y <= 1.0f) {
 		if (obs_sceneitem_selected(item)) {
 			data->item = item;
 			return false;
@@ -3828,8 +3275,7 @@ bool CanvasDock::SelectedAtPos(obs_scene_t *scene, const vec2 &pos)
 
 static bool select_one(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
-	obs_sceneitem_t *selectedItem =
-		reinterpret_cast<obs_sceneitem_t *>(param);
+	obs_sceneitem_t *selectedItem = reinterpret_cast<obs_sceneitem_t *>(param);
 	if (obs_sceneitem_is_group(item))
 		obs_sceneitem_group_enum_items(item, select_one, param);
 
@@ -3865,8 +3311,7 @@ void CanvasDock::ProcessClick(const vec2 &pos)
 		DoSelect(pos);
 }
 
-static bool FindItemAtPos(obs_scene_t *scene, obs_sceneitem_t *item,
-			  void *param)
+static bool FindItemAtPos(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
 	SceneFindData *data = reinterpret_cast<SceneFindData *>(param);
 	matrix4 transform;
@@ -3888,8 +3333,7 @@ static bool FindItemAtPos(obs_scene_t *scene, obs_sceneitem_t *item,
 	vec3_transform(&transformedPos, &pos3, &invTransform);
 	vec3_transform(&pos3_, &transformedPos, &transform);
 
-	if (CloseFloat(pos3.x, pos3_.x) && CloseFloat(pos3.y, pos3_.y) &&
-	    transformedPos.x >= 0.0f && transformedPos.x <= 1.0f &&
+	if (CloseFloat(pos3.x, pos3_.x) && CloseFloat(pos3.y, pos3_.y) && transformedPos.x >= 0.0f && transformedPos.x <= 1.0f &&
 	    transformedPos.y >= 0.0f && transformedPos.y <= 1.0f) {
 		if (data->selectBelow && obs_sceneitem_selected(item)) {
 			if (data->item)
@@ -3932,8 +3376,7 @@ vec2 CanvasDock::GetMouseEventPos(QMouseEvent *event)
 
 	auto size = preview->size();
 
-	GetScaleAndCenterPos(sourceCX, sourceCY, size.width(), size.height(), x,
-			     y, scale);
+	GetScaleAndCenterPos(sourceCX, sourceCY, size.width(), size.height(), x, y, scale);
 	//auto newCX = scale * float(sourceCX);
 	//auto newCY = scale * float(sourceCY);
 	float pixelRatio = GetDevicePixelRatio();
@@ -3941,8 +3384,7 @@ vec2 CanvasDock::GetMouseEventPos(QMouseEvent *event)
 	QPoint qtPos = event->pos();
 
 	vec2 pos;
-	vec2_set(&pos, (qtPos.x() - x / pixelRatio) / scale,
-		 (qtPos.y() - y / pixelRatio) / scale);
+	vec2_set(&pos, (qtPos.x() - x / pixelRatio) / scale, (qtPos.y() - y / pixelRatio) / scale);
 
 	return pos;
 }
@@ -3959,11 +3401,9 @@ void CanvasDock::UpdateCursor(uint32_t &flags)
 	if (cursor().shape() != Qt::ArrowCursor)
 		return;
 
-	if ((flags & ITEM_LEFT && flags & ITEM_TOP) ||
-	    (flags & ITEM_RIGHT && flags & ITEM_BOTTOM))
+	if ((flags & ITEM_LEFT && flags & ITEM_TOP) || (flags & ITEM_RIGHT && flags & ITEM_BOTTOM))
 		setCursor(Qt::SizeFDiagCursor);
-	else if ((flags & ITEM_LEFT && flags & ITEM_BOTTOM) ||
-		 (flags & ITEM_RIGHT && flags & ITEM_TOP))
+	else if ((flags & ITEM_LEFT && flags & ITEM_BOTTOM) || (flags & ITEM_RIGHT && flags & ITEM_TOP))
 		setCursor(Qt::SizeBDiagCursor);
 	else if (flags & ITEM_LEFT || flags & ITEM_RIGHT)
 		setCursor(Qt::SizeHorCursor);
@@ -3995,8 +3435,7 @@ void CanvasDock::RotateItem(const vec2 &pos)
 	vec2 pos2;
 	vec2_copy(&pos2, &pos);
 
-	float angle =
-		atan2(pos2.y - rotatePoint.y, pos2.x - rotatePoint.x) + RAD(90);
+	float angle = atan2(pos2.y - rotatePoint.y, pos2.x - rotatePoint.x) + RAD(90);
 
 #define ROT_SNAP(rot, thresh)                      \
 	if (abs(angle - RAD(rot)) < RAD(thresh)) { \
@@ -4064,10 +3503,8 @@ void CanvasDock::CropItem(const vec2 &pos)
 	vec2 max_tl;
 	vec2 max_br;
 
-	vec2_set(&max_tl, float(-crop.left) * scale.x,
-		 float(-crop.top) * scale.y);
-	vec2_set(&max_br, stretchItemSize.x + crop.right * scale.x,
-		 stretchItemSize.y + crop.bottom * scale.y);
+	vec2_set(&max_tl, float(-crop.left) * scale.x, float(-crop.top) * scale.y);
+	vec2_set(&max_br, stretchItemSize.x + crop.right * scale.x, stretchItemSize.y + crop.bottom * scale.y);
 
 	typedef std::function<float(float, float)> minmax_func_t;
 
@@ -4127,14 +3564,12 @@ void CanvasDock::CropItem(const vec2 &pos)
 	if (stretchFlags & ITEM_LEFT)
 		crop.left += int(std::round(tl.x / scale.x));
 	else if (stretchFlags & ITEM_RIGHT)
-		crop.right +=
-			int(std::round((stretchItemSize.x - br.x) / scale.x));
+		crop.right += int(std::round((stretchItemSize.x - br.x) / scale.x));
 
 	if (stretchFlags & ITEM_TOP)
 		crop.top += int(std::round(tl.y / scale.y));
 	else if (stretchFlags & ITEM_BOTTOM)
-		crop.bottom +=
-			int(std::round((stretchItemSize.y - br.y) / scale.y));
+		crop.bottom += int(std::round((stretchItemSize.y - br.y) / scale.y));
 
 	vec3_transform(&newPos, &newPos, &itemToScreen);
 	newPos.x = std::round(newPos.x);
@@ -4189,8 +3624,7 @@ void CanvasDock::StretchItem(const vec2 &pos)
 	obs_source_t *source = obs_sceneitem_get_source(stretchItem);
 
 	vec2 baseSize;
-	vec2_set(&baseSize, float(obs_source_get_width(source)),
-		 float(obs_source_get_height(source)));
+	vec2_set(&baseSize, float(obs_source_get_width(source)), float(obs_source_get_height(source)));
 
 	vec2 size;
 	vec2_set(&size, br.x - tl.x, br.y - tl.y);
@@ -4280,19 +3714,14 @@ vec3 CanvasDock::GetSnapOffset(const vec3 &tl, const vec3 &br)
 	if (!config)
 		return clampOffset;
 
-	const bool snap =
-		config_get_bool(config, "BasicWindow", "SnappingEnabled");
+	const bool snap = config_get_bool(config, "BasicWindow", "SnappingEnabled");
 	if (snap == false)
 		return clampOffset;
 
-	const bool screenSnap =
-		config_get_bool(config, "BasicWindow", "ScreenSnapping");
-	const bool centerSnap =
-		config_get_bool(config, "BasicWindow", "CenterSnapping");
+	const bool screenSnap = config_get_bool(config, "BasicWindow", "ScreenSnapping");
+	const bool centerSnap = config_get_bool(config, "BasicWindow", "CenterSnapping");
 
-	const float clampDist =
-		config_get_double(config, "BasicWindow", "SnapDistance") /
-		previewScale;
+	const float clampDist = config_get_double(config, "BasicWindow", "SnapDistance") / previewScale;
 	const float centerX = br.x - (br.x - tl.x) / 2.0f;
 	const float centerY = br.y - (br.y - tl.y) / 2.0f;
 
@@ -4300,24 +3729,20 @@ vec3 CanvasDock::GetSnapOffset(const vec3 &tl, const vec3 &br)
 	if (screenSnap && fabsf(tl.x) < clampDist)
 		clampOffset.x = -tl.x;
 	// Right screen edge.
-	if (screenSnap && fabsf(clampOffset.x) < EPSILON &&
-	    fabsf(screenSize.x - br.x) < clampDist)
+	if (screenSnap && fabsf(clampOffset.x) < EPSILON && fabsf(screenSize.x - br.x) < clampDist)
 		clampOffset.x = screenSize.x - br.x;
 	// Horizontal center.
-	if (centerSnap && fabsf(screenSize.x - (br.x - tl.x)) > clampDist &&
-	    fabsf(screenSize.x / 2.0f - centerX) < clampDist)
+	if (centerSnap && fabsf(screenSize.x - (br.x - tl.x)) > clampDist && fabsf(screenSize.x / 2.0f - centerX) < clampDist)
 		clampOffset.x = screenSize.x / 2.0f - centerX;
 
 	// Top screen edge.
 	if (screenSnap && fabsf(tl.y) < clampDist)
 		clampOffset.y = -tl.y;
 	// Bottom screen edge.
-	if (screenSnap && fabsf(clampOffset.y) < EPSILON &&
-	    fabsf(screenSize.y - br.y) < clampDist)
+	if (screenSnap && fabsf(clampOffset.y) < EPSILON && fabsf(screenSize.y - br.y) < clampDist)
 		clampOffset.y = screenSize.y - br.y;
 	// Vertical center.
-	if (centerSnap && fabsf(screenSize.y - (br.y - tl.y)) > clampDist &&
-	    fabsf(screenSize.y / 2.0f - centerY) < clampDist)
+	if (centerSnap && fabsf(screenSize.y - (br.y - tl.y)) > clampDist && fabsf(screenSize.y / 2.0f - centerY) < clampDist)
 		clampOffset.y = screenSize.y / 2.0f - centerY;
 
 	return clampOffset;
@@ -4375,11 +3800,9 @@ struct SelectedItemBounds {
 	vec3 tl, br;
 };
 
-static bool AddItemBounds(obs_scene_t *scene, obs_sceneitem_t *item,
-			  void *param)
+static bool AddItemBounds(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
-	SelectedItemBounds *data =
-		reinterpret_cast<SelectedItemBounds *>(param);
+	SelectedItemBounds *data = reinterpret_cast<SelectedItemBounds *>(param);
 	vec3 t[4];
 
 	auto add_bounds = [data, &t]() {
@@ -4435,8 +3858,7 @@ struct OffsetData {
 	vec3 tl, br, offset;
 };
 
-static bool GetSourceSnapOffset(obs_scene_t *scene, obs_sceneitem_t *item,
-				void *param)
+static bool GetSourceSnapOffset(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
 	OffsetData *data = reinterpret_cast<OffsetData *>(param);
 
@@ -4446,10 +3868,8 @@ static bool GetSourceSnapOffset(obs_scene_t *scene, obs_sceneitem_t *item,
 	matrix4 boxTransform;
 	obs_sceneitem_get_box_transform(item, &boxTransform);
 
-	vec3 t[4] = {GetTransformedPos(0.0f, 0.0f, boxTransform),
-		     GetTransformedPos(1.0f, 0.0f, boxTransform),
-		     GetTransformedPos(0.0f, 1.0f, boxTransform),
-		     GetTransformedPos(1.0f, 1.0f, boxTransform)};
+	vec3 t[4] = {GetTransformedPos(0.0f, 0.0f, boxTransform), GetTransformedPos(1.0f, 0.0f, boxTransform),
+		     GetTransformedPos(0.0f, 1.0f, boxTransform), GetTransformedPos(1.0f, 1.0f, boxTransform)};
 
 	bool first = true;
 	vec3 tl, br;
@@ -4467,15 +3887,12 @@ static bool GetSourceSnapOffset(obs_scene_t *scene, obs_sceneitem_t *item,
 	}
 
 	// Snap to other source edges
-#define EDGE_SNAP(l, r, x, y)                                               \
-	do {                                                                \
-		double dist = fabsf(l.x - data->r.x);                       \
-		if (dist < data->clampDist &&                               \
-		    fabsf(data->offset.x) < EPSILON && data->tl.y < br.y && \
-		    data->br.y > tl.y &&                                    \
-		    (fabsf(data->offset.x) > dist ||                        \
-		     data->offset.x < EPSILON))                             \
-			data->offset.x = l.x - data->r.x;                   \
+#define EDGE_SNAP(l, r, x, y)                                                                                              \
+	do {                                                                                                               \
+		double dist = fabsf(l.x - data->r.x);                                                                      \
+		if (dist < data->clampDist && fabsf(data->offset.x) < EPSILON && data->tl.y < br.y && data->br.y > tl.y && \
+		    (fabsf(data->offset.x) > dist || data->offset.x < EPSILON))                                            \
+			data->offset.x = l.x - data->r.x;                                                                  \
 	} while (false)
 
 	EDGE_SNAP(tl, br, x, y);
@@ -4504,10 +3921,8 @@ void CanvasDock::SnapItemMovement(vec2 &offset)
 	if (!config)
 		return;
 
-	const bool snap =
-		config_get_bool(config, "BasicWindow", "SnappingEnabled");
-	const bool sourcesSnap =
-		config_get_bool(config, "BasicWindow", "SourceSnapping");
+	const bool snap = config_get_bool(config, "BasicWindow", "SnappingEnabled");
+	const bool sourcesSnap = config_get_bool(config, "BasicWindow", "SourceSnapping");
 	if (snap == false)
 		return;
 	if (sourcesSnap == false) {
@@ -4516,9 +3931,7 @@ void CanvasDock::SnapItemMovement(vec2 &offset)
 		return;
 	}
 
-	const float clampDist =
-		config_get_double(config, "BasicWindow", "SnapDistance") /
-		previewScale;
+	const float clampDist = config_get_double(config, "BasicWindow", "SnapDistance") / previewScale;
 
 	OffsetData offsetData;
 	offsetData.clampDist = clampDist;
@@ -4528,8 +3941,7 @@ void CanvasDock::SnapItemMovement(vec2 &offset)
 
 	obs_scene_enum_items(scene, GetSourceSnapOffset, &offsetData);
 
-	if (fabsf(offsetData.offset.x) > EPSILON ||
-	    fabsf(offsetData.offset.y) > EPSILON) {
+	if (fabsf(offsetData.offset.x) > EPSILON || fabsf(offsetData.offset.y) > EPSILON) {
 		offset.x += offsetData.offset.x;
 		offset.y += offsetData.offset.y;
 	} else {
@@ -4538,14 +3950,12 @@ void CanvasDock::SnapItemMovement(vec2 &offset)
 	}
 }
 
-static bool CounterClockwise(float x1, float x2, float x3, float y1, float y2,
-			     float y3)
+static bool CounterClockwise(float x1, float x2, float x3, float y1, float y2, float y3)
 {
 	return (y3 - y1) * (x2 - x1) > (y2 - y1) * (x3 - x1);
 }
 
-static bool IntersectLine(float x1, float x2, float x3, float x4, float y1,
-			  float y2, float y3, float y4)
+static bool IntersectLine(float x1, float x2, float x3, float x4, float y1, float y2, float y3, float y4)
 {
 	bool a = CounterClockwise(x1, x2, x3, y1, y2, y3);
 	bool b = CounterClockwise(x1, x2, x4, y1, y2, y4);
@@ -4555,8 +3965,7 @@ static bool IntersectLine(float x1, float x2, float x3, float x4, float y1,
 	return (a != b) && (c != d);
 }
 
-static bool IntersectBox(matrix4 transform, float x1, float x2, float y1,
-			 float y2)
+static bool IntersectBox(matrix4 transform, float x1, float x2, float y1, float y2)
 {
 	float x3, x4, y3, y4;
 
@@ -4565,19 +3974,15 @@ static bool IntersectBox(matrix4 transform, float x1, float x2, float y1,
 	x4 = x3 + transform.x.x;
 	y4 = y3 + transform.x.y;
 
-	if (IntersectLine(x1, x1, x3, x4, y1, y2, y3, y4) ||
-	    IntersectLine(x1, x2, x3, x4, y1, y1, y3, y4) ||
-	    IntersectLine(x2, x2, x3, x4, y1, y2, y3, y4) ||
-	    IntersectLine(x1, x2, x3, x4, y2, y2, y3, y4))
+	if (IntersectLine(x1, x1, x3, x4, y1, y2, y3, y4) || IntersectLine(x1, x2, x3, x4, y1, y1, y3, y4) ||
+	    IntersectLine(x2, x2, x3, x4, y1, y2, y3, y4) || IntersectLine(x1, x2, x3, x4, y2, y2, y3, y4))
 		return true;
 
 	x4 = x3 + transform.y.x;
 	y4 = y3 + transform.y.y;
 
-	if (IntersectLine(x1, x1, x3, x4, y1, y2, y3, y4) ||
-	    IntersectLine(x1, x2, x3, x4, y1, y1, y3, y4) ||
-	    IntersectLine(x2, x2, x3, x4, y1, y2, y3, y4) ||
-	    IntersectLine(x1, x2, x3, x4, y2, y2, y3, y4))
+	if (IntersectLine(x1, x1, x3, x4, y1, y2, y3, y4) || IntersectLine(x1, x2, x3, x4, y1, y1, y3, y4) ||
+	    IntersectLine(x2, x2, x3, x4, y1, y2, y3, y4) || IntersectLine(x1, x2, x3, x4, y2, y2, y3, y4))
 		return true;
 
 	x3 = transform.t.x + transform.x.x;
@@ -4585,10 +3990,8 @@ static bool IntersectBox(matrix4 transform, float x1, float x2, float y1,
 	x4 = x3 + transform.y.x;
 	y4 = y3 + transform.y.y;
 
-	if (IntersectLine(x1, x1, x3, x4, y1, y2, y3, y4) ||
-	    IntersectLine(x1, x2, x3, x4, y1, y1, y3, y4) ||
-	    IntersectLine(x2, x2, x3, x4, y1, y2, y3, y4) ||
-	    IntersectLine(x1, x2, x3, x4, y2, y2, y3, y4))
+	if (IntersectLine(x1, x1, x3, x4, y1, y2, y3, y4) || IntersectLine(x1, x2, x3, x4, y1, y1, y3, y4) ||
+	    IntersectLine(x2, x2, x3, x4, y1, y2, y3, y4) || IntersectLine(x1, x2, x3, x4, y2, y2, y3, y4))
 		return true;
 
 	x3 = transform.t.x + transform.y.x;
@@ -4596,17 +3999,14 @@ static bool IntersectBox(matrix4 transform, float x1, float x2, float y1,
 	x4 = x3 + transform.x.x;
 	y4 = y3 + transform.x.y;
 
-	if (IntersectLine(x1, x1, x3, x4, y1, y2, y3, y4) ||
-	    IntersectLine(x1, x2, x3, x4, y1, y1, y3, y4) ||
-	    IntersectLine(x2, x2, x3, x4, y1, y2, y3, y4) ||
-	    IntersectLine(x1, x2, x3, x4, y2, y2, y3, y4))
+	if (IntersectLine(x1, x1, x3, x4, y1, y2, y3, y4) || IntersectLine(x1, x2, x3, x4, y1, y1, y3, y4) ||
+	    IntersectLine(x2, x2, x3, x4, y1, y2, y3, y4) || IntersectLine(x1, x2, x3, x4, y2, y2, y3, y4))
 		return true;
 
 	return false;
 }
 
-static bool FindItemsInBox(obs_scene_t *scene, obs_sceneitem_t *item,
-			   void *param)
+static bool FindItemsInBox(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
 	SceneFindBoxData *data = reinterpret_cast<SceneFindBoxData *>(param);
 	matrix4 transform;
@@ -4639,43 +4039,35 @@ static bool FindItemsInBox(obs_scene_t *scene, obs_sceneitem_t *item,
 	vec3_transform(&transformedPos, &pos3, &invTransform);
 	vec3_transform(&pos3_, &transformedPos, &transform);
 
-	if (CloseFloat(pos3.x, pos3_.x) && CloseFloat(pos3.y, pos3_.y) &&
-	    transformedPos.x >= 0.0f && transformedPos.x <= 1.0f &&
+	if (CloseFloat(pos3.x, pos3_.x) && CloseFloat(pos3.y, pos3_.y) && transformedPos.x >= 0.0f && transformedPos.x <= 1.0f &&
 	    transformedPos.y >= 0.0f && transformedPos.y <= 1.0f) {
 
 		data->sceneItems.push_back(item);
 		return true;
 	}
 
-	if (transform.t.x > x1 && transform.t.x < x2 && transform.t.y > y1 &&
-	    transform.t.y < y2) {
+	if (transform.t.x > x1 && transform.t.x < x2 && transform.t.y > y1 && transform.t.y < y2) {
 
 		data->sceneItems.push_back(item);
 		return true;
 	}
 
-	if (transform.t.x + transform.x.x > x1 &&
-	    transform.t.x + transform.x.x < x2 &&
-	    transform.t.y + transform.x.y > y1 &&
+	if (transform.t.x + transform.x.x > x1 && transform.t.x + transform.x.x < x2 && transform.t.y + transform.x.y > y1 &&
 	    transform.t.y + transform.x.y < y2) {
 
 		data->sceneItems.push_back(item);
 		return true;
 	}
 
-	if (transform.t.x + transform.y.x > x1 &&
-	    transform.t.x + transform.y.x < x2 &&
-	    transform.t.y + transform.y.y > y1 &&
+	if (transform.t.x + transform.y.x > x1 && transform.t.x + transform.y.x < x2 && transform.t.y + transform.y.y > y1 &&
 	    transform.t.y + transform.y.y < y2) {
 
 		data->sceneItems.push_back(item);
 		return true;
 	}
 
-	if (transform.t.x + transform.x.x + transform.y.x > x1 &&
-	    transform.t.x + transform.x.x + transform.y.x < x2 &&
-	    transform.t.y + transform.x.y + transform.y.y > y1 &&
-	    transform.t.y + transform.x.y + transform.y.y < y2) {
+	if (transform.t.x + transform.x.x + transform.y.x > x1 && transform.t.x + transform.x.x + transform.y.x < x2 &&
+	    transform.t.y + transform.x.y + transform.y.y > y1 && transform.t.y + transform.x.y + transform.y.y < y2) {
 
 		data->sceneItems.push_back(item);
 		return true;
@@ -4732,15 +4124,12 @@ struct HandleFindData {
 	HandleFindData &operator=(const HandleFindData &) = delete;
 	HandleFindData &operator=(HandleFindData &&) = delete;
 
-	inline HandleFindData(const vec2 &pos_, float scale)
-		: pos(pos_),
-		  radius(HANDLE_SEL_RADIUS / scale)
+	inline HandleFindData(const vec2 &pos_, float scale) : pos(pos_), radius(HANDLE_SEL_RADIUS / scale)
 	{
 		matrix4_identity(&parent_xform);
 	}
 
-	inline HandleFindData(const HandleFindData &hfd,
-			      obs_sceneitem_t *parent)
+	inline HandleFindData(const HandleFindData &hfd, obs_sceneitem_t *parent)
 		: pos(hfd.pos),
 		  radius(hfd.radius),
 		  item(hfd.item),
@@ -4753,8 +4142,7 @@ struct HandleFindData {
 	}
 };
 
-static bool FindHandleAtPos(obs_scene_t *scene, obs_sceneitem_t *item,
-			    void *param)
+static bool FindHandleAtPos(obs_scene_t *scene, obs_sceneitem_t *item, void *param)
 {
 	HandleFindData &data = *reinterpret_cast<HandleFindData *>(param);
 
@@ -4763,8 +4151,7 @@ static bool FindHandleAtPos(obs_scene_t *scene, obs_sceneitem_t *item,
 			HandleFindData newData(data, item);
 			newData.angleOffset = obs_sceneitem_get_rot(item);
 
-			obs_sceneitem_group_enum_items(item, FindHandleAtPos,
-						       &newData);
+			obs_sceneitem_group_enum_items(item, FindHandleAtPos, &newData);
 
 			data.item = newData.item;
 			data.handle = newData.handle;
@@ -4808,8 +4195,7 @@ static bool FindHandleAtPos(obs_scene_t *scene, obs_sceneitem_t *item,
 	TestHandle(1.0f, 1.0f, ItemHandle::BottomRight);
 
 	vec2 rotHandleOffset;
-	vec2_set(&rotHandleOffset, 0.0f,
-		 HANDLE_RADIUS * data.radius * 1.5 - data.radius);
+	vec2_set(&rotHandleOffset, 0.0f, HANDLE_RADIUS * data.radius * 1.5 - data.radius);
 	RotatePos(&rotHandleOffset, atan2(transform.x.y, transform.x.x));
 	RotatePos(&rotHandleOffset, RAD(data.angleOffset));
 
@@ -4826,18 +4212,14 @@ static bool FindHandleAtPos(obs_scene_t *scene, obs_sceneitem_t *item,
 			data.angle = obs_sceneitem_get_rot(item);
 			data.handle = ItemHandle::Rot;
 
-			vec2_set(&data.rotatePoint,
-				 transform.t.x + transform.x.x / 2 +
-					 transform.y.x / 2,
-				 transform.t.y + transform.x.y / 2 +
-					 transform.y.y / 2);
+			vec2_set(&data.rotatePoint, transform.t.x + transform.x.x / 2 + transform.y.x / 2,
+				 transform.t.y + transform.x.y / 2 + transform.y.y / 2);
 
 			obs_sceneitem_get_pos(item, &data.offsetPoint);
 			data.offsetPoint.x -= data.rotatePoint.x;
 			data.offsetPoint.y -= data.rotatePoint.y;
 
-			RotatePos(&data.offsetPoint,
-				  -RAD(obs_sceneitem_get_rot(item)));
+			RotatePos(&data.offsetPoint, -RAD(obs_sceneitem_get_rot(item)));
 		}
 	}
 
@@ -4873,30 +4255,23 @@ void CanvasDock::GetStretchHandleData(const vec2 &pos, bool ignoreGroup)
 
 		/* build the item space conversion matrices */
 		matrix4_identity(&itemToScreen);
-		matrix4_rotate_aa4f(&itemToScreen, &itemToScreen, 0.0f, 0.0f,
-				    1.0f, RAD(itemRot));
-		matrix4_translate3f(&itemToScreen, &itemToScreen, itemUL.x,
-				    itemUL.y, 0.0f);
+		matrix4_rotate_aa4f(&itemToScreen, &itemToScreen, 0.0f, 0.0f, 1.0f, RAD(itemRot));
+		matrix4_translate3f(&itemToScreen, &itemToScreen, itemUL.x, itemUL.y, 0.0f);
 
 		matrix4_identity(&screenToItem);
-		matrix4_translate3f(&screenToItem, &screenToItem, -itemUL.x,
-				    -itemUL.y, 0.0f);
-		matrix4_rotate_aa4f(&screenToItem, &screenToItem, 0.0f, 0.0f,
-				    1.0f, RAD(-itemRot));
+		matrix4_translate3f(&screenToItem, &screenToItem, -itemUL.x, -itemUL.y, 0.0f);
+		matrix4_rotate_aa4f(&screenToItem, &screenToItem, 0.0f, 0.0f, 1.0f, RAD(-itemRot));
 
 		obs_sceneitem_get_crop(stretchItem, &startCrop);
 		obs_sceneitem_get_pos(stretchItem, &startItemPos);
 
 		obs_source_t *source = obs_sceneitem_get_source(stretchItem);
-		cropSize.x = float(obs_source_get_width(source) -
-				   startCrop.left - startCrop.right);
-		cropSize.y = float(obs_source_get_height(source) -
-				   startCrop.top - startCrop.bottom);
+		cropSize.x = float(obs_source_get_width(source) - startCrop.left - startCrop.right);
+		cropSize.y = float(obs_source_get_height(source) - startCrop.top - startCrop.bottom);
 
 		stretchGroup = obs_sceneitem_get_group(scene, stretchItem);
 		if (stretchGroup && !ignoreGroup) {
-			obs_sceneitem_get_draw_transform(stretchGroup,
-							 &invGroupTransform);
+			obs_sceneitem_get_draw_transform(stretchGroup, &invGroupTransform);
 			matrix4_inv(&invGroupTransform, &invGroupTransform);
 			obs_sceneitem_defer_group_resize_begin(stretchGroup);
 		} else {
@@ -4905,43 +4280,34 @@ void CanvasDock::GetStretchHandleData(const vec2 &pos, bool ignoreGroup)
 	}
 }
 
-void CanvasDock::ClampAspect(vec3 &tl, vec3 &br, vec2 &size,
-			     const vec2 &baseSize)
+void CanvasDock::ClampAspect(vec3 &tl, vec3 &br, vec2 &size, const vec2 &baseSize)
 {
 	float baseAspect = baseSize.x / baseSize.y;
 	float aspect = size.x / size.y;
 	uint32_t stretchFlags = (uint32_t)stretchHandle;
 
-	if (stretchHandle == ItemHandle::TopLeft ||
-	    stretchHandle == ItemHandle::TopRight ||
-	    stretchHandle == ItemHandle::BottomLeft ||
-	    stretchHandle == ItemHandle::BottomRight) {
+	if (stretchHandle == ItemHandle::TopLeft || stretchHandle == ItemHandle::TopRight ||
+	    stretchHandle == ItemHandle::BottomLeft || stretchHandle == ItemHandle::BottomRight) {
 		if (aspect < baseAspect) {
-			if ((size.y >= 0.0f && size.x >= 0.0f) ||
-			    (size.y <= 0.0f && size.x <= 0.0f))
+			if ((size.y >= 0.0f && size.x >= 0.0f) || (size.y <= 0.0f && size.x <= 0.0f))
 				size.x = size.y * baseAspect;
 			else
 				size.x = size.y * baseAspect * -1.0f;
 		} else {
-			if ((size.y >= 0.0f && size.x >= 0.0f) ||
-			    (size.y <= 0.0f && size.x <= 0.0f))
+			if ((size.y >= 0.0f && size.x >= 0.0f) || (size.y <= 0.0f && size.x <= 0.0f))
 				size.y = size.x / baseAspect;
 			else
 				size.y = size.x / baseAspect * -1.0f;
 		}
 
-	} else if (stretchHandle == ItemHandle::TopCenter ||
-		   stretchHandle == ItemHandle::BottomCenter) {
-		if ((size.y >= 0.0f && size.x >= 0.0f) ||
-		    (size.y <= 0.0f && size.x <= 0.0f))
+	} else if (stretchHandle == ItemHandle::TopCenter || stretchHandle == ItemHandle::BottomCenter) {
+		if ((size.y >= 0.0f && size.x >= 0.0f) || (size.y <= 0.0f && size.x <= 0.0f))
 			size.x = size.y * baseAspect;
 		else
 			size.x = size.y * baseAspect * -1.0f;
 
-	} else if (stretchHandle == ItemHandle::CenterLeft ||
-		   stretchHandle == ItemHandle::CenterRight) {
-		if ((size.y >= 0.0f && size.x >= 0.0f) ||
-		    (size.y <= 0.0f && size.x <= 0.0f))
+	} else if (stretchHandle == ItemHandle::CenterLeft || stretchHandle == ItemHandle::CenterRight) {
+		if ((size.y >= 0.0f && size.x >= 0.0f) || (size.y <= 0.0f && size.x <= 0.0f))
 			size.y = size.x / baseAspect;
 		else
 			size.y = size.x / baseAspect * -1.0f;
@@ -4985,8 +4351,7 @@ vec3 CanvasDock::CalculateStretchPos(const vec3 &tl, const vec3 &br)
 	return pos;
 }
 
-bool CanvasDock::DrawSelectionBox(float x1, float y1, float x2, float y2,
-				  gs_vertbuffer_t *rectFill)
+bool CanvasDock::DrawSelectionBox(float x1, float y1, float x2, float y2, gs_vertbuffer_t *rectFill)
 {
 	float pixelRatio = GetDevicePixelRatio();
 
@@ -5030,12 +4395,10 @@ struct descendant_info {
 	obs_source_t *target2;
 };
 
-static void check_descendant(obs_source_t *parent, obs_source_t *child,
-			     void *param)
+static void check_descendant(obs_source_t *parent, obs_source_t *child, void *param)
 {
 	auto *info = (struct descendant_info *)param;
-	if (parent == info->target2 || child == info->target2 ||
-	    obs_weak_source_references_source(info->target, child) ||
+	if (parent == info->target2 || child == info->target2 || obs_weak_source_references_source(info->target, child) ||
 	    obs_weak_source_references_source(info->target, parent))
 		info->exists = true;
 }
@@ -5057,11 +4420,9 @@ bool CanvasDock::add_sources_of_type_to_menu(void *param, obs_source_t *source)
 				before = menuAction;
 		}
 		auto na = new QAction(name, menu);
-		connect(na, &QAction::triggered,
-			[cd, source] { cd->AddSourceToScene(source); });
+		connect(na, &QAction::triggered, [cd, source] { cd->AddSourceToScene(source); });
 		menu->insertAction(before, na);
-		struct descendant_info info = {false, cd->source,
-					       obs_scene_get_source(cd->scene)};
+		struct descendant_info info = {false, cd->source, obs_scene_get_source(cd->scene)};
 		obs_source_enum_full_tree(source, check_descendant, &info);
 		na->setEnabled(!info.exists);
 	}
@@ -5076,13 +4437,9 @@ void CanvasDock::LoadSourceTypeMenu(QMenu *menu, const char *type)
 	} else {
 		obs_enum_sources(add_sources_of_type_to_menu, menu);
 
-		auto popupItem = new QAction(
-			QString::fromUtf8(
-				obs_frontend_get_locale_string("New")),
-			menu);
+		auto popupItem = new QAction(QString::fromUtf8(obs_frontend_get_locale_string("New")), menu);
 		popupItem->setData(QString::fromUtf8(type));
-		connect(popupItem, SIGNAL(triggered(bool)), this,
-			SLOT(AddSourceFromAction()));
+		connect(popupItem, SIGNAL(triggered(bool)), this, SLOT(AddSourceFromAction()));
 
 		QList<QAction *> actions = menu->actions();
 		QAction *first = actions.size() ? actions.first() : nullptr;
@@ -5104,11 +4461,8 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 	bool foundDeprecated = false;
 	size_t idx = 0;
 
-	QMenu *popup = new QMenu(
-		QString::fromUtf8(obs_frontend_get_locale_string("Add")), this);
-	QMenu *deprecated = new QMenu(
-		QString::fromUtf8(obs_frontend_get_locale_string("Deprecated")),
-		popup);
+	QMenu *popup = new QMenu(QString::fromUtf8(obs_frontend_get_locale_string("Add")), this);
+	QMenu *deprecated = new QMenu(QString::fromUtf8(obs_frontend_get_locale_string("Deprecated")), popup);
 
 	auto getActionAfter = [](QMenu *menu, const QString &name) {
 		QList<QAction *> actions = menu->actions();
@@ -5121,8 +4475,7 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 		return (QAction *)nullptr;
 	};
 
-	auto addSource = [this, getActionAfter](QMenu *popup, const char *type,
-						const char *name) {
+	auto addSource = [this, getActionAfter](QMenu *popup, const char *type, const char *name) {
 		QString qname = QString::fromUtf8(name);
 		QAction *popupItem = new QAction(qname, this);
 		if (strcmp(type, "scene") == 0) {
@@ -5130,15 +4483,12 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 		} else if (strcmp(type, "group") == 0) {
 			popupItem->setIcon(GetGroupIcon());
 		} else {
-			popupItem->setIcon(GetIconFromType(
-				obs_source_get_icon_type(type)));
+			popupItem->setIcon(GetIconFromType(obs_source_get_icon_type(type)));
 		}
 		popupItem->setData(QString::fromUtf8(type));
 		QMenu *menu = new QMenu(this);
 		popupItem->setMenu(menu);
-		QObject::connect(menu, &QMenu::aboutToShow, [this, menu, type] {
-			LoadSourceTypeMenu(menu, type);
-		});
+		QObject::connect(menu, &QMenu::aboutToShow, [this, menu, type] { LoadSourceTypeMenu(menu, type); });
 
 		QAction *after = getActionAfter(popup, qname);
 		popup->insertAction(after, popupItem);
@@ -5160,8 +4510,7 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 		foundValues = true;
 	}
 
-	addSource(popup, "scene",
-		  obs_frontend_get_locale_string("Basic.Scene"));
+	addSource(popup, "scene", obs_frontend_get_locale_string("Basic.Scene"));
 	addSource(popup, "group", obs_frontend_get_locale_string("Group"));
 
 	if (!foundDeprecated) {
@@ -5192,16 +4541,14 @@ void CanvasDock::AddSourceFromAction()
 	const char *id = idUtf8.constData();
 	if (id && *id && strlen(id)) {
 		const char *v_id = obs_get_latest_input_type_id(id);
-		QString placeHolderText =
-			QString::fromUtf8(obs_source_get_display_name(v_id));
+		QString placeHolderText = QString::fromUtf8(obs_source_get_display_name(v_id));
 		QString text = placeHolderText;
 		int i = 2;
 		OBSSourceAutoRelease s = nullptr;
 		while ((s = obs_get_source_by_name(text.toUtf8().constData()))) {
 			text = QString("%1 %2").arg(placeHolderText).arg(i++);
 		}
-		obs_source_t *source = obs_source_create(
-			id, text.toUtf8().constData(), nullptr, nullptr);
+		obs_source_t *source = obs_source_create(id, text.toUtf8().constData(), nullptr, nullptr);
 		obs_scene_add(scene, source);
 		if (obs_source_configurable(source)) {
 			obs_frontend_open_source_properties(source);
@@ -5247,8 +4594,7 @@ void CanvasDock::virtual_cam_output_stop(void *data, calldata_t *calldata)
 	auto d = static_cast<CanvasDock *>(data);
 	d->SendVendorEvent("virtual_camera_stopped");
 	QMetaObject::invokeMethod(d, "OnVirtualCamStop");
-	signal_handler_t *signal =
-		obs_output_get_signal_handler(d->virtualCamOutput);
+	signal_handler_t *signal = obs_output_get_signal_handler(d->virtualCamOutput);
 	signal_handler_disconnect(signal, "start", virtual_cam_output_start, d);
 	signal_handler_disconnect(signal, "stop", virtual_cam_output_stop, d);
 	obs_output_release(d->virtualCamOutput);
@@ -5258,8 +4604,7 @@ void CanvasDock::virtual_cam_output_stop(void *data, calldata_t *calldata)
 void CanvasDock::OnVirtualCamStart()
 {
 	virtualCamButton->setIcon(virtualCamActiveIcon);
-	virtualCamButton->setStyleSheet(
-		QString::fromUtf8("background: rgb(192,128,0);"));
+	virtualCamButton->setStyleSheet(QString::fromUtf8("background: rgb(192,128,0);"));
 	virtualCamButton->setChecked(true);
 }
 
@@ -5270,8 +4615,7 @@ void CanvasDock::OnVirtualCamStop()
 	virtualCamButton->setChecked(false);
 	CheckReplayBuffer();
 	if (multiCanvasSource) {
-		multi_canvas_source_remove_view(
-			obs_obj_get_data(multiCanvasSource), view);
+		multi_canvas_source_remove_view(obs_obj_get_data(multiCanvasSource), view);
 		obs_source_release(multiCanvasSource);
 		multiCanvasSource = nullptr;
 	}
@@ -5308,11 +4652,8 @@ void CanvasDock::StartVirtualCam()
 	}
 
 	if (!virtual_cam_warned && isVisible()) {
-		QMessageBox::warning(this,
-				     QString::fromUtf8(obs_module_text(
-					     "VirtualCameraVertical")),
-				     QString::fromUtf8(obs_module_text(
-					     "VirtualCameraWarning")));
+		QMessageBox::warning(this, QString::fromUtf8(obs_module_text("VirtualCameraVertical")),
+				     QString::fromUtf8(obs_module_text("VirtualCameraWarning")));
 		virtual_cam_warned = true;
 	}
 
@@ -5331,38 +4672,30 @@ void CanvasDock::StartVirtualCam()
 		}
 		started_view = multiCanvasView;
 		if (!multiCanvasSource) {
-			multiCanvasSource = obs_source_create_private(
-				"vertical_multi_canvas_source",
-				"vertical_multi_canvas_source", nullptr);
+			multiCanvasSource =
+				obs_source_create_private("vertical_multi_canvas_source", "vertical_multi_canvas_source", nullptr);
 			void *data = obs_obj_get_data(multiCanvasSource);
-			multi_canvas_source_add_view(data, view, canvas_width,
-						     canvas_height);
+			multi_canvas_source_add_view(data, view, canvas_width, canvas_height);
 		}
 		if (!multiCanvasVideo) {
 			obs_video_info ovi;
 			obs_get_video_info(&ovi);
-			ovi.base_width =
-				obs_source_get_width(multiCanvasSource);
-			ovi.base_height =
-				obs_source_get_height(multiCanvasSource);
+			ovi.base_width = obs_source_get_width(multiCanvasSource);
+			ovi.base_height = obs_source_get_height(multiCanvasSource);
 			ovi.output_width = ovi.base_width;
 			ovi.output_height = ovi.base_height;
 			multiCanvasVideo = obs_view_add2(multiCanvasView, &ovi);
 			started_video = true;
 		}
 		virtual_video = multiCanvasVideo;
-		if (obs_view_get_source(multiCanvasView, 0) !=
-		    multiCanvasSource)
-			obs_view_set_source(multiCanvasView, 0,
-					    multiCanvasSource);
+		if (obs_view_get_source(multiCanvasView, 0) != multiCanvasSource)
+			obs_view_set_source(multiCanvasView, 0, multiCanvasSource);
 	} else {
 		virtual_video = obs_get_video();
 	}
 	signal_handler_t *signal = obs_output_get_signal_handler(output);
-	signal_handler_disconnect(signal, "start", virtual_cam_output_start,
-				  this);
-	signal_handler_disconnect(signal, "stop", virtual_cam_output_stop,
-				  this);
+	signal_handler_disconnect(signal, "start", virtual_cam_output_start, this);
+	signal_handler_disconnect(signal, "stop", virtual_cam_output_stop, this);
 	signal_handler_connect(signal, "start", virtual_cam_output_start, this);
 	signal_handler_connect(signal, "stop", virtual_cam_output_stop, this);
 
@@ -5400,8 +4733,7 @@ void CanvasDock::StopVirtualCam()
 void CanvasDock::ConfigButtonClicked()
 {
 	if (!configDialog) {
-		configDialog = new OBSBasicSettings(
-			this, (QMainWindow *)obs_frontend_get_main_window());
+		configDialog = new OBSBasicSettings(this, (QMainWindow *)obs_frontend_get_main_window());
 		configDialog->setMinimumWidth(983);
 		configDialog->setMinimumHeight(762);
 	}
@@ -5466,8 +4798,7 @@ static inline int GetProfilePath(char *path, size_t size, const char *file)
 	if (!file)
 		file = "";
 
-	int ret =
-		GetConfigPath(profiles_path, 512, "obs-studio/basic/profiles");
+	int ret = GetConfigPath(profiles_path, 512, "obs-studio/basic/profiles");
 	if (ret <= 0)
 		return ret;
 
@@ -5512,14 +4843,11 @@ void CanvasDock::StartRecord()
 
 	if (record_advanced_settings) {
 		if (!recordOutput)
-			recordOutput = obs_output_create(
-				"ffmpeg_muxer", "vertical_canvas_record",
-				nullptr, nullptr);
+			recordOutput = obs_output_create("ffmpeg_muxer", "vertical_canvas_record", nullptr, nullptr);
 	} else {
 		obs_output_t *output = obs_frontend_get_recording_output();
 		if (!output) {
-			obs_output_t *replay_output =
-				obs_frontend_get_replay_buffer_output();
+			obs_output_t *replay_output = obs_frontend_get_replay_buffer_output();
 			if (!replay_output) {
 				ShowNoReplayOutputError();
 				return;
@@ -5527,9 +4855,7 @@ void CanvasDock::StartRecord()
 			obs_output_release(replay_output);
 		}
 		if (!recordOutput)
-			recordOutput = obs_output_create(
-				obs_output_get_id(output),
-				"vertical_canvas_record", nullptr, nullptr);
+			recordOutput = obs_output_create(obs_output_get_id(output), "vertical_canvas_record", nullptr, nullptr);
 
 		obs_data_t *settings = obs_output_get_settings(output);
 		obs_output_update(recordOutput, settings);
@@ -5551,59 +4877,40 @@ void CanvasDock::StartRecord()
 		format = file_format.c_str();
 		dir = recordPath.c_str();
 	} else if (strcmp(mode, "Advanced") == 0) {
-		const char *recType =
-			config_get_string(config, "AdvOut", "RecType");
+		const char *recType = config_get_string(config, "AdvOut", "RecType");
 
 		if (strcmp(recType, "FFmpeg") == 0) {
 			ffmpegOutput = true;
 			dir = config_get_string(config, "AdvOut", "FFFilePath");
 		} else {
-			dir = config_get_string(config, "AdvOut",
-						"RecFilePath");
+			dir = config_get_string(config, "AdvOut", "RecFilePath");
 		}
-		bool ffmpegRecording =
-			ffmpegOutput &&
-			config_get_bool(config, "AdvOut", "FFOutputToFile");
+		bool ffmpegRecording = ffmpegOutput && config_get_bool(config, "AdvOut", "FFOutputToFile");
 		if (ffmpegRecording) {
-			format = config_get_string(config, "AdvOut",
-						   "FFExtension");
-		} else if (!config_has_user_value(config, "AdvOut",
-						  "RecFormat2") &&
-			   config_has_user_value(config, "AdvOut",
-						 "RecFormat")) {
-			format = config_get_string(config, "AdvOut",
-						   "RecFormat");
+			format = config_get_string(config, "AdvOut", "FFExtension");
+		} else if (!config_has_user_value(config, "AdvOut", "RecFormat2") &&
+			   config_has_user_value(config, "AdvOut", "RecFormat")) {
+			format = config_get_string(config, "AdvOut", "RecFormat");
 		} else {
-			format = config_get_string(config, "AdvOut",
-						   "RecFormat2");
+			format = config_get_string(config, "AdvOut", "RecFormat2");
 		}
 	} else {
 		dir = config_get_string(config, "SimpleOutput", "FilePath");
-		if (!config_has_user_value(config, "SimpleOutput",
-					   "RecFormat2") &&
-		    config_has_user_value(config, "SimpleOutput",
-					  "RecFormat")) {
-			format = config_get_string(config, "SimpleOutput",
-						   "RecFormat");
+		if (!config_has_user_value(config, "SimpleOutput", "RecFormat2") &&
+		    config_has_user_value(config, "SimpleOutput", "RecFormat")) {
+			format = config_get_string(config, "SimpleOutput", "RecFormat");
 		} else {
-			format = config_get_string(config, "SimpleOutput",
-						   "RecFormat2");
+			format = config_get_string(config, "SimpleOutput", "RecFormat2");
 		}
-		const char *quality =
-			config_get_string(config, "SimpleOutput", "RecQuality");
+		const char *quality = config_get_string(config, "SimpleOutput", "RecQuality");
 		if (strcmp(quality, "Lossless") == 0) {
 			ffmpegOutput = true;
 		}
 	}
 	if (recordPath.empty() && (!dir || !strlen(dir))) {
 		if (isVisible()) {
-			QMessageBox::warning(
-				this,
-				QString::fromUtf8(
-					obs_frontend_get_locale_string(
-						"Output.BadPath.Title")),
-				QString::fromUtf8(
-					obs_module_text("RecordPathError")));
+			QMessageBox::warning(this, QString::fromUtf8(obs_frontend_get_locale_string("Output.BadPath.Title")),
+					     QString::fromUtf8(obs_module_text("RecordPathError")));
 		}
 		return;
 	}
@@ -5617,28 +4924,23 @@ void CanvasDock::StartRecord()
 	signal_handler_t *signal = obs_output_get_signal_handler(recordOutput);
 	signal_handler_disconnect(signal, "start", record_output_start, this);
 	signal_handler_disconnect(signal, "stop", record_output_stop, this);
-	signal_handler_disconnect(signal, "stopping", record_output_stopping,
-				  this);
+	signal_handler_disconnect(signal, "stopping", record_output_stopping, this);
 	signal_handler_connect(signal, "start", record_output_start, this);
 	signal_handler_connect(signal, "stop", record_output_stop, this);
-	signal_handler_connect(signal, "stopping", record_output_stopping,
-			       this);
+	signal_handler_connect(signal, "stopping", record_output_stopping, this);
 
 	std::string filenameFormat;
 	if (record_advanced_settings) {
 		if (filename_formatting.empty()) {
-			filename_formatting = config_get_string(
-				config, "Output", "FilenameFormatting");
+			filename_formatting = config_get_string(config, "Output", "FilenameFormatting");
 			filename_formatting += "-vertical";
 		}
 		if (filename_formatting.empty()) {
-			filename_formatting =
-				"%CCYY-%MM-%DD %hh-%mm-%ss-vertical";
+			filename_formatting = "%CCYY-%MM-%DD %hh-%mm-%ss-vertical";
 		}
 		filenameFormat = filename_formatting;
 	} else {
-		filenameFormat = config_get_string(config, "Output",
-						   "FilenameFormatting");
+		filenameFormat = config_get_string(config, "Output", "FilenameFormatting");
 		filenameFormat += "-vertical";
 	}
 	if (!format || !strlen(format))
@@ -5656,8 +4958,7 @@ void CanvasDock::StartRecord()
 		ext = "ts";
 	obs_data_t *ps = obs_data_create();
 	char path[512];
-	char *filename = os_generate_formatted_filename(ext.c_str(), true,
-							filenameFormat.c_str());
+	char *filename = os_generate_formatted_filename(ext.c_str(), true, filenameFormat.c_str());
 	if (recordPath.empty() && dir) {
 		recordPath = dir;
 	} else {
@@ -5675,11 +4976,8 @@ void CanvasDock::StartRecord()
 	SendVendorEvent("recording_starting");
 	const bool success = obs_output_start(recordOutput);
 	if (!success) {
-		QMetaObject::invokeMethod(
-			this, "OnRecordStop", Q_ARG(int, OBS_OUTPUT_ERROR),
-			Q_ARG(QString,
-			      QString::fromUtf8(obs_output_get_last_error(
-				      recordOutput))));
+		QMetaObject::invokeMethod(this, "OnRecordStop", Q_ARG(int, OBS_OUTPUT_ERROR),
+					  Q_ARG(QString, QString::fromUtf8(obs_output_get_last_error(recordOutput))));
 		if (started_video) {
 			video = nullptr;
 			obs_view_remove(view);
@@ -5708,14 +5006,12 @@ void CanvasDock::record_output_start(void *data, calldata_t *calldata)
 
 void CanvasDock::record_output_stop(void *data, calldata_t *calldata)
 {
-	const char *last_error =
-		(const char *)calldata_ptr(calldata, "last_error");
+	const char *last_error = (const char *)calldata_ptr(calldata, "last_error");
 	QString arg_last_error = QString::fromUtf8(last_error);
 	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
 	d->SendVendorEvent("recording_stopped");
-	QMetaObject::invokeMethod(d, "OnRecordStop", Q_ARG(int, code),
-				  Q_ARG(QString, arg_last_error));
+	QMetaObject::invokeMethod(d, "OnRecordStop", Q_ARG(int, code), Q_ARG(QString, arg_last_error));
 }
 
 void CanvasDock::record_output_stopping(void *data, calldata_t *calldata)
@@ -5741,21 +5037,15 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
 			if ((record_audio_tracks & (1ll << i)) == 0)
 				continue;
-			obs_encoder_t *aet =
-				obs_output_get_audio_encoder(replayOutput, idx);
+			obs_encoder_t *aet = obs_output_get_audio_encoder(replayOutput, idx);
 			if (!aet && recordOutput)
-				aet = obs_output_get_audio_encoder(recordOutput,
-								   idx);
-			if (aet &&
-			    strcmp(obs_encoder_get_id(aet), "ffmpeg_aac") != 0)
+				aet = obs_output_get_audio_encoder(recordOutput, idx);
+			if (aet && strcmp(obs_encoder_get_id(aet), "ffmpeg_aac") != 0)
 				aet = nullptr;
 			if (!aet) {
 				std::string name = "vertical";
 				name += std::to_string(idx);
-				aet = obs_audio_encoder_create("ffmpeg_aac",
-							       name.c_str(),
-							       nullptr, i,
-							       nullptr);
+				aet = obs_audio_encoder_create("ffmpeg_aac", name.c_str(), nullptr, i, nullptr);
 				obs_encoder_set_audio(aet, obs_get_audio());
 			}
 			obs_output_set_audio_encoder(output, aet, idx);
@@ -5763,48 +5053,35 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 		}
 	} else {
 		bool r = false;
-		obs_output_t *main_output =
-			obs_frontend_get_replay_buffer_output();
+		obs_output_t *main_output = obs_frontend_get_replay_buffer_output();
 		if (!main_output) {
 			r = true;
 			main_output = obs_frontend_get_recording_output();
 		}
 		size_t mixers = obs_output_get_mixers(main_output);
 		if (!mixers) {
-			obs_output_t *record_output =
-				obs_frontend_get_recording_output();
+			obs_output_t *record_output = obs_frontend_get_recording_output();
 			if (record_output) {
 				mixers = obs_output_get_mixers(record_output);
 				obs_output_release(record_output);
 			}
 			if (!mixers) {
-				config_t *config =
-					obs_frontend_get_profile_config();
-				const char *mode = config_get_string(
-					config, "Output", "Mode");
+				config_t *config = obs_frontend_get_profile_config();
+				const char *mode = config_get_string(config, "Output", "Mode");
 				if (astrcmpi(mode, "Advanced") == 0) {
-					const char *recType = config_get_string(
-						config, "AdvOut", "RecType");
+					const char *recType = config_get_string(config, "AdvOut", "RecType");
 					if (astrcmpi(recType, "FFmpeg") == 0) {
-						mixers = config_get_int(
-							config, "AdvOut",
-							"FFAudioMixes");
+						mixers = config_get_int(config, "AdvOut", "FFAudioMixes");
 					} else {
-						mixers = config_get_int(
-							config, "AdvOut",
-							"RecTracks");
+						mixers = config_get_int(config, "AdvOut", "RecTracks");
 					}
 
 				} else {
-					const char *quality = config_get_string(
-						config, "SimpleOutput",
-						"RecQuality");
+					const char *quality = config_get_string(config, "SimpleOutput", "RecQuality");
 					if (strcmp(quality, "Stream") == 0) {
 						mixers = 1;
 					} else {
-						mixers = config_get_int(
-							config, "SimpleOutput",
-							"RecTracks");
+						mixers = config_get_int(config, "SimpleOutput", "RecTracks");
 					}
 				}
 				if (!mixers)
@@ -5815,8 +5092,7 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
 			if ((mixers & (1ll << i)) == 0)
 				continue;
-			obs_encoder_t *aef =
-				obs_output_get_audio_encoder(main_output, idx);
+			obs_encoder_t *aef = obs_output_get_audio_encoder(main_output, idx);
 			if (!aef && idx == 0) {
 				if (r) {
 					obs_frontend_recording_start();
@@ -5825,29 +5101,19 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 					obs_frontend_replay_buffer_start();
 					obs_frontend_replay_buffer_stop();
 				}
-				aef = obs_output_get_audio_encoder(main_output,
-								   idx);
+				aef = obs_output_get_audio_encoder(main_output, idx);
 			}
 			if (aef) {
-				obs_encoder_t *aet =
-					obs_output_get_audio_encoder(
-						replayOutput, idx);
+				obs_encoder_t *aet = obs_output_get_audio_encoder(replayOutput, idx);
 				if (!aet && recordOutput)
-					aet = obs_output_get_audio_encoder(
-						recordOutput, idx);
-				if (aet && strcmp(obs_encoder_get_id(aef),
-						  obs_encoder_get_id(aet)) != 0)
+					aet = obs_output_get_audio_encoder(recordOutput, idx);
+				if (aet && strcmp(obs_encoder_get_id(aef), obs_encoder_get_id(aet)) != 0)
 					aet = nullptr;
 				if (!aet) {
-					std::string name =
-						obs_encoder_get_name(aef);
+					std::string name = obs_encoder_get_name(aef);
 					name += "_vertical";
-					aet = obs_audio_encoder_create(
-						obs_encoder_get_id(aef),
-						name.c_str(), nullptr, i,
-						nullptr);
-					obs_encoder_set_audio(aet,
-							      obs_get_audio());
+					aet = obs_audio_encoder_create(obs_encoder_get_id(aef), name.c_str(), nullptr, i, nullptr);
+					obs_encoder_set_audio(aet, obs_get_audio());
 				}
 				auto s = obs_encoder_get_settings(aef);
 				obs_encoder_update(aet, s);
@@ -5868,37 +5134,26 @@ void CanvasDock::ShowNoReplayOutputError()
 	config_t *config = obs_frontend_get_profile_config();
 	const char *mode = config_get_string(config, "Output", "Mode");
 	if (astrcmpi(mode, "Advanced") == 0) {
-		const char *recType =
-			config_get_string(config, "AdvOut", "RecType");
+		const char *recType = config_get_string(config, "AdvOut", "RecType");
 		if (astrcmpi(recType, "FFmpeg") == 0) {
-			blog(LOG_WARNING,
-			     "[Vertical Canvas] error starting backtrack: custom ffmpeg");
+			blog(LOG_WARNING, "[Vertical Canvas] error starting backtrack: custom ffmpeg");
 			if (isVisible()) {
-				QMessageBox::warning(
-					this,
-					QString::fromUtf8(obs_module_text(
-						"backtrackStartFail")),
-					QString::fromUtf8(obs_module_text(
-						"backtrackCustomFfmpeg")));
+				QMessageBox::warning(this, QString::fromUtf8(obs_module_text("backtrackStartFail")),
+						     QString::fromUtf8(obs_module_text("backtrackCustomFfmpeg")));
 			}
 			return;
 		}
 	}
-	blog(LOG_WARNING,
-	     "[Vertical Canvas] error starting backtrack: no replay buffer found");
+	blog(LOG_WARNING, "[Vertical Canvas] error starting backtrack: no replay buffer found");
 	if (isVisible()) {
-		QMessageBox::warning(this,
-				     QString::fromUtf8(obs_module_text(
-					     "backtrackStartFail")),
-				     QString::fromUtf8(obs_module_text(
-					     "backtrackNoReplayBuffer")));
+		QMessageBox::warning(this, QString::fromUtf8(obs_module_text("backtrackStartFail")),
+				     QString::fromUtf8(obs_module_text("backtrackNoReplayBuffer")));
 	}
 }
 
 void CanvasDock::StartReplayBuffer()
 {
-	if ((!startReplay && !replayAlwaysOn) ||
-	    obs_output_active(replayOutput))
+	if ((!startReplay && !replayAlwaysOn) || obs_output_active(replayOutput))
 		return;
 
 	if (record_advanced_settings) {
@@ -5919,14 +5174,12 @@ void CanvasDock::StartReplayBuffer()
 		obs_output_update(replayOutput, s);
 		obs_data_release(s);
 	} else {
-		obs_output_t *replay_output =
-			obs_frontend_get_replay_buffer_output();
+		obs_output_t *replay_output = obs_frontend_get_replay_buffer_output();
 		if (!replay_output) {
 			ShowNoReplayOutputError();
 			return;
 		}
-		obs_encoder_t *enc =
-			obs_output_get_video_encoder(replay_output);
+		obs_encoder_t *enc = obs_output_get_video_encoder(replay_output);
 		if (!enc) {
 			obs_frontend_replay_buffer_start();
 			obs_frontend_replay_buffer_stop();
@@ -5934,8 +5187,7 @@ void CanvasDock::StartReplayBuffer()
 		}
 		if (!enc) {
 			obs_output_release(replay_output);
-			blog(LOG_WARNING,
-			     "[Vertical Canvas] error starting backtrack: no video encoder found");
+			blog(LOG_WARNING, "[Vertical Canvas] error starting backtrack: no video encoder found");
 			return;
 		}
 
@@ -5946,16 +5198,14 @@ void CanvasDock::StartReplayBuffer()
 			obs_frontend_replay_buffer_stop();
 		}
 		if (!replayDuration) {
-			replayDuration =
-				obs_data_get_int(settings, "max_time_sec");
+			replayDuration = obs_data_get_int(settings, "max_time_sec");
 			if (!replayDuration)
 				replayDuration = 5;
 		}
 		if (replayPath.empty())
 			replayPath = obs_data_get_string(settings, "directory");
 		obs_output_update(replayOutput, settings);
-		if (obs_data_get_int(settings, "max_time_sec") !=
-		    replayDuration) {
+		if (obs_data_get_int(settings, "max_time_sec") != replayDuration) {
 			const auto s = obs_output_get_settings(replayOutput);
 			obs_data_set_int(s, "max_time_sec", replayDuration);
 			obs_data_release(s);
@@ -5965,8 +5215,7 @@ void CanvasDock::StartReplayBuffer()
 			obs_data_set_int(s, "max_size_mb", 0);
 			obs_data_release(s);
 		}
-		if (strcmp(replayPath.c_str(),
-			   obs_data_get_string(settings, "directory")) != 0) {
+		if (strcmp(replayPath.c_str(), obs_data_get_string(settings, "directory")) != 0) {
 			const auto s = obs_output_get_settings(replayOutput);
 			obs_data_set_string(s, "directory", replayPath.c_str());
 			obs_data_release(s);
@@ -6014,12 +5263,8 @@ void CanvasDock::StartReplayBuffer()
 
 	const bool success = obs_output_start(replayOutput);
 	if (!success) {
-		QMetaObject::invokeMethod(
-			this, "OnReplayBufferStop",
-			Q_ARG(int, OBS_OUTPUT_ERROR),
-			Q_ARG(QString,
-			      QString::fromUtf8(obs_output_get_last_error(
-				      replayOutput))));
+		QMetaObject::invokeMethod(this, "OnReplayBufferStop", Q_ARG(int, OBS_OUTPUT_ERROR),
+					  Q_ARG(QString, QString::fromUtf8(obs_output_get_last_error(replayOutput))));
 		if (started_video) {
 			video = nullptr;
 			obs_view_remove(view);
@@ -6072,11 +5317,9 @@ const char *get_simple_output_encoder(const char *encoder)
 	if (strcmp(encoder, SIMPLE_ENCODER_AMD_AV1) == 0)
 		return "av1_texture_amf";
 	if (strcmp(encoder, SIMPLE_ENCODER_NVENC) == 0)
-		return EncoderAvailable("jim_nvenc") ? "jim_nvenc"
-						     : "ffmpeg_nvenc";
+		return EncoderAvailable("jim_nvenc") ? "jim_nvenc" : "ffmpeg_nvenc";
 	if (strcmp(encoder, SIMPLE_ENCODER_NVENC_HEVC) == 0)
-		return EncoderAvailable("jim_hevc_nvenc") ? "jim_hevc_nvenc"
-							  : "ffmpeg_hevc_nvenc";
+		return EncoderAvailable("jim_hevc_nvenc") ? "jim_hevc_nvenc" : "ffmpeg_hevc_nvenc";
 	if (strcmp(encoder, SIMPLE_ENCODER_NVENC_AV1) == 0)
 		return "jim_av1_nvenc";
 	if (strcmp(encoder, SIMPLE_ENCODER_APPLE_H264) == 0)
@@ -6103,12 +5346,10 @@ obs_encoder_t *CanvasDock::GetStreamVideoEncoder()
 		if (record_advanced_settings) {
 			useRecordEncoder = record_encoder.empty();
 		} else if (strcmp(mode, "Advanced") == 0) {
-			const char *recordEncoder = config_get_string(
-				config, "AdvOut", "RecEncoder");
+			const char *recordEncoder = config_get_string(config, "AdvOut", "RecEncoder");
 			useRecordEncoder = astrcmpi(recordEncoder, "none") == 0;
 		} else {
-			const char *quality = config_get_string(
-				config, "SimpleOutput", "RecQuality");
+			const char *quality = config_get_string(config, "SimpleOutput", "RecQuality");
 			if (strcmp(quality, "Stream") == 0) {
 				useRecordEncoder = true;
 			}
@@ -6116,22 +5357,17 @@ obs_encoder_t *CanvasDock::GetStreamVideoEncoder()
 	} else if (strcmp(mode, "Advanced") == 0) {
 		video_settings = GetDataFromJsonFile("streamEncoder.json");
 		enc_id = config_get_string(config, "AdvOut", "Encoder");
-		const char *recordEncoder =
-			config_get_string(config, "AdvOut", "RecEncoder");
+		const char *recordEncoder = config_get_string(config, "AdvOut", "RecEncoder");
 		useRecordEncoder = astrcmpi(recordEncoder, "none") == 0;
 		if (!streamingVideoBitrate) {
-			streamingVideoBitrate = (uint32_t)obs_data_get_int(
-				video_settings, "bitrate");
+			streamingVideoBitrate = (uint32_t)obs_data_get_int(video_settings, "bitrate");
 		} else {
-			obs_data_set_int(video_settings, "bitrate",
-					 streamingVideoBitrate);
+			obs_data_set_int(video_settings, "bitrate", streamingVideoBitrate);
 		}
 	} else {
 		video_settings = obs_data_create();
-		bool advanced =
-			config_get_bool(config, "SimpleOutput", "UseAdvanced");
-		enc_id = get_simple_output_encoder(config_get_string(
-			config, "SimpleOutput", "StreamEncoder"));
+		bool advanced = config_get_bool(config, "SimpleOutput", "UseAdvanced");
+		enc_id = get_simple_output_encoder(config_get_string(config, "SimpleOutput", "StreamEncoder"));
 		const char *presetType;
 		const char *preset;
 		if (strcmp(enc_id, SIMPLE_ENCODER_QSV) == 0) {
@@ -6162,32 +5398,23 @@ obs_encoder_t *CanvasDock::GetStreamVideoEncoder()
 		}
 
 		preset = config_get_string(config, "SimpleOutput", presetType);
-		obs_data_set_string(video_settings,
-				    (strcmp(presetType, "NVENCPreset2") == 0)
-					    ? "preset2"
-					    : "preset",
-				    preset);
+		obs_data_set_string(video_settings, (strcmp(presetType, "NVENCPreset2") == 0) ? "preset2" : "preset", preset);
 
 		obs_data_set_string(video_settings, "rate_control", "CBR");
 		if (!streamingVideoBitrate) {
-			const int sVideoBitrate = config_get_uint(
-				config, "SimpleOutput", "VBitrate");
-			obs_data_set_int(video_settings, "bitrate",
-					 sVideoBitrate);
+			const int sVideoBitrate = config_get_uint(config, "SimpleOutput", "VBitrate");
+			obs_data_set_int(video_settings, "bitrate", sVideoBitrate);
 			streamingVideoBitrate = sVideoBitrate;
 		} else {
-			obs_data_set_int(video_settings, "bitrate",
-					 streamingVideoBitrate);
+			obs_data_set_int(video_settings, "bitrate", streamingVideoBitrate);
 		}
 
 		if (advanced) {
-			const char *custom = config_get_string(
-				config, "SimpleOutput", "x264Settings");
+			const char *custom = config_get_string(config, "SimpleOutput", "x264Settings");
 			obs_data_set_string(video_settings, "x264opts", custom);
 		}
 
-		const char *quality =
-			config_get_string(config, "SimpleOutput", "RecQuality");
+		const char *quality = config_get_string(config, "SimpleOutput", "RecQuality");
 		if (strcmp(quality, "Stream") == 0) {
 			useRecordEncoder = true;
 		}
@@ -6215,9 +5442,7 @@ obs_encoder_t *CanvasDock::GetStreamVideoEncoder()
 		}
 	}
 	if (!video_encoder) {
-		video_encoder = obs_video_encoder_create(
-			enc_id, "vertical_canvas_video_encoder", nullptr,
-			nullptr);
+		video_encoder = obs_video_encoder_create(enc_id, "vertical_canvas_video_encoder", nullptr, nullptr);
 	}
 
 	obs_encoder_update(video_encoder, video_settings);
@@ -6230,8 +5455,7 @@ obs_encoder_t *CanvasDock::GetStreamVideoEncoder()
 	case VIDEO_FORMAT_P010:
 		break;
 	default:
-		obs_encoder_set_preferred_video_format(video_encoder,
-						       VIDEO_FORMAT_NV12);
+		obs_encoder_set_preferred_video_format(video_encoder, VIDEO_FORMAT_NV12);
 	}
 	if (!obs_encoder_active(video_encoder))
 		obs_encoder_set_video(video_encoder, video);
@@ -6255,19 +5479,13 @@ obs_encoder_t *CanvasDock::GetRecordVideoEncoder()
 		config_t *config = obs_frontend_get_profile_config();
 		const char *mode = config_get_string(config, "Output", "Mode");
 		if (strcmp(mode, "Advanced") == 0) {
-			if (astrcmpi(config_get_string(config, "AdvOut",
-						       "RecEncoder"),
-				     "none") == 0)
+			if (astrcmpi(config_get_string(config, "AdvOut", "RecEncoder"), "none") == 0)
 				return GetStreamVideoEncoder();
-			enc_id = config_get_string(config, "AdvOut",
-						   "RecEncoder");
+			enc_id = config_get_string(config, "AdvOut", "RecEncoder");
 		} else {
-			if (strcmp(config_get_string(config, "SimpleOutput",
-						     "RecQuality"),
-				   "Stream") == 0)
+			if (strcmp(config_get_string(config, "SimpleOutput", "RecQuality"), "Stream") == 0)
 				return GetStreamVideoEncoder();
-			enc_id = get_simple_output_encoder(config_get_string(
-				config, "SimpleOutput", "RecEncoder"));
+			enc_id = get_simple_output_encoder(config_get_string(config, "SimpleOutput", "RecEncoder"));
 		}
 	}
 
@@ -6284,17 +5502,14 @@ obs_encoder_t *CanvasDock::GetRecordVideoEncoder()
 		}
 	}
 	if (!video_encoder) {
-		video_encoder = obs_video_encoder_create(
-			enc_id, "vertical_canvas_record_video_encoder", nullptr,
-			nullptr);
+		video_encoder = obs_video_encoder_create(enc_id, "vertical_canvas_record_video_encoder", nullptr, nullptr);
 	}
 
 	obs_encoder_update(video_encoder, settings);
 	obs_data_release(settings);
 
 	if (!record_advanced_settings) {
-		obs_output_t *main_output =
-			obs_frontend_get_replay_buffer_output();
+		obs_output_t *main_output = obs_frontend_get_replay_buffer_output();
 		if (!main_output)
 			main_output = obs_frontend_get_recording_output();
 		auto enc = obs_output_get_video_encoder(main_output);
@@ -6302,14 +5517,11 @@ obs_encoder_t *CanvasDock::GetRecordVideoEncoder()
 		obs_data_t *d = obs_encoder_get_settings(enc);
 		obs_encoder_update(video_encoder, d);
 		if (!recordVideoBitrate) {
-			recordVideoBitrate =
-				(uint32_t)obs_data_get_int(d, "bitrate");
+			recordVideoBitrate = (uint32_t)obs_data_get_int(d, "bitrate");
 		} else {
 			auto s = obs_encoder_get_settings(video_encoder);
-			if (recordVideoBitrate !=
-			    obs_data_get_int(s, "bitrate")) {
-				obs_data_set_int(s, "bitrate",
-						 recordVideoBitrate);
+			if (recordVideoBitrate != obs_data_get_int(s, "bitrate")) {
+				obs_data_set_int(s, "bitrate", recordVideoBitrate);
 				obs_encoder_update(video_encoder, nullptr);
 			}
 			obs_data_release(s);
@@ -6324,8 +5536,7 @@ obs_encoder_t *CanvasDock::GetRecordVideoEncoder()
 	case VIDEO_FORMAT_P010:
 		break;
 	default:
-		obs_encoder_set_preferred_video_format(video_encoder,
-						       VIDEO_FORMAT_NV12);
+		obs_encoder_set_preferred_video_format(video_encoder, VIDEO_FORMAT_NV12);
 	}
 	if (!obs_encoder_active(video_encoder))
 		obs_encoder_set_video(video_encoder, video);
@@ -6334,8 +5545,7 @@ obs_encoder_t *CanvasDock::GetRecordVideoEncoder()
 
 void CanvasDock::StopReplayBuffer()
 {
-	QMetaObject::invokeMethod(this, "OnReplayBufferStop",
-				  Q_ARG(int, OBS_OUTPUT_SUCCESS),
+	QMetaObject::invokeMethod(this, "OnReplayBufferStop", Q_ARG(int, OBS_OUTPUT_SUCCESS),
 				  Q_ARG(QString, QString::fromUtf8("")));
 	if (obs_output_active(replayOutput)) {
 		SendVendorEvent("backtrack_stopping");
@@ -6354,14 +5564,12 @@ void CanvasDock::replay_output_start(void *data, calldata_t *calldata)
 
 void CanvasDock::replay_output_stop(void *data, calldata_t *calldata)
 {
-	const char *last_error =
-		(const char *)calldata_ptr(calldata, "last_error");
+	const char *last_error = (const char *)calldata_ptr(calldata, "last_error");
 	QString arg_last_error = QString::fromUtf8(last_error);
 	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
 	d->SendVendorEvent("backtrack_stopped");
-	QMetaObject::invokeMethod(d, "OnReplayBufferStop", Q_ARG(int, code),
-				  Q_ARG(QString, arg_last_error));
+	QMetaObject::invokeMethod(d, "OnReplayBufferStop", Q_ARG(int, code), Q_ARG(QString, arg_last_error));
 }
 
 void CanvasDock::StreamButtonClicked()
@@ -6389,46 +5597,32 @@ void CanvasDock::StreamButtonMultiMenu(QMenu *menu)
 			active_count++;
 		if (!it->enabled && !active)
 			continue;
-		auto action = menu->addAction(QString::fromUtf8(
-			it->name.empty() ? it->stream_server : it->name));
+		auto action = menu->addAction(QString::fromUtf8(it->name.empty() ? it->stream_server : it->name));
 		action->setCheckable(true);
 		action->setChecked(active);
 		auto output = it->output;
 		if (active) {
-			connect(action, &QAction::triggered,
-				[output] { obs_output_stop(output); });
+			connect(action, &QAction::triggered, [output] { obs_output_stop(output); });
 		} else {
 			connect(action, &QAction::triggered, [this, it] {
 				CreateStreamOutput(it);
-				obs_output_set_video_encoder(
-					it->output, GetStreamVideoEncoder());
-				obs_output_set_audio_encoder(
-					it->output, GetStreamAudioEncoder(), 0);
+				obs_output_set_video_encoder(it->output, GetStreamVideoEncoder());
+				obs_output_set_audio_encoder(it->output, GetStreamAudioEncoder(), 0);
 				if (!obs_output_start(it->output)) {
-					QMetaObject::invokeMethod(
-						this, "OnStreamStop",
-						Q_ARG(int, OBS_OUTPUT_ERROR),
-						Q_ARG(QString,
-						      QString::fromUtf8(
-							      obs_output_get_last_error(
-								      it->output))),
-						Q_ARG(QString,
-						      QString::fromUtf8(
-							      it->stream_server)),
-						Q_ARG(QString,
-						      QString::fromUtf8(
-							      it->stream_key)));
+					QMetaObject::invokeMethod(this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_ERROR),
+								  Q_ARG(QString,
+									QString::fromUtf8(obs_output_get_last_error(it->output))),
+								  Q_ARG(QString, QString::fromUtf8(it->stream_server)),
+								  Q_ARG(QString, QString::fromUtf8(it->stream_key)));
 				}
 			});
 		}
 	}
 	menu->addSeparator();
 	if (active_count == 0) {
-		menu->addAction(QString::fromUtf8(obs_module_text("StartAll")),
-				[this] { StartStream(); });
+		menu->addAction(QString::fromUtf8(obs_module_text("StartAll")), [this] { StartStream(); });
 	} else {
-		menu->addAction(QString::fromUtf8(obs_module_text("StopAll")),
-				[this] { StopStream(); });
+		menu->addAction(QString::fromUtf8(obs_module_text("StopAll")), [this] { StopStream(); });
 	}
 }
 
@@ -6451,8 +5645,7 @@ void CanvasDock::CreateStreamOutput(std::vector<StreamServer>::iterator it)
 #if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(29, 1, 0)
 		const char *url = obs_service_get_url(it->service);
 #else
-		const char *url = obs_service_get_connect_info(
-			it->service, OBS_SERVICE_CONNECT_INFO_SERVER_URL);
+		const char *url = obs_service_get_connect_info(it->service, OBS_SERVICE_CONNECT_INFO_SERVER_URL);
 #endif
 		type = "rtmp_output";
 		if (url != NULL && strncmp(url, "ftl", 3) == 0) {
@@ -6467,36 +5660,25 @@ void CanvasDock::CreateStreamOutput(std::vector<StreamServer>::iterator it)
 				obs_output_stop(it->output);
 			obs_output_release(it->output);
 		}
-		it->output = obs_output_create(type, "vertical_canvas_stream",
-					       nullptr, nullptr);
+		it->output = obs_output_create(type, "vertical_canvas_stream", nullptr, nullptr);
 		obs_output_set_service(it->output, it->service);
 	}
 	config_t *config = obs_frontend_get_profile_config();
 	if (config) {
 		OBSDataAutoRelease output_settings = obs_data_create();
-		obs_data_set_string(output_settings, "bind_ip",
-				    config_get_string(config, "Output",
-						      "BindIP"));
-		obs_data_set_string(output_settings, "ip_family",
-				    config_get_string(config, "Output",
-						      "IPFamily"));
+		obs_data_set_string(output_settings, "bind_ip", config_get_string(config, "Output", "BindIP"));
+		obs_data_set_string(output_settings, "ip_family", config_get_string(config, "Output", "IPFamily"));
 		obs_output_update(it->output, output_settings);
 	}
 
 	if (stream_advanced_settings) {
-		obs_output_set_delay(
-			it->output,
-			stream_delay_enabled ? stream_delay_duration : 0,
-			stream_delay_preserve ? OBS_OUTPUT_DELAY_PRESERVE : 0);
+		obs_output_set_delay(it->output, stream_delay_enabled ? stream_delay_duration : 0,
+				     stream_delay_preserve ? OBS_OUTPUT_DELAY_PRESERVE : 0);
 	} else {
-		bool useDelay =
-			config_get_bool(config, "Output", "DelayEnable");
+		bool useDelay = config_get_bool(config, "Output", "DelayEnable");
 		int delaySec = config_get_int(config, "Output", "DelaySec");
-		bool preserveDelay =
-			config_get_bool(config, "Output", "DelayPreserve");
-		obs_output_set_delay(it->output, useDelay ? delaySec : 0,
-				     preserveDelay ? OBS_OUTPUT_DELAY_PRESERVE
-						   : 0);
+		bool preserveDelay = config_get_bool(config, "Output", "DelayPreserve");
+		obs_output_set_delay(it->output, useDelay ? delaySec : 0, preserveDelay ? OBS_OUTPUT_DELAY_PRESERVE : 0);
 	}
 
 	signal_handler_t *signal = obs_output_get_signal_handler(it->output);
@@ -6519,85 +5701,63 @@ obs_encoder_t *CanvasDock::GetStreamAudioEncoder()
 			mix_idx = stream_audio_track - 1;
 
 		if (record_advanced_settings) {
-			obs_data_set_int(audio_settings, "bitrate",
-					 audioBitrate);
+			obs_data_set_int(audio_settings, "bitrate", audioBitrate);
 		} else if (strcmp(mode, "Advanced") == 0) {
 			if (!audioBitrate) {
-				uint64_t streamTrack = config_get_uint(
-					config, "AdvOut", "TrackIndex");
+				uint64_t streamTrack = config_get_uint(config, "AdvOut", "TrackIndex");
 				static const char *trackNames[] = {
-					"Track1Bitrate", "Track2Bitrate",
-					"Track3Bitrate", "Track4Bitrate",
-					"Track5Bitrate", "Track6Bitrate",
+					"Track1Bitrate", "Track2Bitrate", "Track3Bitrate",
+					"Track4Bitrate", "Track5Bitrate", "Track6Bitrate",
 				};
-				const int advAudioBitrate =
-					(int)config_get_uint(
-						config, "AdvOut",
-						trackNames[streamTrack - 1]);
-				obs_data_set_int(audio_settings, "bitrate",
-						 advAudioBitrate);
+				const int advAudioBitrate = (int)config_get_uint(config, "AdvOut", trackNames[streamTrack - 1]);
+				obs_data_set_int(audio_settings, "bitrate", advAudioBitrate);
 				audioBitrate = advAudioBitrate;
 			} else {
-				obs_data_set_int(audio_settings, "bitrate",
-						 audioBitrate);
+				obs_data_set_int(audio_settings, "bitrate", audioBitrate);
 			}
 		} else {
 			if (!audioBitrate) {
-				const int sAudioBitrate = (int)config_get_uint(
-					config, "SimpleOutput", "ABitrate");
-				obs_data_set_int(audio_settings, "bitrate",
-						 sAudioBitrate);
+				const int sAudioBitrate = (int)config_get_uint(config, "SimpleOutput", "ABitrate");
+				obs_data_set_int(audio_settings, "bitrate", sAudioBitrate);
 				audioBitrate = sAudioBitrate;
 			} else {
-				obs_data_set_int(audio_settings, "bitrate",
-						 audioBitrate);
+				obs_data_set_int(audio_settings, "bitrate", audioBitrate);
 			}
 		}
 	} else if (strcmp(mode, "Advanced") == 0) {
 		mix_idx = config_get_uint(config, "AdvOut", "TrackIndex") - 1;
 		if (!audioBitrate) {
 			static const char *trackNames[] = {
-				"Track1Bitrate", "Track2Bitrate",
-				"Track3Bitrate", "Track4Bitrate",
-				"Track5Bitrate", "Track6Bitrate",
+				"Track1Bitrate", "Track2Bitrate", "Track3Bitrate",
+				"Track4Bitrate", "Track5Bitrate", "Track6Bitrate",
 			};
-			const int advAudioBitrate = (int)config_get_uint(
-				config, "AdvOut", trackNames[mix_idx]);
-			obs_data_set_int(audio_settings, "bitrate",
-					 advAudioBitrate);
+			const int advAudioBitrate = (int)config_get_uint(config, "AdvOut", trackNames[mix_idx]);
+			obs_data_set_int(audio_settings, "bitrate", advAudioBitrate);
 			audioBitrate = advAudioBitrate;
 		} else {
-			obs_data_set_int(audio_settings, "bitrate",
-					 audioBitrate);
+			obs_data_set_int(audio_settings, "bitrate", audioBitrate);
 		}
 	} else {
 		obs_data_set_string(audio_settings, "rate_control", "CBR");
 		if (!audioBitrate) {
-			const int sAudioBitrate = (int)config_get_uint(
-				config, "SimpleOutput", "ABitrate");
-			obs_data_set_int(audio_settings, "bitrate",
-					 sAudioBitrate);
+			const int sAudioBitrate = (int)config_get_uint(config, "SimpleOutput", "ABitrate");
+			obs_data_set_int(audio_settings, "bitrate", sAudioBitrate);
 			audioBitrate = sAudioBitrate;
 		} else {
-			obs_data_set_int(audio_settings, "bitrate",
-					 audioBitrate);
+			obs_data_set_int(audio_settings, "bitrate", audioBitrate);
 		}
 	}
 	obs_encoder_t *audio_encoder = nullptr;
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
 		if (!audio_encoder)
-			audio_encoder =
-				obs_output_get_audio_encoder(it->output, 0);
+			audio_encoder = obs_output_get_audio_encoder(it->output, 0);
 	}
 	if (!audio_encoder) {
-		audio_encoder = obs_audio_encoder_create(
-			"ffmpeg_aac", "vertical_canvas_audio_encoder",
-			audio_settings, mix_idx, nullptr);
+		audio_encoder =
+			obs_audio_encoder_create("ffmpeg_aac", "vertical_canvas_audio_encoder", audio_settings, mix_idx, nullptr);
 		obs_encoder_set_audio(audio_encoder, obs_get_audio());
-		for (auto it = streamOutputs.begin(); it != streamOutputs.end();
-		     ++it)
-			obs_output_set_audio_encoder(it->output, audio_encoder,
-						     0);
+		for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it)
+			obs_output_set_audio_encoder(it->output, audio_encoder, 0);
 	} else {
 		obs_encoder_update(audio_encoder, audio_settings);
 	}
@@ -6616,18 +5776,12 @@ void CanvasDock::StartStream()
 			to_start = true;
 	}
 	if (!to_start) {
-		QMetaObject::invokeMethod(
-			this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_SUCCESS),
-			Q_ARG(QString, QString::fromUtf8("")),
-			Q_ARG(QString, QString::fromUtf8("")),
-			Q_ARG(QString, QString::fromUtf8("")));
+		QMetaObject::invokeMethod(this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_SUCCESS),
+					  Q_ARG(QString, QString::fromUtf8("")), Q_ARG(QString, QString::fromUtf8("")),
+					  Q_ARG(QString, QString::fromUtf8("")));
 		if (isVisible()) {
-			QMessageBox::information(
-				this,
-				QString::fromUtf8(
-					obs_module_text("NoOutputServer")),
-				QString::fromUtf8(obs_module_text(
-					"NoOutputServerWarning")));
+			QMessageBox::information(this, QString::fromUtf8(obs_module_text("NoOutputServer")),
+						 QString::fromUtf8(obs_module_text("NoOutputServerWarning")));
 		}
 		return;
 	}
@@ -6664,29 +5818,18 @@ void CanvasDock::StartStream()
 			continue;
 		if (config) {
 			OBSDataAutoRelease output_settings = obs_data_create();
-			obs_data_set_string(output_settings, "bind_ip",
-					    config_get_string(config, "Output",
-							      "BindIP"));
-			obs_data_set_string(output_settings, "ip_family",
-					    config_get_string(config, "Output",
-							      "IPFamily"));
+			obs_data_set_string(output_settings, "bind_ip", config_get_string(config, "Output", "BindIP"));
+			obs_data_set_string(output_settings, "ip_family", config_get_string(config, "Output", "IPFamily"));
 			obs_output_update(it->output, output_settings);
 		}
 
 		if (obs_output_start(it->output))
 			success = true;
 		else
-			QMetaObject::invokeMethod(
-				this, "OnStreamStop",
-				Q_ARG(int, OBS_OUTPUT_ERROR),
-				Q_ARG(QString,
-				      QString::fromUtf8(
-					      obs_output_get_last_error(
-						      it->output))),
-				Q_ARG(QString,
-				      QString::fromUtf8(it->stream_server)),
-				Q_ARG(QString,
-				      QString::fromUtf8(it->stream_key)));
+			QMetaObject::invokeMethod(this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_ERROR),
+						  Q_ARG(QString, QString::fromUtf8(obs_output_get_last_error(it->output))),
+						  Q_ARG(QString, QString::fromUtf8(it->stream_server)),
+						  Q_ARG(QString, QString::fromUtf8(it->stream_key)));
 	}
 	if (!success && started_video) {
 		video = nullptr;
@@ -6721,8 +5864,7 @@ void CanvasDock::stream_output_start(void *data, calldata_t *calldata)
 
 void CanvasDock::stream_output_stop(void *data, calldata_t *calldata)
 {
-	const char *last_error =
-		(const char *)calldata_ptr(calldata, "last_error");
+	const char *last_error = (const char *)calldata_ptr(calldata, "last_error");
 	QString arg_last_error = QString::fromUtf8(last_error);
 	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
@@ -6730,18 +5872,15 @@ void CanvasDock::stream_output_stop(void *data, calldata_t *calldata)
 	QString stream_server;
 	QString stream_key;
 	obs_output_t *t = (obs_output_t *)calldata_ptr(calldata, "output");
-	for (auto it = d->streamOutputs.begin(); it != d->streamOutputs.end();
-	     ++it) {
+	for (auto it = d->streamOutputs.begin(); it != d->streamOutputs.end(); ++it) {
 		if (it->output == t) {
 			stream_server = QString::fromUtf8(it->stream_server);
 			stream_key = QString::fromUtf8(it->stream_key);
 		}
 	}
 
-	QMetaObject::invokeMethod(d, "OnStreamStop", Q_ARG(int, code),
-				  Q_ARG(QString, arg_last_error),
-				  Q_ARG(QString, stream_server),
-				  Q_ARG(QString, stream_key));
+	QMetaObject::invokeMethod(d, "OnStreamStop", Q_ARG(int, code), Q_ARG(QString, arg_last_error),
+				  Q_ARG(QString, stream_server), Q_ARG(QString, stream_key));
 }
 
 void CanvasDock::DestroyVideo()
@@ -6763,8 +5902,7 @@ std::vector<QString> CanvasDock::GetScenes()
 	std::vector<QString> scenes;
 	if (scenesDock) {
 		for (int i = 0; i < scenesDock->sceneList->count(); i++) {
-			scenes.push_back(
-				scenesDock->sceneList->item(i)->text());
+			scenes.push_back(scenesDock->sceneList->item(i)->text());
 		}
 	} else if (scenesCombo) {
 		for (int i = 0; i < scenesCombo->count(); i++) {
@@ -6813,8 +5951,7 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_bool(data, "show_scenes", !hideScenes);
 	obs_data_set_bool(data, "preview_disabled", preview_disabled);
 	obs_data_set_bool(data, "virtual_cam_warned", virtual_cam_warned);
-	obs_data_set_int(data, "streaming_video_bitrate",
-			 streamingVideoBitrate);
+	obs_data_set_int(data, "streaming_video_bitrate", streamingVideoBitrate);
 	obs_data_set_bool(data, "streaming_match_main", streamingMatchMain);
 	obs_data_set_int(data, "record_video_bitrate", recordVideoBitrate);
 	obs_data_set_bool(data, "recording_match_main", recordingMatchMain);
@@ -6835,8 +5972,7 @@ obs_data_t *CanvasDock::SaveSettings()
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
 		obs_data_t *s = obs_data_create();
 		obs_data_set_string(s, "name", it->name.c_str());
-		obs_data_set_string(s, "stream_server",
-				    it->stream_server.c_str());
+		obs_data_set_string(s, "stream_server", it->stream_server.c_str());
 		obs_data_set_string(s, "stream_key", it->stream_key.c_str());
 		obs_data_set_bool(s, "enabled", it->enabled);
 		obs_data_array_push_back(stream_servers, s);
@@ -6850,23 +5986,18 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_int(data, "stream_delay_duration", stream_delay_duration);
 	obs_data_set_bool(data, "stream_delay_preserve", stream_delay_preserve);
 
-	obs_data_set_bool(data, "stream_advanced_settings",
-			  stream_advanced_settings);
+	obs_data_set_bool(data, "stream_advanced_settings", stream_advanced_settings);
 	obs_data_set_int(data, "stream_audio_track", stream_audio_track);
 	obs_data_set_string(data, "stream_encoder", stream_encoder.c_str());
-	obs_data_set_obj(data, "stream_encoder_settings",
-			 stream_encoder_settings);
+	obs_data_set_obj(data, "stream_encoder_settings", stream_encoder_settings);
 
 	obs_data_set_string(data, "record_path", recordPath.c_str());
-	obs_data_set_bool(data, "record_advanced_settings",
-			  record_advanced_settings);
-	obs_data_set_string(data, "filename_formatting",
-			    filename_formatting.c_str());
+	obs_data_set_bool(data, "record_advanced_settings", record_advanced_settings);
+	obs_data_set_string(data, "filename_formatting", filename_formatting.c_str());
 	obs_data_set_string(data, "file_format", file_format.c_str());
 	obs_data_set_int(data, "record_audio_tracks", record_audio_tracks);
 	obs_data_set_string(data, "record_encoder", record_encoder.c_str());
-	obs_data_set_obj(data, "record_encoder_settings",
-			 record_encoder_settings);
+	obs_data_set_obj(data, "record_encoder_settings", record_encoder_settings);
 
 	obs_data_array_t *start_hotkey = nullptr;
 	obs_data_array_t *stop_hotkey = nullptr;
@@ -6904,9 +6035,7 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_array(data, "transitions", transition_array);
 	obs_data_array_release(transition_array);
 
-	obs_data_set_string(
-		data, "transition",
-		transitionsDock->transition->currentText().toUtf8().constData());
+	obs_data_set_string(data, "transition", transitionsDock->transition->currentText().toUtf8().constData());
 
 	return data;
 }
@@ -6949,11 +6078,9 @@ void CanvasDock::LoadScenes()
 	for (size_t i = 0; i < scenes.sources.num; i++) {
 		const obs_source_t *src = scenes.sources.array[i];
 		obs_data_t *settings = obs_source_get_settings(src);
-		if (obs_data_get_bool(settings, "custom_size") &&
-		    obs_data_get_int(settings, "cx") == canvas_width &&
+		if (obs_data_get_bool(settings, "custom_size") && obs_data_get_int(settings, "cx") == canvas_width &&
 		    obs_data_get_int(settings, "cy") == canvas_height) {
-			QString name =
-				QString::fromUtf8(obs_source_get_name(src));
+			QString name = QString::fromUtf8(obs_source_get_name(src));
 			if (hideScenes) {
 				for (int j = 0; j < sl->count(); j++) {
 					auto item = sl->item(j);
@@ -6966,22 +6093,16 @@ void CanvasDock::LoadScenes()
 				scenesCombo->addItem(name);
 			if (scenesDock)
 				scenesDock->sceneList->addItem(name);
-			if ((currentSceneName.isEmpty() &&
-			     obs_data_get_bool(settings, "canvas_active")) ||
+			if ((currentSceneName.isEmpty() && obs_data_get_bool(settings, "canvas_active")) ||
 			    name == currentSceneName) {
 				if (scenesCombo)
 					scenesCombo->setCurrentText(name);
 				if (scenesDock) {
-					for (int i = 0;
-					     i < scenesDock->sceneList->count();
-					     i++) {
-						auto item =
-							scenesDock->sceneList
-								->item(i);
+					for (int i = 0; i < scenesDock->sceneList->count(); i++) {
+						auto item = scenesDock->sceneList->item(i);
 						if (item->text() != name)
 							continue;
-						scenesDock->sceneList
-							->setCurrentItem(item);
+						scenesDock->sceneList->setCurrentItem(item);
 					}
 				}
 			}
@@ -6989,8 +6110,7 @@ void CanvasDock::LoadScenes()
 		obs_data_release(settings);
 	}
 	obs_frontend_source_list_free(&scenes);
-	if ((scenesDock && scenesDock->sceneList->count() == 0) ||
-	    (scenesCombo && scenesCombo->count() == 0)) {
+	if ((scenesDock && scenesDock->sceneList->count() == 0) || (scenesCombo && scenesCombo->count() == 0)) {
 		AddScene("", false);
 	}
 
@@ -7000,12 +6120,8 @@ void CanvasDock::LoadScenes()
 
 void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 {
-	auto s = scene_name.isEmpty()
-			 ? nullptr
-			 : obs_get_source_by_name(
-				   scene_name.toUtf8().constData());
-	if (s == obs_scene_get_source(scene) ||
-	    (!obs_source_is_scene(s) && !scene_name.isEmpty())) {
+	auto s = scene_name.isEmpty() ? nullptr : obs_get_source_by_name(scene_name.toUtf8().constData());
+	if (s == obs_scene_get_source(scene) || (!obs_source_is_scene(s) && !scene_name.isEmpty())) {
 		obs_source_release(s);
 		return;
 	}
@@ -7027,41 +6143,26 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 			auto ost = obs_source_get_type(oldSource);
 			if (ost == OBS_SOURCE_TYPE_TRANSITION) {
 				auto data = obs_source_get_private_settings(s);
-				obs_source_t *override_transition =
-					GetTransition(obs_data_get_string(
-						data, "transition"));
+				obs_source_t *override_transition = GetTransition(obs_data_get_string(data, "transition"));
 				if (SwapTransition(override_transition)) {
 					obs_source_release(oldSource);
-					oldSource = obs_weak_source_get_source(
-						source);
-					signal_handler_t *handler =
-						obs_source_get_signal_handler(
-							oldSource);
-					signal_handler_connect(
-						handler, "transition_stop",
-						transition_override_stop, this);
+					oldSource = obs_weak_source_get_source(source);
+					signal_handler_t *handler = obs_source_get_signal_handler(oldSource);
+					signal_handler_connect(handler, "transition_stop", transition_override_stop, this);
 				}
 				int duration = 0;
 				if (override_transition)
-					duration = obs_data_get_int(
-						data, "transition_duration");
+					duration = obs_data_get_int(data, "transition_duration");
 				if (duration <= 0)
-					duration =
-						obs_frontend_get_transition_duration();
+					duration = obs_frontend_get_transition_duration();
 				obs_data_release(data);
 
-				auto sourceA = obs_transition_get_source(
-					oldSource, OBS_TRANSITION_SOURCE_A);
+				auto sourceA = obs_transition_get_source(oldSource, OBS_TRANSITION_SOURCE_A);
 				if (sourceA != obs_scene_get_source(scene))
-					obs_transition_set(
-						oldSource,
-						obs_scene_get_source(scene));
+					obs_transition_set(oldSource, obs_scene_get_source(scene));
 				obs_source_release(sourceA);
 				if (transition) {
-					obs_transition_start(
-						oldSource,
-						OBS_TRANSITION_MODE_AUTO,
-						duration, s);
+					obs_transition_start(oldSource, OBS_TRANSITION_MODE_AUTO, duration, s);
 				} else {
 					obs_transition_set(oldSource, s);
 				}
@@ -7083,12 +6184,9 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 	if (scene) {
 		sh = obs_source_get_signal_handler(s);
 		if (sh) {
-			signal_handler_connect(sh, "item_add", SceneItemAdded,
-					       this);
-			signal_handler_connect(sh, "reorder", SceneReordered,
-					       this);
-			signal_handler_connect(sh, "refresh", SceneRefreshed,
-					       this);
+			signal_handler_connect(sh, "item_add", SceneItemAdded, this);
+			signal_handler_connect(sh, "reorder", SceneReordered, this);
+			signal_handler_connect(sh, "refresh", SceneRefreshed, this);
 		}
 	}
 	auto oldName = currentSceneName;
@@ -7100,8 +6198,7 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 	if (scenesDock && !scene_name.isEmpty()) {
 		QListWidgetItem *item = scenesDock->sceneList->currentItem();
 		if (!item || item->text() != scene_name) {
-			for (int i = 0; i < scenesDock->sceneList->count();
-			     i++) {
+			for (int i = 0; i < scenesDock->sceneList->count(); i++) {
 				item = scenesDock->sceneList->item(i);
 				if (item->text() == scene_name) {
 					scenesDock->sceneList->setCurrentRow(i);
@@ -7119,10 +6216,8 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 		const auto d = obs_data_create();
 		obs_data_set_int(d, "width", canvas_width);
 		obs_data_set_int(d, "height", canvas_height);
-		obs_data_set_string(d, "old_scene",
-				    oldName.toUtf8().constData());
-		obs_data_set_string(d, "new_scene",
-				    currentSceneName.toUtf8().constData());
+		obs_data_set_string(d, "old_scene", oldName.toUtf8().constData());
+		obs_data_set_string(d, "new_scene", currentSceneName.toUtf8().constData());
 		obs_websocket_vendor_emit_event(vendor, "switch_scene", d);
 		obs_data_release(d);
 	}
@@ -7131,8 +6226,7 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 void CanvasDock::transition_override_stop(void *data, calldata_t *)
 {
 	auto dock = (CanvasDock *)data;
-	QMetaObject::invokeMethod(dock, "SwitchBackToSelectedTransition",
-				  Qt::QueuedConnection);
+	QMetaObject::invokeMethod(dock, "SwitchBackToSelectedTransition", Qt::QueuedConnection);
 }
 
 void CanvasDock::SwitchBackToSelectedTransition()
@@ -7147,8 +6241,7 @@ obs_source_t *CanvasDock::GetTransition(const char *transition_name)
 	if (!transition_name || !strlen(transition_name))
 		return nullptr;
 	for (auto transition : transitions) {
-		if (strcmp(transition_name, obs_source_get_name(transition)) ==
-		    0) {
+		if (strcmp(transition_name, obs_source_get_name(transition)) == 0) {
 			return transition;
 		}
 	}
@@ -7157,15 +6250,13 @@ obs_source_t *CanvasDock::GetTransition(const char *transition_name)
 
 bool CanvasDock::SwapTransition(obs_source_t *newTransition)
 {
-	if (!newTransition ||
-	    obs_weak_source_references_source(source, newTransition))
+	if (!newTransition || obs_weak_source_references_source(source, newTransition))
 		return false;
 
 	obs_transition_set_size(newTransition, canvas_width, canvas_height);
 
 	obs_source_t *oldTransition = obs_weak_source_get_source(source);
-	if (!oldTransition ||
-	    obs_source_get_type(oldTransition) != OBS_SOURCE_TYPE_TRANSITION) {
+	if (!oldTransition || obs_source_get_type(oldTransition) != OBS_SOURCE_TYPE_TRANSITION) {
 		obs_source_release(oldTransition);
 		obs_weak_source_release(source);
 		source = obs_source_get_weak_source(newTransition);
@@ -7175,10 +6266,8 @@ bool CanvasDock::SwapTransition(obs_source_t *newTransition)
 		obs_source_inc_active(newTransition);
 		return true;
 	}
-	signal_handler_t *handler =
-		obs_source_get_signal_handler(oldTransition);
-	signal_handler_disconnect(handler, "transition_stop",
-				  transition_override_stop, this);
+	signal_handler_t *handler = obs_source_get_signal_handler(oldTransition);
+	signal_handler_disconnect(handler, "transition_stop", transition_override_stop, this);
 	obs_source_inc_showing(newTransition);
 	obs_source_inc_active(newTransition);
 	obs_transition_swap_begin(newTransition, oldTransition);
@@ -7196,10 +6285,8 @@ bool CanvasDock::SwapTransition(obs_source_t *newTransition)
 void CanvasDock::source_rename(void *data, calldata_t *calldata)
 {
 	const auto d = static_cast<CanvasDock *>(data);
-	const auto prev_name =
-		QString::fromUtf8(calldata_string(calldata, "prev_name"));
-	const auto new_name =
-		QString::fromUtf8(calldata_string(calldata, "new_name"));
+	const auto prev_name = QString::fromUtf8(calldata_string(calldata, "prev_name"));
+	const auto new_name = QString::fromUtf8(calldata_string(calldata, "new_name"));
 	auto source = (obs_source_t *)calldata_ptr(calldata, "source");
 	if (!source || !obs_source_is_scene(source))
 		return;
@@ -7216,12 +6303,9 @@ void CanvasDock::source_rename(void *data, calldata_t *calldata)
 		const auto count = obs_data_array_count(c);
 		for (size_t i = 0; i < count; i++) {
 			auto item = obs_data_array_item(c, i);
-			auto n = QString::fromUtf8(
-				obs_data_get_string(item, "scene"));
+			auto n = QString::fromUtf8(obs_data_get_string(item, "scene"));
 			if (n == prev_name) {
-				obs_data_set_string(
-					item, "scene",
-					calldata_string(calldata, "new_name"));
+				obs_data_set_string(item, "scene", calldata_string(calldata, "new_name"));
 			}
 			obs_data_release(item);
 		}
@@ -7242,8 +6326,7 @@ void CanvasDock::source_rename(void *data, calldata_t *calldata)
 		for (int i = 0; i < d->scenesCombo->count(); i++) {
 			if (d->scenesCombo->itemText(i) != prev_name)
 				continue;
-			const bool selected = d->scenesCombo->currentText() ==
-					      prev_name;
+			const bool selected = d->scenesCombo->currentText() == prev_name;
 			d->scenesCombo->removeItem(i);
 			d->scenesCombo->addItem(new_name);
 			if (selected)
@@ -7258,8 +6341,7 @@ void CanvasDock::source_remove(void *data, calldata_t *calldata)
 	const auto source = (obs_source_t *)calldata_ptr(calldata, "source");
 	if (!obs_source_is_scene(source))
 		return;
-	if (obs_weak_source_references_source(d->source, source) ||
-	    source == obs_scene_get_source(d->scene)) {
+	if (obs_weak_source_references_source(d->source, source) || source == obs_scene_get_source(d->scene)) {
 		d->SwitchScene("", false);
 	}
 	const auto name = QString::fromUtf8(obs_source_get_name(source));
@@ -7284,8 +6366,7 @@ void CanvasDock::source_remove(void *data, calldata_t *calldata)
 				continue;
 			d->scenesCombo->removeItem(i);
 		}
-		if (d->scenesCombo->currentIndex() < 0 &&
-		    d->scenesCombo->count()) {
+		if (d->scenesCombo->currentIndex() < 0 && d->scenesCombo->count()) {
 			d->scenesCombo->setCurrentIndex(0);
 		}
 	}
@@ -7300,15 +6381,11 @@ void CanvasDock::source_save(void *data, calldata_t *calldata)
 	obs_data_t *settings = obs_source_get_settings(source);
 	if (!settings)
 		return;
-	if (obs_data_get_bool(settings, "custom_size") &&
-	    obs_data_get_int(settings, "cx") == d->canvas_width &&
+	if (obs_data_get_bool(settings, "custom_size") && obs_data_get_int(settings, "cx") == d->canvas_width &&
 	    obs_data_get_int(settings, "cy") == d->canvas_height) {
-		const QString name =
-			QString::fromUtf8(obs_source_get_name(source));
+		const QString name = QString::fromUtf8(obs_source_get_name(source));
 		if (d->scenesCombo)
-			obs_data_set_bool(settings, "canvas_active",
-					  d->scenesCombo->currentText() ==
-						  name);
+			obs_data_set_bool(settings, "canvas_active", d->scenesCombo->currentText() == name);
 	}
 	obs_data_release(settings);
 }
@@ -7395,8 +6472,7 @@ void CanvasDock::OnRecordStart()
 	recordButton->setChecked(true);
 	recordButton->setIcon(recordActiveIcon);
 	recordButton->setText("00:00");
-	recordButton->setStyleSheet(
-		QString::fromUtf8("background: rgb(255,0,0);"));
+	recordButton->setStyleSheet(QString::fromUtf8("background: rgb(255,0,0);"));
 	StartReplayBuffer();
 }
 
@@ -7409,8 +6485,7 @@ void CanvasDock::TryRemux(QString path)
 		obs_output_release(ro);
 	}
 	if (!videoEncoder) {
-		if (!config_get_bool(obs_frontend_get_profile_config(), "Video",
-				     "AutoRemux"))
+		if (!config_get_bool(obs_frontend_get_profile_config(), "Video", "AutoRemux"))
 			return;
 	}
 	if (!videoEncoder) {
@@ -7432,10 +6507,8 @@ void CanvasDock::TryRemux(QString path)
 		}
 	}
 	if (videoEncoder) {
-		const auto main_window = static_cast<QMainWindow *>(
-			obs_frontend_get_main_window());
-		QMetaObject::invokeMethod(main_window, "RecordingFileChanged",
-					  Q_ARG(QString, path));
+		const auto main_window = static_cast<QMainWindow *>(obs_frontend_get_main_window());
+		QMetaObject::invokeMethod(main_window, "RecordingFileChanged", Q_ARG(QString, path));
 	}
 }
 
@@ -7459,56 +6532,32 @@ void CanvasDock::HandleRecordError(int code, QString last_error)
 {
 	if (code != OBS_OUTPUT_SUCCESS) {
 		if (!last_error.isEmpty()) {
-			blog(LOG_WARNING,
-			     "[Vertical Canvas] record stop error %s",
-			     last_error.toUtf8().constData());
+			blog(LOG_WARNING, "[Vertical Canvas] record stop error %s", last_error.toUtf8().constData());
 		} else {
-			blog(LOG_WARNING,
-			     "[Vertical Canvas] record stop error %i", code);
+			blog(LOG_WARNING, "[Vertical Canvas] record stop error %i", code);
 		}
 	}
 	if (code == OBS_OUTPUT_UNSUPPORTED && isVisible()) {
-		QMessageBox::critical(
-			this,
-			QString::fromUtf8(obs_frontend_get_locale_string(
-				"Output.RecordFail.Title")),
-			QString::fromUtf8(obs_frontend_get_locale_string(
-				"Output.RecordFail.Unsupported")));
+		QMessageBox::critical(this, QString::fromUtf8(obs_frontend_get_locale_string("Output.RecordFail.Title")),
+				      QString::fromUtf8(obs_frontend_get_locale_string("Output.RecordFail.Unsupported")));
 
 	} else if (code == OBS_OUTPUT_ENCODE_ERROR && isVisible()) {
 		QString msg =
 			last_error.isEmpty()
-				? QString::fromUtf8(obs_frontend_get_locale_string(
-					  "Output.RecordError.EncodeErrorMsg"))
-				: QString::fromUtf8(
-					  obs_frontend_get_locale_string(
-						  "Output.RecordError.EncodeErrorMsg.LastError"))
+				? QString::fromUtf8(obs_frontend_get_locale_string("Output.RecordError.EncodeErrorMsg"))
+				: QString::fromUtf8(obs_frontend_get_locale_string("Output.RecordError.EncodeErrorMsg.LastError"))
 					  .arg(last_error);
-		QMessageBox::warning(
-			this,
-			QString::fromUtf8(obs_frontend_get_locale_string(
-				"Output.RecordError.Title")),
-			msg);
+		QMessageBox::warning(this, QString::fromUtf8(obs_frontend_get_locale_string("Output.RecordError.Title")), msg);
 
 	} else if (code == OBS_OUTPUT_NO_SPACE && isVisible()) {
-		QMessageBox::warning(
-			this,
-			QString::fromUtf8(obs_frontend_get_locale_string(
-				"Output.RecordNoSpace.Title")),
-			QString::fromUtf8(obs_frontend_get_locale_string(
-				"Output.RecordNoSpace.Msg")));
+		QMessageBox::warning(this, QString::fromUtf8(obs_frontend_get_locale_string("Output.RecordNoSpace.Title")),
+				     QString::fromUtf8(obs_frontend_get_locale_string("Output.RecordNoSpace.Msg")));
 
 	} else if (code != OBS_OUTPUT_SUCCESS && isVisible()) {
-		QMessageBox::critical(
-			this,
-			QString::fromUtf8(obs_frontend_get_locale_string(
-				"Output.RecordError.Title")),
-			QString::fromUtf8(obs_frontend_get_locale_string(
-				"Output.RecordError.Msg")) +
-				(!last_error.isEmpty()
-					 ? QString::fromUtf8("\n\n") +
-						   last_error
-					 : QString::fromUtf8("")));
+		QMessageBox::critical(this, QString::fromUtf8(obs_frontend_get_locale_string("Output.RecordError.Title")),
+				      QString::fromUtf8(obs_frontend_get_locale_string("Output.RecordError.Msg")) +
+					      (!last_error.isEmpty() ? QString::fromUtf8("\n\n") + last_error
+								     : QString::fromUtf8("")));
 	}
 }
 
@@ -7539,9 +6588,8 @@ void CanvasDock::OnStreamStart()
 	streamButton->setIcon(streamActiveIcon);
 	streamButton->setText("00:00");
 	streamButton->setStyleSheet(QString::fromUtf8(
-		multi_rtmp
-			? "background: rgb(0,210,153); border-top-right-radius: 0; border-bottom-right-radius: 0;"
-			: "background: rgb(0,210,153);"));
+		multi_rtmp ? "background: rgb(0,210,153); border-top-right-radius: 0; border-bottom-right-radius: 0;"
+			   : "background: rgb(0,210,153);"));
 	StartReplayBuffer();
 }
 
@@ -7549,13 +6597,11 @@ void CanvasDock::OnStreamStart()
 #define OBS_OUTPUT_HDR_DISABLED -9
 #endif // ! OBS_OUTPUT_HDR_DISABLED
 
-void CanvasDock::OnStreamStop(int code, QString last_error,
-			      QString stream_server, QString stream_key)
+void CanvasDock::OnStreamStop(int code, QString last_error, QString stream_server, QString stream_key)
 {
 	bool active = false;
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
-		if (stream_server == QString::fromUtf8(it->stream_server) &&
-		    stream_key == QString::fromUtf8(it->stream_key)) {
+		if (stream_server == QString::fromUtf8(it->stream_server) && stream_key == QString::fromUtf8(it->stream_key)) {
 		} else if (obs_output_active(it->output)) {
 			active = true;
 		}
@@ -7564,10 +6610,8 @@ void CanvasDock::OnStreamStop(int code, QString last_error,
 		streamButton->setChecked(false);
 		streamButton->setIcon(streamInactiveIcon);
 		streamButton->setText("");
-		streamButton->setStyleSheet(QString::fromUtf8(
-			multi_rtmp
-				? "border-top-right-radius: 0; border-bottom-right-radius: 0;"
-				: ""));
+		streamButton->setStyleSheet(
+			QString::fromUtf8(multi_rtmp ? "border-top-right-radius: 0; border-bottom-right-radius: 0;" : ""));
 	}
 	const char *errorDescription = "";
 
@@ -7576,28 +6620,23 @@ void CanvasDock::OnStreamStop(int code, QString last_error,
 
 	switch (code) {
 	case OBS_OUTPUT_BAD_PATH:
-		errorDescription = obs_frontend_get_locale_string(
-			"Output.ConnectFail.BadPath");
+		errorDescription = obs_frontend_get_locale_string("Output.ConnectFail.BadPath");
 		break;
 
 	case OBS_OUTPUT_CONNECT_FAILED:
 		use_last_error = true;
 		if (stream_server.contains("tiktok")) {
-			last_error = QString::fromUtf8(
-				obs_module_text("tiktokError"));
+			last_error = QString::fromUtf8(obs_module_text("tiktokError"));
 		}
-		errorDescription = obs_frontend_get_locale_string(
-			"Output.ConnectFail.ConnectFailed");
+		errorDescription = obs_frontend_get_locale_string("Output.ConnectFail.ConnectFailed");
 		break;
 
 	case OBS_OUTPUT_INVALID_STREAM:
 		if (stream_server.contains("tiktok")) {
 			use_last_error = true;
-			last_error = QString::fromUtf8(
-				obs_module_text("tiktokError"));
+			last_error = QString::fromUtf8(obs_module_text("tiktokError"));
 		}
-		errorDescription = obs_frontend_get_locale_string(
-			"Output.ConnectFail.InvalidStream");
+		errorDescription = obs_frontend_get_locale_string("Output.ConnectFail.InvalidStream");
 		break;
 
 	case OBS_OUTPUT_ENCODE_ERROR:
@@ -7605,60 +6644,41 @@ void CanvasDock::OnStreamStop(int code, QString last_error,
 		break;
 
 	case OBS_OUTPUT_HDR_DISABLED:
-		errorDescription = obs_frontend_get_locale_string(
-			"Output.ConnectFail.HdrDisabled");
+		errorDescription = obs_frontend_get_locale_string("Output.ConnectFail.HdrDisabled");
 		break;
 
 	default:
 	case OBS_OUTPUT_ERROR:
 		use_last_error = true;
-		errorDescription = obs_frontend_get_locale_string(
-			"Output.ConnectFail.Error");
+		errorDescription = obs_frontend_get_locale_string("Output.ConnectFail.Error");
 		break;
 
 	case OBS_OUTPUT_DISCONNECTED:
 		/* doesn't happen if output is set to reconnect.  note that
 		 * reconnects are handled in the output, not in the UI */
 		use_last_error = true;
-		errorDescription = obs_frontend_get_locale_string(
-			"Output.ConnectFail.Disconnected");
+		errorDescription = obs_frontend_get_locale_string("Output.ConnectFail.Disconnected");
 	}
 	if (code != OBS_OUTPUT_SUCCESS) {
 		if (use_last_error && !last_error.isEmpty()) {
-			blog(LOG_WARNING,
-			     "[Vertical Canvas] stream stop error %s",
-			     last_error.toUtf8().constData());
+			blog(LOG_WARNING, "[Vertical Canvas] stream stop error %s", last_error.toUtf8().constData());
 		} else {
-			blog(LOG_WARNING,
-			     "[Vertical Canvas] stream stop error %i", code);
+			blog(LOG_WARNING, "[Vertical Canvas] stream stop error %i", code);
 		}
 	}
 	if (encode_error) {
-		QString msg =
-			last_error.isEmpty()
-				? QString::fromUtf8(
-					  obs_frontend_get_locale_string(
-						  "Output.StreamEncodeError.Msg"))
-				: QString::fromUtf8(
-					  obs_frontend_get_locale_string(
-						  "Output.StreamEncodeError.Msg.LastError"))
-					  .arg(last_error);
-		QMessageBox::information(
-			this,
-			QString::fromUtf8(obs_frontend_get_locale_string(
-				"Output.StreamEncodeError.Title")),
-			msg);
+		QString msg = last_error.isEmpty()
+				      ? QString::fromUtf8(obs_frontend_get_locale_string("Output.StreamEncodeError.Msg"))
+				      : QString::fromUtf8(obs_frontend_get_locale_string("Output.StreamEncodeError.Msg.LastError"))
+						.arg(last_error);
+		QMessageBox::information(this, QString::fromUtf8(obs_frontend_get_locale_string("Output.StreamEncodeError.Title")),
+					 msg);
 
 	} else if (code != OBS_OUTPUT_SUCCESS && isVisible()) {
-		QMessageBox::information(
-			this,
-			QString::fromUtf8(obs_frontend_get_locale_string(
-				"Output.ConnectFail.Title")),
-			QString::fromUtf8(errorDescription) +
-				(use_last_error && !last_error.isEmpty()
-					 ? QString::fromUtf8("\n\n") +
-						   last_error
-					 : QString::fromUtf8("")));
+		QMessageBox::information(this, QString::fromUtf8(obs_frontend_get_locale_string("Output.ConnectFail.Title")),
+					 QString::fromUtf8(errorDescription) + (use_last_error && !last_error.isEmpty()
+											? QString::fromUtf8("\n\n") + last_error
+											: QString::fromUtf8("")));
 	}
 	CheckReplayBuffer();
 }
@@ -7666,8 +6686,7 @@ void CanvasDock::OnStreamStop(int code, QString last_error,
 void CanvasDock::OnReplayBufferStart()
 {
 	replayButton->setIcon(replayActiveIcon);
-	replayButton->setStyleSheet(
-		QString::fromUtf8("background: rgb(26,87,255);"));
+	replayButton->setStyleSheet(QString::fromUtf8("background: rgb(26,87,255);"));
 }
 
 void CanvasDock::OnReplayBufferStop(int code, QString last_error)
@@ -7681,8 +6700,7 @@ void CanvasDock::OnReplayBufferStop(int code, QString last_error)
 	HandleRecordError(code, last_error);
 	if (code == OBS_OUTPUT_SUCCESS) {
 		CheckReplayBuffer(true);
-		QTimer::singleShot(500, this,
-				   [this] { CheckReplayBuffer(true); });
+		QTimer::singleShot(500, this, [this] { CheckReplayBuffer(true); });
 	}
 }
 
@@ -7710,16 +6728,14 @@ void CanvasDock::MainSceneChanged()
 		auto item = obs_data_array_item(c, i);
 		if (!item)
 			continue;
-		if (obs_data_get_int(item, "width") == canvas_width &&
-		    obs_data_get_int(item, "height") == canvas_height) {
+		if (obs_data_get_int(item, "width") == canvas_width && obs_data_get_int(item, "height") == canvas_height) {
 			found = item;
 			break;
 		}
 		obs_data_release(item);
 	}
 	if (found) {
-		auto sn =
-			QString::fromUtf8(obs_data_get_string(found, "scene"));
+		auto sn = QString::fromUtf8(obs_data_get_string(found, "scene"));
 		SwitchScene(sn);
 		if (linkedButton)
 			linkedButton->setChecked(true);
@@ -7730,8 +6746,7 @@ void CanvasDock::MainSceneChanged()
 	obs_data_array_release(c);
 }
 
-bool CanvasDock::start_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id,
-					  obs_hotkey_t *hotkey, bool pressed)
+bool CanvasDock::start_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed)
 {
 	UNUSED_PARAMETER(id);
 	UNUSED_PARAMETER(hotkey);
@@ -7744,8 +6759,7 @@ bool CanvasDock::start_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id,
 	return true;
 }
 
-bool CanvasDock::stop_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id,
-					 obs_hotkey_t *hotkey, bool pressed)
+bool CanvasDock::stop_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed)
 {
 	UNUSED_PARAMETER(id);
 	UNUSED_PARAMETER(hotkey);
@@ -7758,8 +6772,7 @@ bool CanvasDock::stop_virtual_cam_hotkey(void *data, obs_hotkey_pair_id id,
 	return true;
 }
 
-bool CanvasDock::start_recording_hotkey(void *data, obs_hotkey_pair_id id,
-					obs_hotkey_t *hotkey, bool pressed)
+bool CanvasDock::start_recording_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed)
 {
 	UNUSED_PARAMETER(id);
 	UNUSED_PARAMETER(hotkey);
@@ -7772,8 +6785,7 @@ bool CanvasDock::start_recording_hotkey(void *data, obs_hotkey_pair_id id,
 	return true;
 }
 
-bool CanvasDock::stop_recording_hotkey(void *data, obs_hotkey_pair_id id,
-				       obs_hotkey_t *hotkey, bool pressed)
+bool CanvasDock::stop_recording_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed)
 {
 	UNUSED_PARAMETER(id);
 	UNUSED_PARAMETER(hotkey);
@@ -7786,24 +6798,21 @@ bool CanvasDock::stop_recording_hotkey(void *data, obs_hotkey_pair_id id,
 	return true;
 }
 
-bool CanvasDock::start_streaming_hotkey(void *data, obs_hotkey_pair_id id,
-					obs_hotkey_t *hotkey, bool pressed)
+bool CanvasDock::start_streaming_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed)
 {
 	UNUSED_PARAMETER(id);
 	UNUSED_PARAMETER(hotkey);
 	if (!pressed)
 		return false;
 	const auto d = static_cast<CanvasDock *>(data);
-	for (auto it = d->streamOutputs.begin(); it != d->streamOutputs.end();
-	     ++it)
+	for (auto it = d->streamOutputs.begin(); it != d->streamOutputs.end(); ++it)
 		if (obs_output_active(it->output))
 			return false;
 	QMetaObject::invokeMethod(d, "StreamButtonClicked");
 	return true;
 }
 
-bool CanvasDock::stop_streaming_hotkey(void *data, obs_hotkey_pair_id id,
-				       obs_hotkey_t *hotkey, bool pressed)
+bool CanvasDock::stop_streaming_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed)
 {
 	UNUSED_PARAMETER(id);
 	UNUSED_PARAMETER(hotkey);
@@ -7811,8 +6820,7 @@ bool CanvasDock::stop_streaming_hotkey(void *data, obs_hotkey_pair_id id,
 		return false;
 	const auto d = static_cast<CanvasDock *>(data);
 	bool found = false;
-	for (auto it = d->streamOutputs.begin(); it != d->streamOutputs.end();
-	     ++it)
+	for (auto it = d->streamOutputs.begin(); it != d->streamOutputs.end(); ++it)
 		if (obs_output_active(it->output))
 			found = true;
 	if (!found)
@@ -7823,8 +6831,7 @@ bool CanvasDock::stop_streaming_hotkey(void *data, obs_hotkey_pair_id id,
 
 QIcon CanvasDock::GetIconFromType(enum obs_icon_type icon_type) const
 {
-	const auto main_window =
-		static_cast<QMainWindow *>(obs_frontend_get_main_window());
+	const auto main_window = static_cast<QMainWindow *>(obs_frontend_get_main_window());
 
 	switch (icon_type) {
 	case OBS_ICON_TYPE_IMAGE:
@@ -7855,8 +6862,7 @@ QIcon CanvasDock::GetIconFromType(enum obs_icon_type icon_type) const
 		//TODO: Add ability for sources to define custom icons
 		return main_window->property("defaultIcon").value<QIcon>();
 	case OBS_ICON_TYPE_PROCESS_AUDIO_OUTPUT:
-		return main_window->property("audioProcessOutputIcon")
-			.value<QIcon>();
+		return main_window->property("audioProcessOutputIcon").value<QIcon>();
 	default:
 		return main_window->property("defaultIcon").value<QIcon>();
 	}
@@ -7864,15 +6870,13 @@ QIcon CanvasDock::GetIconFromType(enum obs_icon_type icon_type) const
 
 QIcon CanvasDock::GetSceneIcon() const
 {
-	const auto main_window =
-		static_cast<QMainWindow *>(obs_frontend_get_main_window());
+	const auto main_window = static_cast<QMainWindow *>(obs_frontend_get_main_window());
 	return main_window->property("sceneIcon").value<QIcon>();
 }
 
 QIcon CanvasDock::GetGroupIcon() const
 {
-	const auto main_window =
-		static_cast<QMainWindow *>(obs_frontend_get_main_window());
+	const auto main_window = static_cast<QMainWindow *>(obs_frontend_get_main_window());
 	return main_window->property("groupIcon").value<QIcon>();
 }
 
@@ -7930,8 +6934,7 @@ void CanvasDock::SceneReordered(void *data, calldata_t *params)
 
 	obs_scene_t *scene = (obs_scene_t *)calldata_ptr(params, "scene");
 
-	QMetaObject::invokeMethod(window, "ReorderSources",
-				  Q_ARG(OBSScene, OBSScene(scene)));
+	QMetaObject::invokeMethod(window, "ReorderSources", Q_ARG(OBSScene, OBSScene(scene)));
 }
 
 void CanvasDock::ReorderSources(OBSScene scene)
@@ -7948,8 +6951,7 @@ void CanvasDock::SceneRefreshed(void *data, calldata_t *params)
 
 	obs_scene_t *scene = (obs_scene_t *)calldata_ptr(params, "scene");
 
-	QMetaObject::invokeMethod(window, "RefreshSources",
-				  Q_ARG(OBSScene, OBSScene(scene)));
+	QMetaObject::invokeMethod(window, "RefreshSources", Q_ARG(OBSScene, OBSScene(scene)));
 }
 
 void CanvasDock::RefreshSources(OBSScene scene)
@@ -7966,8 +6968,7 @@ void CanvasDock::SceneItemAdded(void *data, calldata_t *params)
 
 	obs_sceneitem_t *item = (obs_sceneitem_t *)calldata_ptr(params, "item");
 
-	QMetaObject::invokeMethod(window, "AddSceneItem",
-				  Q_ARG(OBSSceneItem, OBSSceneItem(item)));
+	QMetaObject::invokeMethod(window, "AddSceneItem", Q_ARG(OBSSceneItem, OBSSceneItem(item)));
 }
 
 void CanvasDock::AddSceneItem(OBSSceneItem item)
@@ -8061,8 +7062,7 @@ static bool nudge_callback(obs_scene_t *, obs_sceneitem_t *item, void *param)
 
 			struct vec2 new_offset;
 			vec2_set(&new_offset, offset3.x, offset3.y);
-			obs_sceneitem_group_enum_items(item, nudge_callback,
-						       &new_offset);
+			obs_sceneitem_group_enum_items(item, nudge_callback, &new_offset);
 		}
 
 		return true;
@@ -8103,8 +7103,7 @@ void CanvasDock::Nudge(int dist, MoveDir dir)
 void CanvasDock::NewerVersionAvailable(QString version)
 {
 	newer_version_available = version;
-	configButton->setStyleSheet(
-		QString::fromUtf8("background: rgb(192,128,0);"));
+	configButton->setStyleSheet(QString::fromUtf8("background: rgb(192,128,0);"));
 }
 
 void CanvasDock::ProfileChanged()
@@ -8156,8 +7155,7 @@ OBSProjector *CanvasDock::OpenProjector(int monitor)
 	if (!config)
 		return nullptr;
 
-	bool closeProjectors = config_get_bool(config, "BasicWindow",
-					       "CloseExistingProjectors");
+	bool closeProjectors = config_get_bool(config, "BasicWindow", "CloseExistingProjectors");
 
 	if (closeProjectors && monitor > -1) {
 		for (size_t i = projectors.size(); i > 0; i--) {
@@ -8176,8 +7174,7 @@ OBSProjector *CanvasDock::OpenProjector(int monitor)
 
 QString GetMonitorName(const QString &id);
 
-void CanvasDock::AddProjectorMenuMonitors(QMenu *parent, QObject *target,
-					  const char *slot)
+void CanvasDock::AddProjectorMenuMonitors(QMenu *parent, QObject *target, const char *slot)
 {
 	QAction *action;
 	QList<QScreen *> screens = QGuiApplication::screens();
@@ -8204,20 +7201,13 @@ void CanvasDock::AddProjectorMenuMonitors(QMenu *parent, QObject *target,
 
 		if (name.length() == 0) {
 			name = QString("%1 %2")
-				       .arg(QString::fromUtf8(
-					       obs_frontend_get_locale_string(
-						       "Display")))
+				       .arg(QString::fromUtf8(obs_frontend_get_locale_string("Display")))
 				       .arg(QString::number(i + 1));
 		}
-		QString str =
-			QString("%1: %2x%3 @ %4,%5")
-				.arg(name,
-				     QString::number(screenGeometry.width() *
-						     ratio),
-				     QString::number(screenGeometry.height() *
-						     ratio),
-				     QString::number(screenGeometry.x()),
-				     QString::number(screenGeometry.y()));
+		QString str = QString("%1: %2x%3 @ %4,%5")
+				      .arg(name, QString::number(screenGeometry.width() * ratio),
+					   QString::number(screenGeometry.height() * ratio), QString::number(screenGeometry.x()),
+					   QString::number(screenGeometry.y()));
 
 		action = parent->addAction(str, target, slot);
 		action->setProperty("monitor", i);
@@ -8240,8 +7230,7 @@ void CanvasDock::OpenSourceProjector()
 	obs_source_t *source = obs_sceneitem_get_source(item);
 	if (!source)
 		return;
-	obs_frontend_open_projector("Source", monitor, nullptr,
-				    obs_source_get_name(source));
+	obs_frontend_open_projector("Source", monitor, nullptr, obs_source_get_name(source));
 }
 
 void CanvasDock::updateStreamKey(const QString &newStreamKey, int index)
@@ -8258,19 +7247,14 @@ void CanvasDock::updateStreamServer(const QString &newStreamServer, int index)
 	streamOutputs[index].stream_server = newStreamServer.toStdString();
 }
 
-QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible,
-						  obs_sceneitem_t *si)
+QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible, obs_sceneitem_t *si)
 {
-	QMenu *menu =
-		new QMenu(QString::fromUtf8(obs_frontend_get_locale_string(
-			visible ? "ShowTransition" : "HideTransition")));
+	QMenu *menu = new QMenu(QString::fromUtf8(obs_frontend_get_locale_string(visible ? "ShowTransition" : "HideTransition")));
 	QAction *action;
 
 	obs_source_t *curTransition = obs_sceneitem_get_transition(si, visible);
-	const char *curId = curTransition ? obs_source_get_id(curTransition)
-					  : nullptr;
-	int curDuration =
-		(int)obs_sceneitem_get_transition_duration(si, visible);
+	const char *curId = curTransition ? obs_source_get_id(curTransition) : nullptr;
+	int curDuration = (int)obs_sceneitem_get_transition_duration(si, visible);
 
 	if (curDuration <= 0)
 		curDuration = obs_frontend_get_transition_duration();
@@ -8282,42 +7266,26 @@ QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible,
 	duration->setSingleStep(50);
 	duration->setValue(curDuration);
 
-	auto setTransition = [](QAction *action, bool visible,
-				obs_sceneitem_t *si) {
-		std::string id = action->property("transition_id")
-					 .toString()
-					 .toUtf8()
-					 .constData();
+	auto setTransition = [](QAction *action, bool visible, obs_sceneitem_t *si) {
+		std::string id = action->property("transition_id").toString().toUtf8().constData();
 		if (id.empty()) {
 			obs_sceneitem_set_transition(si, visible, nullptr);
 		} else {
-			obs_source_t *tr =
-				obs_sceneitem_get_transition(si, visible);
+			obs_source_t *tr = obs_sceneitem_get_transition(si, visible);
 
-			if (!tr ||
-			    strcmp(id.c_str(), obs_source_get_id(tr)) != 0) {
-				QString name =
-					QString::fromUtf8(obs_source_get_name(
-						obs_sceneitem_get_source(si)));
+			if (!tr || strcmp(id.c_str(), obs_source_get_id(tr)) != 0) {
+				QString name = QString::fromUtf8(obs_source_get_name(obs_sceneitem_get_source(si)));
 				name += " ";
 				name += QString::fromUtf8(
-					obs_frontend_get_locale_string(
-						visible ? "ShowTransition"
-							: "HideTransition"));
-				tr = obs_source_create_private(
-					id.c_str(), name.toUtf8().constData(),
-					nullptr);
+					obs_frontend_get_locale_string(visible ? "ShowTransition" : "HideTransition"));
+				tr = obs_source_create_private(id.c_str(), name.toUtf8().constData(), nullptr);
 				obs_sceneitem_set_transition(si, visible, tr);
 				obs_source_release(tr);
 
-				int duration = (int)
-					obs_sceneitem_get_transition_duration(
-						si, visible);
+				int duration = (int)obs_sceneitem_get_transition_duration(si, visible);
 				if (duration <= 0) {
-					duration =
-						obs_frontend_get_transition_duration();
-					obs_sceneitem_set_transition_duration(
-						si, visible, duration);
+					duration = obs_frontend_get_transition_duration();
+					obs_sceneitem_set_transition_duration(si, visible, duration);
 				}
 			}
 			if (obs_source_configurable(tr))
@@ -8327,16 +7295,13 @@ QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible,
 	auto setDuration = [visible, si](int duration) {
 		obs_sceneitem_set_transition_duration(si, visible, duration);
 	};
-	connect(duration, (void(QSpinBox::*)(int)) & QSpinBox::valueChanged,
-		setDuration);
+	connect(duration, (void(QSpinBox::*)(int)) & QSpinBox::valueChanged, setDuration);
 
-	action = menu->addAction(
-		QString::fromUtf8(obs_frontend_get_locale_string("None")));
+	action = menu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("None")));
 	action->setProperty("transition_id", QString::fromUtf8(""));
 	action->setCheckable(true);
 	action->setChecked(!curId);
-	connect(action, &QAction::triggered,
-		std::bind(setTransition, action, visible, si));
+	connect(action, &QAction::triggered, std::bind(setTransition, action, visible, si));
 	size_t idx = 0;
 	const char *id;
 	while (obs_enum_transition_types(idx++, &id)) {
@@ -8346,8 +7311,7 @@ QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible,
 		action->setProperty("transition_id", QString::fromUtf8(id));
 		action->setCheckable(true);
 		action->setChecked(match);
-		connect(action, &QAction::triggered,
-			std::bind(setTransition, action, visible, si));
+		connect(action, &QAction::triggered, std::bind(setTransition, action, visible, si));
 	}
 
 	QWidgetAction *durationAction = new QWidgetAction(menu);
@@ -8357,19 +7321,13 @@ QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible,
 	menu->addAction(durationAction);
 	if (curId && obs_is_source_configurable(curId)) {
 		menu->addSeparator();
-		menu->addAction(
-			QString::fromUtf8(
-				obs_frontend_get_locale_string("Properties")),
-			this, [curTransition] {
-				obs_frontend_open_source_properties(
-					curTransition);
-			});
+		menu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Properties")), this,
+				[curTransition] { obs_frontend_open_source_properties(curTransition); });
 	}
 
 	return menu;
 }
-void CanvasDock::get_transitions(void *data,
-				 struct obs_frontend_source_list *sources)
+void CanvasDock::get_transitions(void *data, struct obs_frontend_source_list *sources)
 {
 	auto dock = (CanvasDock *)data;
 	for (auto transition : dock->transitions) {

@@ -20,8 +20,7 @@ private:
 	obs_sceneitem_t *GetCurrentSceneItem();
 	int GetTopSelectedSourceItem();
 	void ShowSourcesContextMenu(obs_sceneitem_t *item);
-	static bool remove_items(obs_scene_t *, obs_sceneitem_t *item,
-				 void *param);
+	static bool remove_items(obs_scene_t *, obs_sceneitem_t *item, void *param);
 
 public:
 	CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent = nullptr);
