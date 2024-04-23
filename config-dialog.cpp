@@ -28,7 +28,8 @@
 
 OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent) : QDialog(parent), canvasDock(canvas_dock)
 {
-
+	setMinimumWidth(983);
+	setMinimumHeight(480);
 	listWidget = new QListWidget(this);
 	listWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
 	listWidget->setMaximumWidth(180);

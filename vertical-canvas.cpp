@@ -4732,11 +4732,9 @@ void CanvasDock::StopVirtualCam()
 
 void CanvasDock::ConfigButtonClicked()
 {
-	if (!configDialog) {
+	if (!configDialog) 
 		configDialog = new OBSBasicSettings(this, (QMainWindow *)obs_frontend_get_main_window());
-		configDialog->setMinimumWidth(983);
-		configDialog->setMinimumHeight(762);
-	}
+	
 	configDialog->LoadSettings();
 	configDialog->exec();
 
