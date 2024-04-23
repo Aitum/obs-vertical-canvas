@@ -159,8 +159,8 @@ void frontend_event(obs_frontend_event event, void *private_data)
 			QMetaObject::invokeMethod(it, "MainSceneChanged",
 						  Qt::QueuedConnection);
 		}
-	} else if ( //event == OBS_FRONTEND_EVENT_STREAMING_STARTING ||
-		event == OBS_FRONTEND_EVENT_STREAMING_STARTED) {
+	} else if (event == OBS_FRONTEND_EVENT_STREAMING_STARTING ||
+		   event == OBS_FRONTEND_EVENT_STREAMING_STARTED) {
 		for (const auto &it : canvas_docks) {
 			QMetaObject::invokeMethod(it, "MainStreamStart",
 						  Qt::QueuedConnection);
@@ -175,8 +175,8 @@ void frontend_event(obs_frontend_event event, void *private_data)
 							  Qt::QueuedConnection);
 			});
 		}
-	} else if ( //event == OBS_FRONTEND_EVENT_RECORDING_STARTING ||
-		event == OBS_FRONTEND_EVENT_RECORDING_STARTED) {
+	} else if (event == OBS_FRONTEND_EVENT_RECORDING_STARTING ||
+		   event == OBS_FRONTEND_EVENT_RECORDING_STARTED) {
 		for (const auto &it : canvas_docks) {
 			QMetaObject::invokeMethod(it, "MainRecordStart",
 						  Qt::QueuedConnection);
@@ -907,8 +907,10 @@ void CanvasDock::CheckReplayBuffer(bool start)
 	bool active = obs_frontend_streaming_active() ||
 		      obs_frontend_recording_active() ||
 		      (recordOutput && obs_output_active(recordOutput));
-	for (auto it = streamOutputs.begin(); !active && it != streamOutputs.end(); ++it) {
-		active = it->output && obs_output_active(it->output);
+	for (auto it = streamOutputs.begin();
+	     !active && it != streamOutputs.end(); ++it) {
+		active = it->enabled && it->output &&
+			 obs_output_active(it->output);
 	}
 
 	if (!start && !active)
@@ -989,11 +991,15 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	if (!streamingVideoBitrate)
 		streamingVideoBitrate =
 			(uint32_t)obs_data_get_int(settings, "video_bitrate");
+	streamingMatchMain =
+		obs_data_get_bool(settings, "streaming_match_main");
 	recordVideoBitrate =
 		(uint32_t)obs_data_get_int(settings, "record_video_bitrate");
 	if (!recordVideoBitrate)
 		recordVideoBitrate =
 			(uint32_t)obs_data_get_int(settings, "video_bitrate");
+	recordingMatchMain =
+		obs_data_get_bool(settings, "recording_match_main");
 
 	audioBitrate = (uint32_t)obs_data_get_int(settings, "audio_bitrate");
 	startReplay = obs_data_get_bool(settings, "backtrack");
@@ -6787,7 +6793,9 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_bool(data, "virtual_cam_warned", virtual_cam_warned);
 	obs_data_set_int(data, "streaming_video_bitrate",
 			 streamingVideoBitrate);
+	obs_data_set_bool(data, "streaming_match_main", streamingMatchMain);
 	obs_data_set_int(data, "record_video_bitrate", recordVideoBitrate);
+	obs_data_set_bool(data, "recording_match_main", recordingMatchMain);
 	obs_data_set_int(data, "audio_bitrate", audioBitrate);
 	obs_data_set_bool(data, "backtrack", startReplay);
 	obs_data_set_bool(data, "backtrack_always", replayAlwaysOn);
@@ -7849,21 +7857,29 @@ QIcon CanvasDock::GetGroupIcon() const
 void CanvasDock::MainStreamStart()
 {
 	StartReplayBuffer();
+	if (streamingMatchMain)
+		StartStream();
 }
 
 void CanvasDock::MainStreamStop()
 {
 	CheckReplayBuffer();
+	if (streamingMatchMain)
+		StopStream();
 }
 
 void CanvasDock::MainRecordStart()
 {
 	StartReplayBuffer();
+	if (recordingMatchMain)
+		StartRecord();
 }
 
 void CanvasDock::MainRecordStop()
 {
 	CheckReplayBuffer();
+	if (recordingMatchMain)
+		StopRecord();
 }
 
 void CanvasDock::MainReplayBufferStart()

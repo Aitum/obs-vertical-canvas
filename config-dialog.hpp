@@ -41,7 +41,9 @@ private:
 	QComboBox *resolution;
 	QCheckBox *showScenes;
 	QSpinBox *streamingVideoBitrate;
+	QCheckBox *streamingMatchMain;
 	QSpinBox *recordVideoBitrate;
+	QCheckBox *recordingMatchMain;
 	QComboBox *audioBitrate;
 	QComboBox *virtualCameraMode;
 	QCheckBox *backtrackClip;

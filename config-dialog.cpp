@@ -353,6 +353,10 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 			"Basic.Settings.Output.VideoBitrate")),
 		streamingVideoBitrate);
 
+	streamingMatchMain = new QCheckBox(
+		QString::fromUtf8(obs_module_text("StreamingMatchMain")));
+	streamingLayout->addWidget(streamingMatchMain);
+
 	OBSHotkeyWidget *otherHotkey = nullptr;
 	auto hotkey = GetHotkeyByName("VerticalCanvasDockStartStreaming");
 	if (hotkey) {
@@ -620,6 +624,10 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	recordLayout->addRow(QString::fromUtf8(obs_frontend_get_locale_string(
 				     "Basic.Settings.Output.VideoBitrate")),
 			     recordVideoBitrate);
+
+	recordingMatchMain = new QCheckBox(
+		QString::fromUtf8(obs_module_text("RecordingMatchMain")));
+	recordLayout->addWidget(recordingMatchMain);
 
 	otherHotkey = nullptr;
 
@@ -1126,10 +1134,12 @@ void OBSBasicSettings::LoadSettings()
 	recordVideoBitrate->setValue(canvasDock->recordVideoBitrate
 					     ? canvasDock->recordVideoBitrate
 					     : 6000);
+	recordingMatchMain->setChecked(canvasDock->recordingMatchMain);
 	streamingVideoBitrate->setValue(
 		canvasDock->streamingVideoBitrate
 			? canvasDock->streamingVideoBitrate
 			: 6000);
+	streamingMatchMain->setChecked(canvasDock->streamingMatchMain);
 	for (int i = 0; i < audioBitrate->count(); i++) {
 		if (audioBitrate->itemData(i).toUInt() ==
 		    (canvasDock->audioBitrate ? canvasDock->audioBitrate
@@ -1273,6 +1283,7 @@ void OBSBasicSettings::SaveSettings()
 			obs_output_get_video_encoder(canvasDock->recordOutput),
 			true);
 	}
+	canvasDock->recordingMatchMain = recordingMatchMain->isChecked();
 	bitrate = (uint32_t)streamingVideoBitrate->value();
 	if (bitrate != canvasDock->streamingVideoBitrate) {
 		canvasDock->streamingVideoBitrate = bitrate;
@@ -1282,6 +1293,7 @@ void OBSBasicSettings::SaveSettings()
 				obs_output_get_video_encoder(it->output),
 				false);
 	}
+	canvasDock->streamingMatchMain = streamingMatchMain->isChecked();
 	bitrate = (uint32_t)audioBitrate->currentData().toUInt();
 	if (bitrate != canvasDock->audioBitrate) {
 		canvasDock->audioBitrate = bitrate;

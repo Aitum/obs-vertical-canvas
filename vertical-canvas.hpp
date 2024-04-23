@@ -191,6 +191,8 @@ private:
 	uint32_t streamingVideoBitrate;
 	uint32_t recordVideoBitrate;
 	uint32_t audioBitrate;
+	bool streamingMatchMain;
+	bool recordingMatchMain;
 	bool startReplay;
 	bool replayAlwaysOn;
 	uint32_t replayDuration;
