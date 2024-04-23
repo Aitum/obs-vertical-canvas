@@ -904,23 +904,16 @@ void CanvasDock::CheckReplayBuffer(bool start)
 		StartReplayBuffer();
 		return;
 	}
-	struct check_output {
-		obs_output_t *output;
-		bool found;
-	};
-	struct check_output t = {replayOutput, false};
-	obs_enum_outputs(
-		[](void *b, obs_output_t *output) {
-			auto t = (struct check_output *)b;
-			if (t->output == output || !obs_output_active(output))
-				return true;
-			t->found = true;
-			return false;
-		},
-		&t);
-	if (!start && !t.found)
+	bool active = obs_frontend_streaming_active() ||
+		      obs_frontend_recording_active() ||
+		      (recordOutput && obs_output_active(recordOutput));
+	for (auto it = streamOutputs.begin(); !active && it != streamOutputs.end(); ++it) {
+		active = it->output && obs_output_active(it->output);
+	}
+
+	if (!start && !active)
 		StopReplayBuffer();
-	if (start && t.found)
+	if (start && active)
 		StartReplayBuffer();
 }
 
@@ -1298,6 +1291,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	streamButtonGroup->setLayout(streamButtonGroupLayout);
 
 	streamButton = new QPushButton;
+	streamButton->setMinimumHeight(30);
 	streamButton->setObjectName(QStringLiteral("canvasStream"));
 	streamButton->setIcon(streamInactiveIcon);
 	streamButton->setCheckable(true);
@@ -1315,6 +1309,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	// Little up arrow in the case of there being multiple enabled outputs
 	streamButtonMulti = new QPushButton;
+	streamButtonMulti->setMinimumHeight(30);
 	streamButtonMulti->setObjectName(QStringLiteral("canvasStreamMulti"));
 	streamButtonMulti->setToolTip(
 		QString::fromUtf8(obs_module_text("StreamVerticalMulti")));
@@ -1332,6 +1327,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	buttonRow->addWidget(streamButtonGroup);
 
 	recordButton = new QPushButton;
+	recordButton->setMinimumHeight(30);
 	recordButton->setObjectName(QStringLiteral("canvasRecord"));
 	recordButton->setIcon(recordInactiveIcon);
 	recordButton->setCheckable(true);
@@ -1344,6 +1340,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	buttonRow->addWidget(recordButton);
 
 	replayButton = new QPushButton;
+	replayButton->setMinimumHeight(30);
 	replayButton->setObjectName(QStringLiteral("canvasReplay"));
 	replayButton->setIcon(replayInactiveIcon);
 	replayButton->setContentsMargins(0, 0, 0, 0);
@@ -1355,6 +1352,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	buttonRow->addWidget(replayButton);
 
 	virtualCamButton = new QPushButton;
+	virtualCamButton->setMinimumHeight(30);
 	virtualCamButton->setObjectName(QStringLiteral("canvasVirtualCam"));
 	virtualCamButton->setIcon(virtualCamInactiveIcon);
 	virtualCamButton->setCheckable(true);
@@ -1419,6 +1417,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		[this] { statusLabel->setText(""); });
 
 	configButton = new QPushButton(this);
+	configButton->setMinimumHeight(30);
 	configButton->setProperty("themeID", "configIconSmall");
 	configButton->setFlat(true);
 	configButton->setAutoDefault(false);
@@ -1430,6 +1429,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	buttonRow->addWidget(configButton);
 
 	auto aitumButton = new QPushButton;
+	aitumButton->setMinimumHeight(30);
 	aitumButton->setSizePolicy(sp2);
 	aitumButton->setIcon(QIcon(":/aitum/media/aitum.png"));
 	aitumButton->setToolTip(QString::fromUtf8("https://aitum.tv"));
