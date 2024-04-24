@@ -264,7 +264,11 @@ CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent) : Q
 	});
 
 	QAction *renameAction = new QAction(sceneList);
-	renameAction->setShortcut(Qt::Key_F2);
+#ifdef __APPLE__
+	renameAction->setShortcut({Qt::Key_Return});
+#else
+	renameAction->setShortcut({Qt::Key_F2});
+#endif
 	renameAction->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 	connect(renameAction, &QAction::triggered, [this]() {
 		const auto item = sceneList->currentItem();
@@ -308,7 +312,11 @@ CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent) : Q
 			       });
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("removeIconSmall")));
 	a->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+#ifdef __APPLE__
+	a->setShortcut({Qt::Key_Backspace});
+#else
 	a->setShortcut({Qt::Key_Delete});
+#endif
 	sceneList->addAction(a);
 	toolbar->addSeparator();
 	a = toolbar->addAction(QIcon(":/res/images/filter.svg"), QString::fromUtf8(obs_frontend_get_locale_string("SceneFilters")),

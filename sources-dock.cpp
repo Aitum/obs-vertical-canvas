@@ -34,7 +34,11 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 	connect(sourceList, &SourceTree::customContextMenuRequested, [this] { ShowSourcesContextMenu(GetCurrentSceneItem()); });
 
 	QAction *renameAction = new QAction(sourceList);
-	renameAction->setShortcut(Qt::Key_F2);
+#ifdef __APPLE__
+	renameAction->setShortcut({Qt::Key_Return});
+#else
+	renameAction->setShortcut({Qt::Key_F2});
+#endif
 	renameAction->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 	connect(renameAction, &QAction::triggered, [this]() {
 		obs_sceneitem_t *sceneItem = GetCurrentSceneItem();
@@ -134,7 +138,11 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 		});
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("removeIconSmall")));
 	a->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+#ifdef __APPLE__
+	a->setShortcut({Qt::Key_Backspace});
+#else
 	a->setShortcut({Qt::Key_Delete});
+#endif
 	sourceList->addAction(a);
 	toolbar->addSeparator();
 	a = toolbar->addAction(QIcon(":/res/images/filter.svg"), QString::fromUtf8(obs_frontend_get_locale_string("SourceFilters")),

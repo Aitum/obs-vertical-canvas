@@ -1062,7 +1062,11 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 			obs_sceneitem_remove(sceneItem);
 		}
 	});
+#ifdef __APPLE__
+	deleteAction->setShortcut({Qt::Key_Backspace});
+#else
 	deleteAction->setShortcut({Qt::Key_Delete});
+#endif
 	deleteAction->setShortcutContext(Qt::WidgetShortcut);
 	preview->addAction(deleteAction);
 
