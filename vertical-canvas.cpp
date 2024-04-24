@@ -1048,6 +1048,24 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	addNudge(Qt::SHIFT | Qt::Key_Left, MoveDir::Left, 10);
 	addNudge(Qt::SHIFT | Qt::Key_Right, MoveDir::Right, 10);
 
+	QAction *deleteAction = new QAction(preview);
+	connect(deleteAction, &QAction::triggered, [this]() {
+		obs_sceneitem_t *sceneItem = GetSelectedItem();
+		if (!sceneItem)
+			return;
+		QMessageBox mb(QMessageBox::Question, QString::fromUtf8(obs_frontend_get_locale_string("ConfirmRemove.Title")),
+			       QString::fromUtf8(obs_frontend_get_locale_string("ConfirmRemove.Text"))
+				       .arg(QString::fromUtf8(obs_source_get_name(obs_sceneitem_get_source(sceneItem)))),
+			       QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No));
+		mb.setDefaultButton(QMessageBox::NoButton);
+		if (mb.exec() == QMessageBox::Yes) {
+			obs_sceneitem_remove(sceneItem);
+		}
+	});
+	deleteAction->setShortcut({Qt::Key_Delete});
+	deleteAction->setShortcutContext(Qt::WidgetShortcut);
+	preview->addAction(deleteAction);
+
 	mainLayout->addWidget(preview, 1);
 
 	previewDisabledWidget = new QFrame;
@@ -4732,9 +4750,9 @@ void CanvasDock::StopVirtualCam()
 
 void CanvasDock::ConfigButtonClicked()
 {
-	if (!configDialog) 
+	if (!configDialog)
 		configDialog = new OBSBasicSettings(this, (QMainWindow *)obs_frontend_get_main_window());
-	
+
 	configDialog->LoadSettings();
 	configDialog->exec();
 

@@ -280,6 +280,9 @@ CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent) : Q
 				       canvasDock->RemoveScene(item->text());
 			       });
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("removeIconSmall")));
+	a->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+	a->setShortcut({Qt::Key_Delete});
+	sceneList->addAction(a);
 	toolbar->addSeparator();
 	a = toolbar->addAction(QIcon(":/res/images/filter.svg"), QString::fromUtf8(obs_frontend_get_locale_string("SceneFilters")),
 			       [this] {
