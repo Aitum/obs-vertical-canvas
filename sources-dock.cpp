@@ -9,6 +9,7 @@
 
 #include "obs-module.h"
 #include "vertical-canvas.hpp"
+#include "name-dialog.hpp"
 
 CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) : QFrame(parent), canvasDock(canvas_dock)
 {
@@ -32,6 +33,32 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 
 	connect(sourceList, &SourceTree::customContextMenuRequested, [this] { ShowSourcesContextMenu(GetCurrentSceneItem()); });
 
+	QAction *renameAction = new QAction(sourceList);
+	renameAction->setShortcut(Qt::Key_F2);
+	renameAction->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+	connect(renameAction, &QAction::triggered, [this]() {
+		obs_sceneitem_t *sceneItem = GetCurrentSceneItem();
+		if (!sceneItem)
+			return;
+		obs_source_t *source = obs_source_get_ref(obs_sceneitem_get_source(sceneItem));
+		if (!source)
+			return;
+		std::string name = obs_source_get_name(source);
+		obs_source_t *s = nullptr;
+		do {
+			obs_source_release(s);
+			if (!NameDialog::AskForName(this, QString::fromUtf8(obs_module_text("SourceName")), name)) {
+				break;
+			}
+			s = obs_get_source_by_name(name.c_str());
+			if (s)
+				continue;
+			obs_source_set_name(source, name.c_str());
+		} while (s);
+		obs_source_release(source);
+	});
+	sourceList->addAction(renameAction);
+
 	mainLayout->addWidget(sourceList, 1);
 
 	auto toolbar = new QToolBar();
@@ -48,7 +75,7 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 	a = toolbar->addAction(
 		QIcon(":/res/images/minus.svg"), QString::fromUtf8(obs_frontend_get_locale_string("RemoveSource")), [this] {
 			std::vector<OBSSceneItem> items;
-			obs_scene_enum_items(canvasDock->scene, remove_items, &items);
+			obs_scene_enum_items(canvasDock->scene, selected_items, &items);
 			if (!items.size())
 				return;
 			/* ------------------------------------- */
@@ -162,14 +189,14 @@ void CanvasSourcesDock::ShowSourcesContextMenu(obs_sceneitem_t *item)
 	menu.exec(QCursor::pos());
 }
 
-bool CanvasSourcesDock::remove_items(obs_scene_t *, obs_sceneitem_t *item, void *param)
+bool CanvasSourcesDock::selected_items(obs_scene_t *, obs_sceneitem_t *item, void *param)
 {
 	std::vector<OBSSceneItem> &items = *reinterpret_cast<std::vector<OBSSceneItem> *>(param);
 
 	if (obs_sceneitem_selected(item)) {
 		items.emplace_back(item);
 	} else if (obs_sceneitem_is_group(item)) {
-		obs_sceneitem_group_enum_items(item, remove_items, &items);
+		obs_sceneitem_group_enum_items(item, selected_items, &items);
 	}
 	return true;
 }
