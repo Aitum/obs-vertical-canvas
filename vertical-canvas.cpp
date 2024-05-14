@@ -4587,18 +4587,16 @@ bool CanvasDock::StartVideo()
 	auto s = obs_weak_source_get_source(source);
 	obs_view_set_source(view, 0, s);
 	obs_source_release(s);
-	bool started_video = false;
-	if (!video) {
-		obs_video_info ovi;
-		obs_get_video_info(&ovi);
-		ovi.base_width = canvas_width;
-		ovi.base_height = canvas_height;
-		ovi.output_width = canvas_width;
-		ovi.output_height = canvas_height;
-		video = obs_view_add2(view, &ovi);
-		started_video = true;
-	}
-	return started_video;
+	
+	obs_video_info ovi;
+	obs_get_video_info(&ovi);
+	ovi.base_width = canvas_width;
+	ovi.base_height = canvas_height;
+	ovi.output_width = canvas_width;
+	ovi.output_height = canvas_height;
+	video = obs_view_add2(view, &ovi);
+	
+	return true;
 }
 
 void CanvasDock::virtual_cam_output_start(void *data, calldata_t *calldata)
