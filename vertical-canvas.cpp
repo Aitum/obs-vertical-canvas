@@ -760,10 +760,16 @@ void CanvasDock::CheckReplayBuffer(bool start)
 		active = it->enabled && it->output && obs_output_active(it->output);
 	}
 
-	if (!start && !active)
-		StopReplayBuffer();
-	if (start && active)
+	if (start && active) {
 		StartReplayBuffer();
+	} else if (!active) {
+		if (video && !obs_output_active(replayOutput) && !obs_output_active(virtualCamOutput)) {
+			video = nullptr;
+			obs_view_remove(view);
+		}
+		if (!start)
+			StopReplayBuffer();
+	}
 }
 
 void CanvasDock::CreateScenesRow()
@@ -1298,7 +1304,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		CanvasDock *dock = reinterpret_cast<CanvasDock *>(param);
 		return obs_weak_source_get_source(dock->source);
 	};
-	StartVideo();
+	view = obs_view_create();
 }
 
 CanvasDock::~CanvasDock()
@@ -4588,7 +4594,7 @@ bool CanvasDock::StartVideo()
 	obs_view_set_source(view, 0, s);
 	obs_source_release(s);
 	bool started_video = false;
-	if (!video) {
+	if (!video || video_output_stopped(video)) {
 		obs_video_info ovi;
 		obs_get_video_info(&ovi);
 		ovi.base_width = canvas_width;
@@ -4727,8 +4733,6 @@ void CanvasDock::StartVirtualCam()
 	if (!success) {
 		QMetaObject::invokeMethod(this, "OnVirtualCamStop");
 		if (started_video) {
-			obs_view_remove(started_view);
-			obs_view_set_source(started_view, 0, nullptr);
 			if (video == virtual_video) {
 				video = nullptr;
 			} else if (multiCanvasVideo == virtual_video) {
@@ -4736,6 +4740,8 @@ void CanvasDock::StartVirtualCam()
 				obs_view_destroy(started_view);
 				multiCanvasView = nullptr;
 			}
+			obs_view_remove(started_view);
+			obs_view_set_source(started_view, 0, nullptr);
 		}
 	}
 }
@@ -5548,18 +5554,19 @@ obs_encoder_t *CanvasDock::GetRecordVideoEncoder()
 		}
 		obs_data_release(d);
 	}
-
-	switch (video_output_get_format(video)) {
-	case VIDEO_FORMAT_I420:
-	case VIDEO_FORMAT_NV12:
-	case VIDEO_FORMAT_I010:
-	case VIDEO_FORMAT_P010:
-		break;
-	default:
-		obs_encoder_set_preferred_video_format(video_encoder, VIDEO_FORMAT_NV12);
+	if (!video_output_stopped(video)) {
+		switch (video_output_get_format(video)) {
+		case VIDEO_FORMAT_I420:
+		case VIDEO_FORMAT_NV12:
+		case VIDEO_FORMAT_I010:
+		case VIDEO_FORMAT_P010:
+			break;
+		default:
+			obs_encoder_set_preferred_video_format(video_encoder, VIDEO_FORMAT_NV12);
+		}
+		if (!obs_encoder_active(video_encoder))
+			obs_encoder_set_video(video_encoder, video);
 	}
-	if (!obs_encoder_active(video_encoder))
-		obs_encoder_set_video(video_encoder, video);
 	return video_encoder;
 }
 
