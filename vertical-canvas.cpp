@@ -1305,6 +1305,9 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		return obs_weak_source_get_source(dock->source);
 	};
 	view = obs_view_create();
+	auto s = obs_weak_source_get_source(source);
+	obs_view_set_source(view, 0, s);
+	obs_source_release(s);
 }
 
 CanvasDock::~CanvasDock()
