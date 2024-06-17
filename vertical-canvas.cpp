@@ -1050,7 +1050,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	};
 	preview->show();
 	connect(preview, &OBSQTDisplay::DisplayCreated, addDrawCallback);
-	preview->setVisible(!preview_disabled);
 	obs_display_set_enabled(preview->GetDisplay(), !preview_disabled);
 
 	auto addNudge = [this](const QKeySequence &seq, MoveDir direction, int distance) {
@@ -1093,6 +1092,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	preview->addAction(deleteAction);
 
 	mainLayout->addWidget(preview, 1);
+	preview->setVisible(!preview_disabled);
 
 	previewDisabledWidget = new QFrame;
 	auto l = new QVBoxLayout;
@@ -1109,8 +1109,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	previewDisabledWidget->setLayout(l);
 
-	previewDisabledWidget->setVisible(preview_disabled);
 	mainLayout->addWidget(previewDisabledWidget, 1);
+	previewDisabledWidget->setVisible(preview_disabled);
 
 	QSizePolicy sp2;
 	sp2.setHeightForWidth(true);
