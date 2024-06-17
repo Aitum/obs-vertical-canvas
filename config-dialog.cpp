@@ -607,7 +607,10 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	fileFormat = new QComboBox;
 	fileFormat->addItem(QString::fromUtf8("mp4"));
+	fileFormat->addItem(QString::fromUtf8("hybrid_mp4"));
+	fileFormat->addItem(QString::fromUtf8("fragmented_mp4"));
 	fileFormat->addItem(QString::fromUtf8("mov"));
+	fileFormat->addItem(QString::fromUtf8("fragmented_mov"));
 	fileFormat->addItem(QString::fromUtf8("mkv"));
 	fileFormat->addItem(QString::fromUtf8("ts"));
 	fileFormat->addItem(QString::fromUtf8("mp3u8"));

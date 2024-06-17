@@ -203,6 +203,18 @@ void frontend_event(obs_frontend_event event, void *private_data)
 	}
 }
 
+static void get_video(void *data, calldata_t *cd)
+{
+	const auto width = calldata_int(cd, "width");
+	const auto height = calldata_int(cd, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
+			continue;
+		calldata_set_ptr(cd, "video", it->GetVideo());
+		return;
+	}
+}
+
 obs_websocket_vendor vendor = nullptr;
 
 void vendor_request_version(obs_data_t *request_data, obs_data_t *response_data, void *)
@@ -509,6 +521,9 @@ void obs_module_post_load(void)
 		canvas_docks.push_back(canvasDock);
 	}
 	obs_data_array_release(canvas);
+
+	auto ph = obs_get_proc_handler();
+	proc_handler_add(ph, "void aitum_vertical_get_video(in int width, in int height, out ptr video)", get_video , nullptr);
 
 	if (!vendor)
 		vendor = obs_websocket_register_vendor("aitum-vertical-canvas");
@@ -1304,7 +1319,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		CanvasDock *dock = reinterpret_cast<CanvasDock *>(param);
 		return obs_weak_source_get_source(dock->source);
 	};
-	view = obs_view_create();
 	auto s = obs_weak_source_get_source(source);
 	obs_view_set_source(view, 0, s);
 	obs_source_release(s);
@@ -4870,34 +4884,11 @@ void CanvasDock::StartRecord()
 	if (obs_output_active(recordOutput))
 		return;
 
-	if (record_advanced_settings) {
-		if (!recordOutput)
-			recordOutput = obs_output_create("ffmpeg_muxer", "vertical_canvas_record", nullptr, nullptr);
-	} else {
-		obs_output_t *output = obs_frontend_get_recording_output();
-		if (!output) {
-			obs_output_t *replay_output = obs_frontend_get_replay_buffer_output();
-			if (!replay_output) {
-				ShowNoReplayOutputError();
-				return;
-			}
-			obs_output_release(replay_output);
-		}
-		if (!recordOutput)
-			recordOutput = obs_output_create(obs_output_get_id(output), "vertical_canvas_record", nullptr, nullptr);
-
-		obs_data_t *settings = obs_output_get_settings(output);
-		obs_output_update(recordOutput, settings);
-		obs_data_release(settings);
-		obs_output_release(output);
-	}
-
-	SetRecordAudioEncoders(recordOutput);
-
+	const char *format = nullptr;
 	config_t *config = obs_frontend_get_profile_config();
 	const char *mode = config_get_string(config, "Output", "Mode");
 	const char *dir = nullptr;
-	const char *format = nullptr;
+
 	bool ffmpegOutput = false;
 
 	if (record_advanced_settings) {
@@ -4936,6 +4927,37 @@ void CanvasDock::StartRecord()
 			ffmpegOutput = true;
 		}
 	}
+
+	if (record_advanced_settings) {
+		bool use_native = strcmp(format, "hybrid_mp4") == 0;
+		const char *output_id = use_native ? "mp4_output" : "ffmpeg_muxer";
+		if (!recordOutput || strcmp(obs_output_get_id(recordOutput), output_id) != 0) {
+			obs_output_release(recordOutput);
+			recordOutput = obs_output_create(output_id, "vertical_canvas_record", nullptr, nullptr);
+		}
+	} else {
+		obs_output_t *output = obs_frontend_get_recording_output();
+		if (!output) {
+			obs_output_t *replay_output = obs_frontend_get_replay_buffer_output();
+			if (!replay_output) {
+				ShowNoReplayOutputError();
+				return;
+			}
+			obs_output_release(replay_output);
+		}
+		if (!recordOutput || strcmp(obs_output_get_id(recordOutput), obs_output_get_id(output)) != 0) {
+			obs_output_release(recordOutput);
+			recordOutput = obs_output_create(obs_output_get_id(output), "vertical_canvas_record", nullptr, nullptr);
+		}
+
+		obs_data_t *settings = obs_output_get_settings(output);
+		obs_output_update(recordOutput, settings);
+		obs_data_release(settings);
+		obs_output_release(output);
+	}
+
+	SetRecordAudioEncoders(recordOutput);
+
 	if (recordPath.empty() && (!dir || !strlen(dir))) {
 		if (isVisible()) {
 			QMessageBox::warning(this, QString::fromUtf8(obs_frontend_get_locale_string("Output.BadPath.Title")),
@@ -4977,6 +4999,8 @@ void CanvasDock::StartRecord()
 	std::string ext = format;
 	if (ffmpegOutput)
 		ext = "avi";
+	else if (ext == "hybrid_mp4")
+		ext = "mp4";
 	else if (ext == "fragmented_mp4")
 		ext = "mp4";
 	else if (ext == "fragmented_mov")
