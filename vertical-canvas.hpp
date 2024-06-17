@@ -423,6 +423,7 @@ public:
 	CanvasScenesDock *GetScenesDock();
 	inline uint32_t GetCanvasWidth() const { return canvas_width; }
 	inline uint32_t GetCanvasHeight() const { return canvas_height; }
+	inline video_t* GetVideo() const { return video; }
 
 	obs_data_t *SaveSettings();
 

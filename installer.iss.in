@@ -3,7 +3,7 @@
 
 #define MyAppName "@PROJECT_FULL_NAME@"
 #define MyAppVersion "@PROJECT_VERSION_MAJOR@.@PROJECT_VERSION_MINOR@.@PROJECT_VERSION_PATCH@"
-#define MyAppPublisher "Exeldro"
+#define MyAppPublisher "Aitum"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.

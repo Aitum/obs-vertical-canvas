@@ -205,6 +205,7 @@ void frontend_event(obs_frontend_event event, void *private_data)
 
 static void get_video(void *data, calldata_t *cd)
 {
+	UNUSED_PARAMETER(data);
 	const auto width = calldata_int(cd, "width");
 	const auto height = calldata_int(cd, "height");
 	for (const auto &it : canvas_docks) {
