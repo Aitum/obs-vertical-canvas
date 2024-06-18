@@ -149,6 +149,7 @@ private:
 	QIcon recordActiveIcon = QIcon(":/aitum/media/recording.svg");
 	QIcon recordInactiveIcon = QIcon(":/aitum/media/record.svg");
 	QPushButton *replayButton;
+	QPushButton *replayEnableButton;
 	QLabel *statusLabel;
 	QTimer replayStatusResetTimer;
 	QTimer recordDurationTimer;

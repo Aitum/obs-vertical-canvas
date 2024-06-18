@@ -524,7 +524,7 @@ void obs_module_post_load(void)
 	obs_data_array_release(canvas);
 
 	auto ph = obs_get_proc_handler();
-	proc_handler_add(ph, "void aitum_vertical_get_video(in int width, in int height, out ptr video)", get_video , nullptr);
+	proc_handler_add(ph, "void aitum_vertical_get_video(in int width, in int height, out ptr video)", get_video, nullptr);
 
 	if (!vendor)
 		vendor = obs_websocket_register_vendor("aitum-vertical-canvas");
@@ -859,7 +859,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	audioBitrate = (uint32_t)obs_data_get_int(settings, "audio_bitrate");
 	startReplay = obs_data_get_bool(settings, "backtrack");
-	replayAlwaysOn = obs_data_get_bool(settings, "backtrack_always");
+	replayAlwaysOn = false;
 	replayDuration = (uint32_t)obs_data_get_int(settings, "backtrack_seconds");
 	replayPath = obs_data_get_string(settings, "backtrack_path");
 
@@ -1134,7 +1134,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	streamButton->setSizePolicy(sp2);
 	streamButton->setToolTip(QString::fromUtf8(obs_module_text("StreamVertical")));
 	streamButton->setStyleSheet(
-		QString::fromUtf8(multi_rtmp ? "border-top-right-radius: 0; border-bottom-right-radius: 0;" : ""));
+		QString::fromUtf8("QPushButton:checked{background: rgb(0,210,153);}") +
+		QString::fromUtf8(multi_rtmp ? "QPushButton{border-top-right-radius: 0; border-bottom-right-radius: 0;}" : ""));
 	connect(streamButton, SIGNAL(clicked()), this, SLOT(StreamButtonClicked()));
 	streamButtonGroup->layout()->addWidget(streamButton);
 
@@ -1149,7 +1150,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	connect(multi_menu, &QMenu::aboutToShow, [this, multi_menu] { StreamButtonMultiMenu(multi_menu); });
 	streamButtonMulti->setMenu(multi_menu);
 	streamButtonMulti->setStyleSheet(QString::fromUtf8(
-		"width: 16px; padding-left: 4px; padding-right: 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;"));
+		"QPushButton{width: 16px; padding-left: 4px; padding-right: 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;}"));
 	streamButtonMulti->setVisible(multi_rtmp);
 	streamButtonGroup->layout()->addWidget(streamButtonMulti);
 
@@ -1162,9 +1163,14 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	recordButton->setCheckable(true);
 	recordButton->setChecked(false);
 	recordButton->setSizePolicy(sp2);
+	recordButton->setStyleSheet(QString::fromUtf8("QPushButton:checked{background: rgb(255,0,0);}"));
 	recordButton->setToolTip(QString::fromUtf8(obs_module_text("RecordVertical")));
 	connect(recordButton, SIGNAL(clicked()), this, SLOT(RecordButtonClicked()));
 	buttonRow->addWidget(recordButton);
+
+	auto replayButtonGroupLayout = new QHBoxLayout();
+	replayButtonGroupLayout->setContentsMargins(0, 0, 0, 0);
+	replayButtonGroupLayout->setSpacing(0);
 
 	replayButton = new QPushButton;
 	replayButton->setMinimumHeight(30);
@@ -1173,8 +1179,46 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	replayButton->setContentsMargins(0, 0, 0, 0);
 	replayButton->setSizePolicy(sp2);
 	replayButton->setToolTip(QString::fromUtf8(obs_module_text("BacktrackClipVertical")));
+	replayButton->setCheckable(true);
+	replayButton->setStyleSheet(QString::fromUtf8(
+		"QPushButton:checked{background: rgb(26,87,255);} QPushButton{width: 30px; padding-left: 4px; padding-right: 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;}"));
 	connect(replayButton, SIGNAL(clicked()), this, SLOT(ReplayButtonClicked()));
-	buttonRow->addWidget(replayButton);
+
+	replayEnableButton = new QPushButton;
+	replayEnableButton->setMinimumHeight(30);
+	replayEnableButton->setObjectName(QStringLiteral("canvasBacktrackEnable"));
+	replayEnableButton->setToolTip(QString::fromUtf8(obs_module_text("BacktrackOn")));
+	replayEnableButton->setCheckable(true);
+	replayEnableButton->setChecked(false);
+	replayEnableButton->setSizePolicy(sp2);
+	replayEnableButton->setStyleSheet(QString::fromUtf8(
+		"QPushButton:checked{background: rgb(26,87,255);} QPushButton{ border-top-right-radius: 0; border-bottom-right-radius: 0;} QWidget{width: 30px; padding-left: 4px; padding-right: 4px;}"));
+	auto replayEnable = new QCheckBox;
+	auto testl = new QHBoxLayout;
+	replayEnableButton->setLayout(testl);
+	testl->addWidget(replayEnable);
+
+	connect(replayEnableButton, &QPushButton::clicked, [this, replayEnable] {
+		replayAlwaysOn = !replayAlwaysOn;
+		replayEnableButton->setChecked(replayAlwaysOn);
+		replayEnable->setChecked(replayAlwaysOn);
+		CheckReplayBuffer();
+	});
+
+	connect(replayEnable, &QCheckBox::stateChanged, [this, replayEnable] {
+		if (replayEnable->isChecked() != replayEnableButton->isChecked()) {
+			replayEnableButton->setChecked(replayEnable->isChecked());
+			if (replayEnable->isChecked() == replayAlwaysOn)
+				return;
+			replayAlwaysOn = replayEnable->isChecked();
+			CheckReplayBuffer();
+		}
+	});
+
+	replayButtonGroupLayout->addWidget(replayEnableButton);
+	replayButtonGroupLayout->addWidget(replayButton);
+
+	buttonRow->addLayout(replayButtonGroupLayout);
 
 	virtualCamButton = new QPushButton;
 	virtualCamButton->setMinimumHeight(30);
@@ -1183,6 +1227,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	virtualCamButton->setCheckable(true);
 	virtualCamButton->setChecked(false);
 	virtualCamButton->setSizePolicy(sp2);
+	virtualCamButton->setStyleSheet(QString::fromUtf8("QPushButton:checked{background: rgb(192,128,0);}"));
 	virtualCamButton->setToolTip(QString::fromUtf8(obs_module_text("VirtualCameraVertical")));
 	if (obs_get_version() < MAKE_SEMANTIC_VERSION(29, 1, 0) && strncmp(obs_get_version_string(), "29.1.", 5) != 0) {
 		virtualCamButton->setVisible(false);
@@ -4650,14 +4695,12 @@ void CanvasDock::virtual_cam_output_stop(void *data, calldata_t *calldata)
 void CanvasDock::OnVirtualCamStart()
 {
 	virtualCamButton->setIcon(virtualCamActiveIcon);
-	virtualCamButton->setStyleSheet(QString::fromUtf8("background: rgb(192,128,0);"));
 	virtualCamButton->setChecked(true);
 }
 
 void CanvasDock::OnVirtualCamStop()
 {
 	virtualCamButton->setIcon(virtualCamInactiveIcon);
-	virtualCamButton->setStyleSheet(QString::fromUtf8(""));
 	virtualCamButton->setChecked(false);
 	CheckReplayBuffer();
 	if (multiCanvasSource) {
@@ -4789,8 +4832,13 @@ void CanvasDock::ConfigButtonClicked()
 
 void CanvasDock::ReplayButtonClicked(QString filename)
 {
-	if (!obs_output_active(replayOutput))
+	if (!obs_output_active(replayOutput)) {
+		if (replayButton->isChecked())
+			replayButton->setChecked(false);
 		return;
+	}
+	if (!replayButton->isChecked())
+		replayButton->setChecked(true);
 	obs_data_t *s = obs_output_get_settings(replayOutput);
 	if (!filename.isEmpty()) {
 		if (replayFilename.empty())
@@ -5661,9 +5709,15 @@ void CanvasDock::StreamButtonMultiMenu(QMenu *menu)
 		} else {
 			connect(action, &QAction::triggered, [this, it] {
 				CreateStreamOutput(it);
+				const bool started_video = StartVideo();
 				obs_output_set_video_encoder(it->output, GetStreamVideoEncoder());
 				obs_output_set_audio_encoder(it->output, GetStreamAudioEncoder(), 0);
 				if (!obs_output_start(it->output)) {
+					if (started_video) {
+						video = nullptr;
+						obs_view_remove(view);
+						obs_view_set_source(view, 0, nullptr);
+					}
 					QMetaObject::invokeMethod(this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_ERROR),
 								  Q_ARG(QString,
 									QString::fromUtf8(obs_output_get_last_error(it->output))),
@@ -6012,7 +6066,6 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_bool(data, "recording_match_main", recordingMatchMain);
 	obs_data_set_int(data, "audio_bitrate", audioBitrate);
 	obs_data_set_bool(data, "backtrack", startReplay);
-	obs_data_set_bool(data, "backtrack_always", replayAlwaysOn);
 	obs_data_set_int(data, "backtrack_seconds", replayDuration);
 	obs_data_set_string(data, "backtrack_path", replayPath.c_str());
 	if (replayOutput) {
@@ -6447,7 +6500,6 @@ void CanvasDock::source_save(void *data, calldata_t *calldata)
 
 void CanvasDock::FinishLoading()
 {
-	CheckReplayBuffer(true);
 	if (!first_time)
 		return;
 	if (action && !action->isChecked())
@@ -6527,7 +6579,7 @@ void CanvasDock::OnRecordStart()
 	recordButton->setChecked(true);
 	recordButton->setIcon(recordActiveIcon);
 	recordButton->setText("00:00");
-	recordButton->setStyleSheet(QString::fromUtf8("background: rgb(255,0,0);"));
+	recordButton->setChecked(true);
 	StartReplayBuffer();
 }
 
@@ -6572,7 +6624,7 @@ void CanvasDock::OnRecordStop(int code, QString last_error)
 	recordButton->setChecked(false);
 	recordButton->setIcon(recordInactiveIcon);
 	recordButton->setText("");
-	recordButton->setStyleSheet(QString::fromUtf8(""));
+	recordButton->setChecked(false);
 	HandleRecordError(code, last_error);
 	CheckReplayBuffer();
 
@@ -6642,9 +6694,7 @@ void CanvasDock::OnStreamStart()
 	streamButton->setChecked(true);
 	streamButton->setIcon(streamActiveIcon);
 	streamButton->setText("00:00");
-	streamButton->setStyleSheet(QString::fromUtf8(
-		multi_rtmp ? "background: rgb(0,210,153); border-top-right-radius: 0; border-bottom-right-radius: 0;"
-			   : "background: rgb(0,210,153);"));
+	streamButton->setChecked(true);
 	StartReplayBuffer();
 }
 
@@ -6665,8 +6715,7 @@ void CanvasDock::OnStreamStop(int code, QString last_error, QString stream_serve
 		streamButton->setChecked(false);
 		streamButton->setIcon(streamInactiveIcon);
 		streamButton->setText("");
-		streamButton->setStyleSheet(
-			QString::fromUtf8(multi_rtmp ? "border-top-right-radius: 0; border-bottom-right-radius: 0;" : ""));
+		streamButton->setChecked(false);
 	}
 	const char *errorDescription = "";
 
@@ -6741,13 +6790,13 @@ void CanvasDock::OnStreamStop(int code, QString last_error, QString stream_serve
 void CanvasDock::OnReplayBufferStart()
 {
 	replayButton->setIcon(replayActiveIcon);
-	replayButton->setStyleSheet(QString::fromUtf8("background: rgb(26,87,255);"));
+	replayButton->setChecked(true);
 }
 
 void CanvasDock::OnReplayBufferStop(int code, QString last_error)
 {
 	replayButton->setIcon(replayInactiveIcon);
-	replayButton->setStyleSheet(QString::fromUtf8(""));
+	replayButton->setChecked(false);
 	if (!replayStatusResetTimer.isActive())
 		replayStatusResetTimer.start(4000);
 	if (restart_video)

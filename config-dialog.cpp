@@ -169,9 +169,6 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	backtrackLayout->addRow(backtrack_title_layout);
 
-	backtrackAlwaysOn = new QCheckBox(QString::fromUtf8(obs_module_text("BacktrackAlwaysOn")));
-	backtrackLayout->addWidget(backtrackAlwaysOn);
-
 	backtrackClip = new QCheckBox(QString::fromUtf8(obs_module_text("BacktrackEnable")));
 	backtrackLayout->addWidget(backtrackClip);
 
@@ -957,7 +954,6 @@ void OBSBasicSettings::LoadSettings()
 		}
 	}
 	backtrackClip->setChecked(canvasDock->startReplay);
-	backtrackAlwaysOn->setChecked(canvasDock->replayAlwaysOn);
 	backtrackDuration->setValue(canvasDock->replayDuration);
 	backtrackPath->setText(QString::fromUtf8(canvasDock->replayPath));
 
@@ -1089,16 +1085,14 @@ void OBSBasicSettings::SaveSettings()
 	}
 
 	auto startReplay = backtrackClip->isChecked();
-	auto replayAlwaysOn = backtrackAlwaysOn->isChecked();
 	auto duration = (uint32_t)backtrackDuration->value();
 	std::string replayPath = backtrackPath->text().toUtf8().constData();
 	if (duration != canvasDock->replayDuration || replayPath != canvasDock->replayPath ||
-	    canvasDock->startReplay != startReplay || replayAlwaysOn != canvasDock->replayAlwaysOn) {
+	    canvasDock->startReplay != startReplay) {
 		canvasDock->replayDuration = duration;
 		canvasDock->replayPath = replayPath;
 		canvasDock->startReplay = startReplay;
-		canvasDock->replayAlwaysOn = replayAlwaysOn;
-		if (replayAlwaysOn || startReplay) {
+		if (canvasDock->replayAlwaysOn || startReplay) {
 			if (obs_output_active(canvasDock->replayOutput)) {
 				canvasDock->StopReplayBuffer();
 				QTimer::singleShot(500, this, [this] { canvasDock->CheckReplayBuffer(true); });
@@ -1152,14 +1146,16 @@ void OBSBasicSettings::SaveSettings()
 	if (enabled_count > 1 && !canvasDock->multi_rtmp) {
 		canvasDock->streamButtonMulti->setVisible(true);
 		canvasDock->multi_rtmp = true;
-		canvasDock->streamButton->setStyleSheet(QString::fromUtf8(
-			active_count > 0 ? "background: rgb(0,210,153); border-top-right-radius: 0; border-bottom-right-radius: 0;"
-					 : "border-top-right-radius: 0; border-bottom-right-radius: 0;"));
+		canvasDock->streamButton->setChecked(active_count > 0);
+		canvasDock->streamButton->setStyleSheet(
+			QString::fromUtf8("QPushButton:checked{background: rgb(0,210,153);} QPushButton{border-top-right-radius: 0; border-bottom-right-radius: 0;}"));
 
 	} else if (enabled_count <= 1 && canvasDock->multi_rtmp) {
 		canvasDock->streamButtonMulti->setVisible(false);
 		canvasDock->multi_rtmp = false;
-		canvasDock->streamButton->setStyleSheet(QString::fromUtf8(active_count > 0 ? "background: rgb(0,210,153);" : ""));
+		canvasDock->streamButton->setChecked(active_count > 0);
+		canvasDock->streamButton->setStyleSheet(QString::fromUtf8(
+			"QPushButton:checked{background: rgb(0,210,153);}"));
 	}
 
 	if (streamDelayEnable->isChecked() != canvasDock->stream_delay_enabled ||

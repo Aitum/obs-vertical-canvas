@@ -39,7 +39,6 @@ private:
 	QComboBox *audioBitrate;
 	QComboBox *virtualCameraMode;
 	QCheckBox *backtrackClip;
-	QCheckBox *backtrackAlwaysOn;
 	QSpinBox *backtrackDuration;
 	QLineEdit *backtrackPath;
 
