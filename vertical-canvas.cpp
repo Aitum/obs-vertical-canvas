@@ -216,6 +216,36 @@ static void get_video(void *data, calldata_t *cd)
 	}
 }
 
+static void get_stream_settings(void *data, calldata_t *cd)
+{
+	UNUSED_PARAMETER(data);
+	const auto width = calldata_int(cd, "width");
+	const auto height = calldata_int(cd, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
+			continue;
+		calldata_set_ptr(cd, "outputs", it->SaveStreamOutputs());
+		return;
+	}
+}
+
+static void set_stream_settings(void *data, calldata_t *cd)
+{
+	UNUSED_PARAMETER(data);
+	const auto width = calldata_int(cd, "width");
+	const auto height = calldata_int(cd, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
+			continue;
+		obs_data_array_t *outputs = (obs_data_array_t *)calldata_ptr(cd, "outputs");
+		if (outputs) {
+			it->LoadStreamOutputs(outputs);
+			it->UpdateMulti();
+		}
+		return;
+	}
+}
+
 obs_websocket_vendor vendor = nullptr;
 
 void vendor_request_version(obs_data_t *request_data, obs_data_t *response_data, void *)
@@ -525,6 +555,10 @@ void obs_module_post_load(void)
 
 	auto ph = obs_get_proc_handler();
 	proc_handler_add(ph, "void aitum_vertical_get_video(in int width, in int height, out ptr video)", get_video, nullptr);
+	proc_handler_add(ph, "void aitum_vertical_get_stream_settings(in int width, in int height, out ptr outputs)",
+			 get_stream_settings, nullptr);
+	proc_handler_add(ph, "void aitum_vertical_set_stream_settings(in int width, in int height, in ptr outputs)",
+			 set_stream_settings, nullptr);
 
 	if (!vendor)
 		vendor = obs_websocket_register_vendor("aitum-vertical-canvas");
@@ -866,25 +900,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	virtual_cam_mode = obs_data_get_int(settings, "virtual_camera_mode");
 
 	auto so = obs_data_get_array(settings, "stream_outputs");
-	auto count = obs_data_array_count(so);
-	auto enabled_count = 0;
-	for (size_t i = 0; i < count; i++) {
-		auto item = obs_data_array_item(so, i);
-		StreamServer ss;
-		ss.name = obs_data_get_string(item, "name");
-		ss.stream_server = obs_data_get_string(item, "stream_server");
-		ss.stream_key = obs_data_get_string(item, "stream_key");
-		ss.enabled = obs_data_get_bool(item, "enabled");
-		if (ss.enabled)
-			enabled_count++;
-		std::string service_name = "vertical_canvas_stream_service_";
-		service_name += std::to_string(i);
-		ss.service = obs_service_create("rtmp_custom", service_name.c_str(), nullptr, nullptr);
-		streamOutputs.push_back(ss);
-		obs_data_release(item);
-	}
+	multi_rtmp = LoadStreamOutputs(so);
 	obs_data_array_release(so);
-	multi_rtmp = enabled_count > 1;
 	if (streamOutputs.empty() && strlen(obs_data_get_string(settings, "stream_server"))) {
 		StreamServer ss;
 		ss.stream_server = obs_data_get_string(settings, "stream_server");
@@ -6076,17 +6093,7 @@ obs_data_t *CanvasDock::SaveSettings()
 
 	obs_data_set_int(data, "virtual_camera_mode", virtual_cam_mode);
 
-	obs_data_array_t *stream_servers = obs_data_array_create();
-	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
-		obs_data_t *s = obs_data_create();
-		obs_data_set_string(s, "name", it->name.c_str());
-		obs_data_set_string(s, "stream_server", it->stream_server.c_str());
-		obs_data_set_string(s, "stream_key", it->stream_key.c_str());
-		obs_data_set_bool(s, "enabled", it->enabled);
-		obs_data_array_push_back(stream_servers, s);
-		obs_data_release(s);
-	}
-
+	obs_data_array_t *stream_servers = SaveStreamOutputs();
 	obs_data_set_array(data, "stream_outputs", stream_servers);
 	obs_data_array_release(stream_servers);
 
@@ -7431,6 +7438,7 @@ QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible, obs_sceneitem_t 
 
 	return menu;
 }
+
 void CanvasDock::get_transitions(void *data, struct obs_frontend_source_list *sources)
 {
 	auto dock = (CanvasDock *)data;
@@ -7438,6 +7446,74 @@ void CanvasDock::get_transitions(void *data, struct obs_frontend_source_list *so
 		obs_source_t *tr = transition;
 		if (obs_source_get_ref(tr) != nullptr)
 			da_push_back(sources->sources, &tr);
+	}
+}
+
+bool CanvasDock::LoadStreamOutputs(obs_data_array_t *outputs)
+{
+	auto count = obs_data_array_count(outputs);
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end();) {
+		if (obs_output_active(it->output))
+			obs_output_stop(it->output);
+		obs_output_release(it->output);
+		obs_service_release(it->service);
+	}
+	streamOutputs.clear();
+	auto enabled_count = 0;
+	for (size_t i = 0; i < count; i++) {
+		auto item = obs_data_array_item(outputs, i);
+		StreamServer ss;
+		ss.name = obs_data_get_string(item, "name");
+		ss.stream_server = obs_data_get_string(item, "stream_server");
+		ss.stream_key = obs_data_get_string(item, "stream_key");
+		ss.enabled = obs_data_get_bool(item, "enabled");
+		if (ss.enabled)
+			enabled_count++;
+		std::string service_name = "vertical_canvas_stream_service_";
+		service_name += std::to_string(i);
+		ss.service = obs_service_create("rtmp_custom", service_name.c_str(), nullptr, nullptr);
+		streamOutputs.push_back(ss);
+		obs_data_release(item);
+	}
+	return enabled_count > 1;
+}
+
+obs_data_array_t *CanvasDock::SaveStreamOutputs()
+{
+	obs_data_array_t *outputs = obs_data_array_create();
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		obs_data_t *s = obs_data_create();
+		obs_data_set_string(s, "name", it->name.c_str());
+		obs_data_set_string(s, "stream_server", it->stream_server.c_str());
+		obs_data_set_string(s, "stream_key", it->stream_key.c_str());
+		obs_data_set_bool(s, "enabled", it->enabled);
+		obs_data_array_push_back(outputs, s);
+		obs_data_release(s);
+	}
+	return outputs;
+}
+
+void CanvasDock::UpdateMulti()
+{
+	int enabled_count = 0;
+	int active_count = 0;
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); it++) {
+		if (obs_output_active(it->output))
+			active_count++;
+		if (it->enabled)
+			enabled_count++;
+	}
+	if (enabled_count > 1 && !multi_rtmp) {
+		streamButtonMulti->setVisible(true);
+		multi_rtmp = true;
+		streamButton->setChecked(active_count > 0);
+		streamButton->setStyleSheet(QString::fromUtf8(
+			"QPushButton:checked{background: rgb(0,210,153);} QPushButton{border-top-right-radius: 0; border-bottom-right-radius: 0;}"));
+	} else if (enabled_count <= 1 && multi_rtmp) {
+		streamButtonMulti->setVisible(false);
+		multi_rtmp = false;
+		streamButton->setChecked(active_count > 0);
+		streamButton->setStyleSheet(QString::fromUtf8("QPushButton:checked{background: rgb(0,210,153);}"));
 	}
 }
 

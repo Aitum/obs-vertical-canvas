@@ -1104,8 +1104,7 @@ void OBSBasicSettings::SaveSettings()
 		}
 	}
 
-	int enabled_count = 0;
-	int active_count = 0;
+
 	for (size_t idx = 0; idx < servers.size(); idx++) {
 		std::string sk = keys[idx]->text().toUtf8().constData();
 		std::string ss = servers[idx]->currentText().toUtf8().constData();
@@ -1117,8 +1116,6 @@ void OBSBasicSettings::SaveSettings()
 			service_name += std::to_string(idx);
 			so.service = obs_service_create("rtmp_custom", service_name.c_str(), nullptr, nullptr);
 			canvasDock->streamOutputs.push_back(so);
-		} else if (obs_output_active(canvasDock->streamOutputs[idx].output)) {
-			active_count++;
 		}
 		canvasDock->streamOutputs[idx].name = server_names[idx]->text().toUtf8().constData();
 		if (sk != canvasDock->streamOutputs[idx].stream_key || ss != canvasDock->streamOutputs[idx].stream_server) {
@@ -1131,8 +1128,6 @@ void OBSBasicSettings::SaveSettings()
 			}
 		}
 		canvasDock->streamOutputs[idx].enabled = servers_enabled[idx]->isChecked();
-		if (canvasDock->streamOutputs[idx].enabled)
-			enabled_count++;
 	}
 	if (canvasDock->streamOutputs.size() > servers.size()) {
 		for (auto idx = canvasDock->streamOutputs.size() - 1; idx >= servers.size(); idx--) {
@@ -1143,20 +1138,7 @@ void OBSBasicSettings::SaveSettings()
 			canvasDock->streamOutputs.pop_back();
 		}
 	}
-	if (enabled_count > 1 && !canvasDock->multi_rtmp) {
-		canvasDock->streamButtonMulti->setVisible(true);
-		canvasDock->multi_rtmp = true;
-		canvasDock->streamButton->setChecked(active_count > 0);
-		canvasDock->streamButton->setStyleSheet(
-			QString::fromUtf8("QPushButton:checked{background: rgb(0,210,153);} QPushButton{border-top-right-radius: 0; border-bottom-right-radius: 0;}"));
-
-	} else if (enabled_count <= 1 && canvasDock->multi_rtmp) {
-		canvasDock->streamButtonMulti->setVisible(false);
-		canvasDock->multi_rtmp = false;
-		canvasDock->streamButton->setChecked(active_count > 0);
-		canvasDock->streamButton->setStyleSheet(QString::fromUtf8(
-			"QPushButton:checked{background: rgb(0,210,153);}"));
-	}
+	canvasDock->UpdateMulti();
 
 	if (streamDelayEnable->isChecked() != canvasDock->stream_delay_enabled ||
 	    (canvasDock->stream_delay_enabled && ((uint32_t)streamDelayDuration->value() != canvasDock->stream_delay_duration ||
