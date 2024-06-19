@@ -604,7 +604,8 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	fileFormat = new QComboBox;
 	fileFormat->addItem(QString::fromUtf8("mp4"));
-	fileFormat->addItem(QString::fromUtf8("hybrid_mp4"));
+	if (obs_get_version() >= MAKE_SEMANTIC_VERSION(30, 2, 0))
+		fileFormat->addItem(QString::fromUtf8("hybrid_mp4"));
 	fileFormat->addItem(QString::fromUtf8("fragmented_mp4"));
 	fileFormat->addItem(QString::fromUtf8("mov"));
 	fileFormat->addItem(QString::fromUtf8("fragmented_mov"));
@@ -1103,7 +1104,6 @@ void OBSBasicSettings::SaveSettings()
 			canvasDock->StopReplayBuffer();
 		}
 	}
-
 
 	for (size_t idx = 0; idx < servers.size(); idx++) {
 		std::string sk = keys[idx]->text().toUtf8().constData();
