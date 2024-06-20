@@ -807,7 +807,7 @@ void CanvasDock::CheckReplayBuffer(bool start)
 	bool active = obs_frontend_streaming_active() || obs_frontend_recording_active() ||
 		      (recordOutput && obs_output_active(recordOutput));
 	for (auto it = streamOutputs.begin(); !active && it != streamOutputs.end(); ++it) {
-		active = it->enabled && it->output && obs_output_active(it->output);
+		active = it->enabled && it->output && !it->stopping && obs_output_active(it->output);
 	}
 
 	if (start && active) {
@@ -5729,12 +5729,14 @@ void CanvasDock::StreamButtonMultiMenu(QMenu *menu)
 				const bool started_video = StartVideo();
 				obs_output_set_video_encoder(it->output, GetStreamVideoEncoder());
 				obs_output_set_audio_encoder(it->output, GetStreamAudioEncoder(), 0);
+				it->stopping = false;
 				if (!obs_output_start(it->output)) {
 					if (started_video) {
 						video = nullptr;
 						obs_view_remove(view);
 						obs_view_set_source(view, 0, nullptr);
 					}
+					it->stopping = true;
 					QMetaObject::invokeMethod(this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_ERROR),
 								  Q_ARG(QString,
 									QString::fromUtf8(obs_output_get_last_error(it->output))),
@@ -5948,14 +5950,16 @@ void CanvasDock::StartStream()
 			obs_data_set_string(output_settings, "ip_family", config_get_string(config, "Output", "IPFamily"));
 			obs_output_update(it->output, output_settings);
 		}
-
-		if (obs_output_start(it->output))
+		it->stopping = false;
+		if (obs_output_start(it->output)) {
 			success = true;
-		else
+		} else {
+			it->stopping = true;
 			QMetaObject::invokeMethod(this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_ERROR),
 						  Q_ARG(QString, QString::fromUtf8(obs_output_get_last_error(it->output))),
 						  Q_ARG(QString, QString::fromUtf8(it->stream_server)),
 						  Q_ARG(QString, QString::fromUtf8(it->stream_key)));
+		}
 	}
 	if (!success && started_video) {
 		video = nullptr;
@@ -6002,6 +6006,7 @@ void CanvasDock::stream_output_stop(void *data, calldata_t *calldata)
 		if (it->output == t) {
 			stream_server = QString::fromUtf8(it->stream_server);
 			stream_key = QString::fromUtf8(it->stream_key);
+			it->stopping = true;
 		}
 	}
 

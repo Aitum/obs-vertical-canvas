@@ -72,6 +72,7 @@ public:
 	std::string stream_key;
 	std::string stream_server;
 	bool enabled = true;
+	bool stopping = false;
 };
 
 class CanvasDock : public QFrame {
