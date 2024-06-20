@@ -6255,7 +6255,7 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 	if (!source || obs_weak_source_references_source(source, oldSource)) {
 		obs_weak_source_release(source);
 		source = obs_source_get_weak_source(s);
-		if (video && view)
+		if (view)
 			obs_view_set_source(view, 0, s);
 	} else {
 		oldSource = obs_weak_source_get_source(source);
@@ -6289,14 +6289,14 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 			} else {
 				obs_weak_source_release(source);
 				source = obs_source_get_weak_source(s);
-				if (video && view)
+				if (view)
 					obs_view_set_source(view, 0, s);
 			}
 			obs_source_release(oldSource);
 		} else {
 			obs_weak_source_release(source);
 			source = obs_source_get_weak_source(s);
-			if (video && view)
+			if (view)
 				obs_view_set_source(view, 0, s);
 		}
 	}
@@ -6380,7 +6380,7 @@ bool CanvasDock::SwapTransition(obs_source_t *newTransition)
 		obs_source_release(oldTransition);
 		obs_weak_source_release(source);
 		source = obs_source_get_weak_source(newTransition);
-		if (video && view)
+		if (view)
 			obs_view_set_source(view, 0, newTransition);
 		obs_source_inc_showing(newTransition);
 		obs_source_inc_active(newTransition);
@@ -6393,7 +6393,7 @@ bool CanvasDock::SwapTransition(obs_source_t *newTransition)
 	obs_transition_swap_begin(newTransition, oldTransition);
 	obs_weak_source_release(source);
 	source = obs_source_get_weak_source(newTransition);
-	if (video && view)
+	if (view)
 		obs_view_set_source(view, 0, newTransition);
 	obs_transition_swap_end(newTransition, oldTransition);
 	obs_source_dec_showing(oldTransition);
