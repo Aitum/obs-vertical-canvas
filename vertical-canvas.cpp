@@ -5090,8 +5090,6 @@ void CanvasDock::StartRecord()
 	obs_output_update(recordOutput, ps);
 	obs_data_release(ps);
 
-	obs_output_set_media(recordOutput, video, obs_get_audio());
-
 	SendVendorEvent("recording_starting");
 	const bool success = obs_output_start(recordOutput);
 	if (!success) {
@@ -5152,7 +5150,6 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 {
 	size_t idx = 0;
 	if (record_advanced_settings) {
-		obs_output_set_mixers(output, record_audio_tracks);
 		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
 			if ((record_audio_tracks & (1ll << i)) == 0)
 				continue;
@@ -5207,7 +5204,6 @@ void CanvasDock::SetRecordAudioEncoders(obs_output_t *output)
 					mixers = 1;
 			}
 		}
-		obs_output_set_mixers(output, mixers);
 		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
 			if ((mixers & (1ll << i)) == 0)
 				continue;
@@ -5377,7 +5373,6 @@ void CanvasDock::StartReplayBuffer()
 	signal_handler_connect(signal, "start", replay_output_start, this);
 	signal_handler_connect(signal, "stop", replay_output_stop, this);
 
-	obs_output_set_media(replayOutput, video, obs_get_audio());
 	SendVendorEvent("backtrack_starting");
 
 	const bool success = obs_output_start(replayOutput);
@@ -6246,7 +6241,7 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 		return;
 	}
 	auto oldSource = obs_scene_get_source(scene);
-	auto sh = obs_source_get_signal_handler(oldSource);
+	auto sh = oldSource ? obs_source_get_signal_handler(oldSource) : nullptr;
 	if (sh) {
 		signal_handler_disconnect(sh, "item_add", SceneItemAdded, this);
 		signal_handler_disconnect(sh, "reorder", SceneReordered, this);
