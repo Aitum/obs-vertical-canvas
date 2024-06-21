@@ -5283,7 +5283,18 @@ void CanvasDock::StartReplayBuffer()
 		replayFilename = filename_formatting;
 		if (file_format.empty())
 			file_format = "mkv";
-		obs_data_set_string(s, "extension", file_format.c_str());
+		std::string ext = file_format;
+		if (ext == "hybrid_mp4")
+			ext = "mp4";
+		else if (ext == "fragmented_mp4")
+			ext = "mp4";
+		else if (ext == "fragmented_mov")
+			ext = "mov";
+		else if (ext == "hls")
+			ext = "m3u8";
+		else if (ext == "mpegts")
+			ext = "ts";
+		obs_data_set_string(s, "extension", ext.c_str());
 		//allow_spaces
 		obs_data_set_string(s, "directory", replayPath.c_str());
 		obs_output_update(replayOutput, s);
