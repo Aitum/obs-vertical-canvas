@@ -1002,7 +1002,7 @@ void OBSBasicSettings::LoadSettings()
 	if (idx == -1) {
 		idx = fileFormat->findText(QString::fromUtf8(canvasDock->file_format.c_str()));
 	}
-	if (idx != 1)
+	if (idx != -1 && idx != fileFormat->currentIndex())
 		fileFormat->setCurrentIndex(idx);
 
 	for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
