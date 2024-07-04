@@ -152,10 +152,9 @@ void frontend_event(obs_frontend_event event, void *private_data)
 		for (const auto &it : canvas_docks) {
 			QMetaObject::invokeMethod(it, "MainSceneChanged", Qt::QueuedConnection);
 		}
-	} else if (event == OBS_FRONTEND_EVENT_STREAMING_STARTING || event == OBS_FRONTEND_EVENT_STREAMING_STARTED) {
+	} else if (event == OBS_FRONTEND_EVENT_STREAMING_STARTED) {
 		for (const auto &it : canvas_docks) {
-			QTimer::singleShot(150, it,
-					   [it] { QMetaObject::invokeMethod(it, "MainStreamStart", Qt::QueuedConnection); });
+			QMetaObject::invokeMethod(it, "MainStreamStart", Qt::QueuedConnection);
 		}
 	} else if (event == OBS_FRONTEND_EVENT_STREAMING_STOPPING || event == OBS_FRONTEND_EVENT_STREAMING_STOPPED) {
 		for (const auto &it : canvas_docks) {
@@ -163,10 +162,9 @@ void frontend_event(obs_frontend_event event, void *private_data)
 			QTimer::singleShot(200, it,
 					   [it] { QMetaObject::invokeMethod(it, "MainStreamStop", Qt::QueuedConnection); });
 		}
-	} else if (event == OBS_FRONTEND_EVENT_RECORDING_STARTING || event == OBS_FRONTEND_EVENT_RECORDING_STARTED) {
+	} else if (event == OBS_FRONTEND_EVENT_RECORDING_STARTED) {
 		for (const auto &it : canvas_docks) {
-			QTimer::singleShot(100, it,
-					   [it] { QMetaObject::invokeMethod(it, "MainRecordStart", Qt::QueuedConnection); });
+			QMetaObject::invokeMethod(it, "MainRecordStart", Qt::QueuedConnection);
 		}
 	} else if (event == OBS_FRONTEND_EVENT_RECORDING_STOPPING || event == OBS_FRONTEND_EVENT_RECORDING_STOPPED) {
 		for (const auto &it : canvas_docks) {
@@ -175,8 +173,7 @@ void frontend_event(obs_frontend_event event, void *private_data)
 					   [it] { QMetaObject::invokeMethod(it, "MainRecordStop", Qt::QueuedConnection); });
 		}
 
-	} else if ( //event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTING ||
-		event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTED) {
+	} else if (event == OBS_FRONTEND_EVENT_REPLAY_BUFFER_STARTED) {
 		for (const auto &it : canvas_docks) {
 			QTimer::singleShot(250, it,
 					   [it] { QMetaObject::invokeMethod(it, "MainReplayBufferStart", Qt::QueuedConnection); });
