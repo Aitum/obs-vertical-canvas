@@ -203,6 +203,19 @@ void frontend_event(obs_frontend_event event, void *private_data)
 	}
 }
 
+static void get_view(void *data, calldata_t *cd)
+{
+	UNUSED_PARAMETER(data);
+	const auto width = calldata_int(cd, "width");
+	const auto height = calldata_int(cd, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
+			continue;
+		calldata_set_ptr(cd, "view", it->GetView());
+		return;
+	}
+}
+
 static void get_video(void *data, calldata_t *cd)
 {
 	UNUSED_PARAMETER(data);
@@ -242,6 +255,48 @@ static void set_stream_settings(void *data, calldata_t *cd)
 			it->LoadStreamOutputs(outputs);
 			it->UpdateMulti();
 		}
+		return;
+	}
+}
+
+static void start_stream_output(void *data, calldata_t *cd)
+{
+	UNUSED_PARAMETER(data);
+	const auto width = calldata_int(cd, "width");
+	const auto height = calldata_int(cd, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
+			continue;
+		auto name = calldata_string(cd, "name");
+		it->StartStreamOutput(name);
+		return;
+	}
+}
+
+static void stop_stream_output(void *data, calldata_t *cd)
+{
+	UNUSED_PARAMETER(data);
+	const auto width = calldata_int(cd, "width");
+	const auto height = calldata_int(cd, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
+			continue;
+		auto name = calldata_string(cd, "name");
+		it->StopStreamOutput(name);
+		return;
+	}
+}
+
+static void get_stream_output(void *data, calldata_t *cd)
+{
+	UNUSED_PARAMETER(data);
+	const auto width = calldata_int(cd, "width");
+	const auto height = calldata_int(cd, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
+			continue;
+		auto name = calldata_string(cd, "name");
+		calldata_set_ptr(cd, "output", it->GetStreamOutput(name));
 		return;
 	}
 }
@@ -554,11 +609,18 @@ void obs_module_post_load(void)
 	obs_data_array_release(canvas);
 
 	auto ph = obs_get_proc_handler();
+	proc_handler_add(ph, "void aitum_vertical_get_view(in int width, in int height, out ptr view)", get_view, nullptr);
 	proc_handler_add(ph, "void aitum_vertical_get_video(in int width, in int height, out ptr video)", get_video, nullptr);
 	proc_handler_add(ph, "void aitum_vertical_get_stream_settings(in int width, in int height, out ptr outputs)",
 			 get_stream_settings, nullptr);
 	proc_handler_add(ph, "void aitum_vertical_set_stream_settings(in int width, in int height, in ptr outputs)",
 			 set_stream_settings, nullptr);
+	proc_handler_add(ph, "void aitum_vertical_get_stream_output(in int width, in int height, in string name, out ptr output)",
+			 get_stream_output, nullptr);
+	proc_handler_add(ph, "void aitum_vertical_start_stream_output(in int width, in int height, in string name)",
+			 start_stream_output, nullptr);
+	proc_handler_add(ph, "void aitum_vertical_stop_stream_output(in int width, in int height, in string name)",
+			 stop_stream_output, nullptr);
 
 	if (!vendor)
 		vendor = obs_websocket_register_vendor("aitum-vertical-canvas");
@@ -1435,7 +1497,7 @@ CanvasDock::~CanvasDock()
 		if (obs_output_active(it->output))
 			obs_output_stop(it->output);
 		obs_output_release(it->output);
-		obs_service_release(it->service);
+		obs_data_release(it->settings);
 	}
 	streamOutputs.clear();
 
@@ -5730,26 +5792,7 @@ void CanvasDock::StreamButtonMultiMenu(QMenu *menu)
 		if (active) {
 			connect(action, &QAction::triggered, [output] { obs_output_stop(output); });
 		} else {
-			connect(action, &QAction::triggered, [this, it] {
-				CreateStreamOutput(it);
-				const bool started_video = StartVideo();
-				obs_output_set_video_encoder(it->output, GetStreamVideoEncoder());
-				obs_output_set_audio_encoder(it->output, GetStreamAudioEncoder(), 0);
-				it->stopping = false;
-				if (!obs_output_start(it->output)) {
-					if (started_video) {
-						video = nullptr;
-						obs_view_remove(view);
-						obs_view_set_source(view, 0, nullptr);
-					}
-					it->stopping = true;
-					QMetaObject::invokeMethod(this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_ERROR),
-								  Q_ARG(QString,
-									QString::fromUtf8(obs_output_get_last_error(it->output))),
-								  Q_ARG(QString, QString::fromUtf8(it->stream_server)),
-								  Q_ARG(QString, QString::fromUtf8(it->stream_key)));
-				}
-			});
+			connect(action, &QAction::triggered, [this, it] { StartStreamOutput(it); });
 		}
 	}
 	menu->addSeparator();
@@ -5757,6 +5800,27 @@ void CanvasDock::StreamButtonMultiMenu(QMenu *menu)
 		menu->addAction(QString::fromUtf8(obs_module_text("StartAll")), [this] { StartStream(); });
 	} else {
 		menu->addAction(QString::fromUtf8(obs_module_text("StopAll")), [this] { StopStream(); });
+	}
+}
+
+void CanvasDock::StartStreamOutput(std::vector<StreamServer>::iterator it)
+{
+	CreateStreamOutput(it);
+	const bool started_video = StartVideo();
+	obs_output_set_video_encoder(it->output, GetStreamVideoEncoder());
+	obs_output_set_audio_encoder(it->output, GetStreamAudioEncoder(), 0);
+	it->stopping = false;
+	if (!obs_output_start(it->output)) {
+		if (started_video) {
+			video = nullptr;
+			obs_view_remove(view);
+			obs_view_set_source(view, 0, nullptr);
+		}
+		it->stopping = true;
+		QMetaObject::invokeMethod(this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_ERROR),
+					  Q_ARG(QString, QString::fromUtf8(obs_output_get_last_error(it->output))),
+					  Q_ARG(QString, QString::fromUtf8(it->stream_server)),
+					  Q_ARG(QString, QString::fromUtf8(it->stream_key)));
 	}
 }
 
@@ -7463,11 +7527,11 @@ void CanvasDock::get_transitions(void *data, struct obs_frontend_source_list *so
 bool CanvasDock::LoadStreamOutputs(obs_data_array_t *outputs)
 {
 	auto count = obs_data_array_count(outputs);
-	for (auto it = streamOutputs.begin(); it != streamOutputs.end();) {
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); it++) {
 		if (obs_output_active(it->output))
 			obs_output_stop(it->output);
 		obs_output_release(it->output);
-		obs_service_release(it->service);
+		obs_data_release(it->settings);
 	}
 	streamOutputs.clear();
 	auto enabled_count = 0;
@@ -7483,8 +7547,8 @@ bool CanvasDock::LoadStreamOutputs(obs_data_array_t *outputs)
 		std::string service_name = "vertical_canvas_stream_service_";
 		service_name += std::to_string(i);
 		ss.service = obs_service_create("rtmp_custom", service_name.c_str(), nullptr, nullptr);
+		ss.settings = item;
 		streamOutputs.push_back(ss);
-		obs_data_release(item);
 	}
 	return enabled_count > 1;
 }
@@ -7493,7 +7557,11 @@ obs_data_array_t *CanvasDock::SaveStreamOutputs()
 {
 	obs_data_array_t *outputs = obs_data_array_create();
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
-		obs_data_t *s = obs_data_create();
+		obs_data_t *s = it->settings;
+		if (s)
+			obs_data_addref(s);
+		else
+			s = obs_data_create();
 		obs_data_set_string(s, "name", it->name.c_str());
 		obs_data_set_string(s, "stream_server", it->stream_server.c_str());
 		obs_data_set_string(s, "stream_key", it->stream_key.c_str());
@@ -7502,6 +7570,36 @@ obs_data_array_t *CanvasDock::SaveStreamOutputs()
 		obs_data_release(s);
 	}
 	return outputs;
+}
+
+void CanvasDock::StartStreamOutput(std::string name)
+{
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); it++) {
+		if (it->name == name) {
+			StartStreamOutput(it);
+			break;
+		}
+	}
+}
+
+void CanvasDock::StopStreamOutput(std::string name)
+{
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); it++) {
+		if (it->name == name) {
+			if (it->output)
+				obs_output_stop(it->output);
+			break;
+		}
+	}
+}
+
+obs_output_t *CanvasDock::GetStreamOutput(std::string name)
+{
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); it++) {
+		if (it->name == name)
+			return obs_output_get_ref(it->output);
+	}
+	return nullptr;
 }
 
 void CanvasDock::UpdateMulti()
