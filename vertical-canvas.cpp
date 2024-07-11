@@ -496,6 +496,32 @@ void vendor_request_update_stream_server(obs_data_t *request_data, obs_data_t *r
 	obs_data_set_bool(response_data, "success", false);
 }
 
+void vendor_request_add_chapter(obs_data_t *request_data, obs_data_t *response_data, void *)
+{
+	const auto width = obs_data_get_int(request_data, "width");
+	const auto height = obs_data_get_int(request_data, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
+			continue;
+
+		auto output = it->GetRecordOutput();
+		if (!output)
+			continue;
+
+		proc_handler_t *ph = obs_output_get_proc_handler(output);
+		calldata cd;
+		calldata_init(&cd);
+		calldata_set_string(&cd, "chapter_name", obs_data_get_string(request_data, "chapter_name"));
+		bool result = proc_handler_call(ph, "add_chapter", &cd);
+		calldata_free(&cd);
+		obs_output_release(output);
+		obs_data_set_bool(response_data, "success", result);
+		return;
+	}
+
+	obs_data_set_bool(response_data, "success", false);
+}
+
 update_info_t *verison_update_info = nullptr;
 
 bool version_info_downloaded(void *param, struct file_download_data *file)
@@ -644,6 +670,7 @@ void obs_module_post_load(void)
 	obs_websocket_vendor_register_request(vendor, "stop_virtual_camera", vendor_request_invoke, (void *)"StopVirtualCam");
 	obs_websocket_vendor_register_request(vendor, "update_stream_key", vendor_request_update_stream_key, nullptr);
 	obs_websocket_vendor_register_request(vendor, "update_stream_server", vendor_request_update_stream_server, nullptr);
+	obs_websocket_vendor_register_request(vendor, "add_chapter", vendor_request_add_chapter, nullptr);
 
 	verison_update_info = update_info_create_single("[Vertical Canvas]", "OBS", "https://api.aitum.tv/vertical",
 							version_info_downloaded, nullptr);

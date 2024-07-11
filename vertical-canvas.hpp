@@ -434,6 +434,7 @@ public:
 	void StartStreamOutput(std::string name);
 	void StopStreamOutput(std::string name);
 	obs_output_t *GetStreamOutput(std::string name);
+	inline obs_output_t *GetRecordOutput() const { return obs_output_get_ref(recordOutput); }
 	void UpdateMulti();
 
 	obs_data_t *SaveSettings();
