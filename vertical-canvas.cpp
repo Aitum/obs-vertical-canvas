@@ -866,7 +866,7 @@ void CanvasDock::CheckReplayBuffer(bool start)
 		StartReplayBuffer();
 		return;
 	}
-	bool active = obs_frontend_streaming_active() || obs_frontend_recording_active() ||
+	bool active = obs_frontend_streaming_active() || obs_frontend_recording_active() || obs_frontend_replay_buffer_active() ||
 		      (recordOutput && obs_output_active(recordOutput));
 	for (auto it = streamOutputs.begin(); !active && it != streamOutputs.end(); ++it) {
 		active = it->enabled && it->output && !it->stopping && obs_output_active(it->output);
@@ -4754,7 +4754,7 @@ void CanvasDock::virtual_cam_output_start(void *data, calldata_t *calldata)
 	UNUSED_PARAMETER(calldata);
 	auto d = static_cast<CanvasDock *>(data);
 	d->SendVendorEvent("virtual_camera_started");
-	d->StartReplayBuffer();
+	d->CheckReplayBuffer(true);
 	QMetaObject::invokeMethod(d, "OnVirtualCamStart");
 }
 
@@ -4810,7 +4810,7 @@ void CanvasDock::VirtualCamButtonClicked()
 
 void CanvasDock::StartVirtualCam()
 {
-	StartReplayBuffer();
+	CheckReplayBuffer(true);
 	const auto output = obs_frontend_get_virtualcam_output();
 	if (obs_output_active(output)) {
 		if (!virtualCamOutput)
@@ -5179,7 +5179,7 @@ void CanvasDock::record_output_start(void *data, calldata_t *calldata)
 	UNUSED_PARAMETER(calldata);
 	auto d = static_cast<CanvasDock *>(data);
 	d->SendVendorEvent("recording_started");
-	d->StartReplayBuffer();
+	d->CheckReplayBuffer(true);
 	QMetaObject::invokeMethod(d, "OnRecordStart");
 }
 
@@ -5330,7 +5330,7 @@ void CanvasDock::ShowNoReplayOutputError()
 
 void CanvasDock::StartReplayBuffer()
 {
-	if ((!startReplay && !replayAlwaysOn) || obs_output_active(replayOutput))
+	if (obs_output_active(replayOutput))
 		return;
 
 	if (record_advanced_settings) {
@@ -6058,7 +6058,7 @@ void CanvasDock::stream_output_start(void *data, calldata_t *calldata)
 	UNUSED_PARAMETER(calldata);
 	auto d = static_cast<CanvasDock *>(data);
 	d->SendVendorEvent("streaming_started");
-	d->StartReplayBuffer();
+	d->CheckReplayBuffer(true);
 	QMetaObject::invokeMethod(d, "OnStreamStart");
 }
 
@@ -6662,7 +6662,7 @@ void CanvasDock::OnRecordStart()
 	recordButton->setIcon(recordActiveIcon);
 	recordButton->setText("00:00");
 	recordButton->setChecked(true);
-	StartReplayBuffer();
+	CheckReplayBuffer(true);
 }
 
 void CanvasDock::TryRemux(QString path)
@@ -6777,7 +6777,7 @@ void CanvasDock::OnStreamStart()
 	streamButton->setIcon(streamActiveIcon);
 	streamButton->setText("00:00");
 	streamButton->setChecked(true);
-	StartReplayBuffer();
+	CheckReplayBuffer(true);
 }
 
 #ifndef OBS_OUTPUT_HDR_DISABLED
@@ -7068,7 +7068,7 @@ QIcon CanvasDock::GetGroupIcon() const
 
 void CanvasDock::MainStreamStart()
 {
-	StartReplayBuffer();
+	CheckReplayBuffer(true);
 	if (streamingMatchMain)
 		StartStream();
 }
@@ -7082,7 +7082,7 @@ void CanvasDock::MainStreamStop()
 
 void CanvasDock::MainRecordStart()
 {
-	StartReplayBuffer();
+	CheckReplayBuffer(true);
 	if (recordingMatchMain)
 		StartRecord();
 }
@@ -7096,7 +7096,7 @@ void CanvasDock::MainRecordStop()
 
 void CanvasDock::MainReplayBufferStart()
 {
-	StartReplayBuffer();
+	CheckReplayBuffer(true);
 }
 
 void CanvasDock::MainReplayBufferStop()
@@ -7106,7 +7106,7 @@ void CanvasDock::MainReplayBufferStop()
 
 void CanvasDock::MainVirtualCamStart()
 {
-	StartReplayBuffer();
+	CheckReplayBuffer(true);
 }
 
 void CanvasDock::MainVirtualCamStop()
@@ -7317,7 +7317,7 @@ void CanvasDock::ProfileChanged()
 	if (virtual_cam_active)
 		StartVirtualCam();
 	if (restart_video)
-		StartReplayBuffer();
+		CheckReplayBuffer(true);
 
 	restart_video = false;
 }
