@@ -1556,7 +1556,7 @@ CanvasDock::~CanvasDock()
 	calldata_free(&cd);
 
 	DestroyVideo();
-	
+
 	obs_view_destroy(view);
 
 	obs_enter_graphics();
@@ -5881,7 +5881,12 @@ void CanvasDock::CreateStreamOutput(std::vector<StreamServer>::iterator it)
 				obs_output_stop(it->output);
 			obs_output_release(it->output);
 		}
-		it->output = obs_output_create(type, "vertical_canvas_stream", nullptr, nullptr);
+		std::string name = "vertical_canvas_stream";
+		if (!it->name.empty()) {
+			name += "_";
+			name += it->name;
+		}
+		it->output = obs_output_create(type, name.c_str(), nullptr, nullptr);
 		obs_output_set_service(it->output, it->service);
 	}
 	config_t *config = obs_frontend_get_profile_config();
