@@ -1,4 +1,4 @@
-#include <util/curl/curl-helper.h>
+#include <curl/curl.h>
 #include <util/threading.h>
 #include <util/platform.h>
 #include <util/darray.h>
@@ -70,7 +70,7 @@ static bool do_http_request(struct update_info *info, const char *url, long *res
 	curl_easy_setopt(info->curl, CURLOPT_FAILONERROR, true);
 	curl_easy_setopt(info->curl, CURLOPT_NOSIGNAL, 1);
 	curl_easy_setopt(info->curl, CURLOPT_ACCEPT_ENCODING, "");
-	curl_obs_set_revoke_setting(info->curl);
+	curl_easy_setopt(info->curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_REVOKE_BEST_EFFORT);
 
 	code = curl_easy_perform(info->curl);
 	if (code != CURLE_OK) {
