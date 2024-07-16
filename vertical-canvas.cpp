@@ -903,8 +903,7 @@ void CanvasDock::CheckReplayBuffer(bool start)
 		StartReplayBuffer();
 	} else if (!active) {
 		if (video && !obs_output_active(replayOutput) && !obs_output_active(virtualCamOutput)) {
-			video = nullptr;
-			obs_view_remove(view);
+			DestroyVideo();
 		}
 		if (!start)
 			StopReplayBuffer();
@@ -1511,14 +1510,17 @@ CanvasDock::~CanvasDock()
 	if (obs_output_active(recordOutput))
 		obs_output_stop(recordOutput);
 	obs_output_release(recordOutput);
+	recordOutput = nullptr;
 
 	if (obs_output_active(replayOutput))
 		obs_output_stop(replayOutput);
 	obs_output_release(replayOutput);
+	replayOutput = nullptr;
 
 	if (obs_output_active(virtualCamOutput))
 		obs_output_stop(virtualCamOutput);
 	obs_output_release(virtualCamOutput);
+	virtualCamOutput = nullptr;
 
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
 		if (obs_output_active(it->output))
@@ -1553,11 +1555,8 @@ CanvasDock::~CanvasDock()
 	proc_handler_call(ph, "downstream_keyer_remove_view", &cd);
 	calldata_free(&cd);
 
-	if (video) {
-		video = nullptr;
-		obs_view_remove(view);
-		obs_view_set_source(view, 0, nullptr);
-	}
+	DestroyVideo();
+	
 	obs_view_destroy(view);
 
 	obs_enter_graphics();
@@ -4901,14 +4900,17 @@ void CanvasDock::StartVirtualCam()
 		QMetaObject::invokeMethod(this, "OnVirtualCamStop");
 		if (started_video) {
 			if (video == virtual_video) {
-				video = nullptr;
+				DestroyVideo();
 			} else if (multiCanvasVideo == virtual_video) {
 				multiCanvasVideo = nullptr;
+				obs_view_remove(started_view);
+				obs_view_set_source(started_view, 0, nullptr);
 				obs_view_destroy(started_view);
 				multiCanvasView = nullptr;
+			} else {
+				obs_view_remove(started_view);
+				obs_view_set_source(started_view, 0, nullptr);
 			}
-			obs_view_remove(started_view);
-			obs_view_set_source(started_view, 0, nullptr);
 		}
 	}
 }
@@ -5185,9 +5187,7 @@ void CanvasDock::StartRecord()
 		QMetaObject::invokeMethod(this, "OnRecordStop", Q_ARG(int, OBS_OUTPUT_ERROR),
 					  Q_ARG(QString, QString::fromUtf8(obs_output_get_last_error(recordOutput))));
 		if (started_video) {
-			video = nullptr;
-			obs_view_remove(view);
-			obs_view_set_source(view, 0, nullptr);
+			DestroyVideo();
 		}
 	}
 }
@@ -5480,9 +5480,7 @@ void CanvasDock::StartReplayBuffer()
 		QMetaObject::invokeMethod(this, "OnReplayBufferStop", Q_ARG(int, OBS_OUTPUT_ERROR),
 					  Q_ARG(QString, QString::fromUtf8(obs_output_get_last_error(replayOutput))));
 		if (started_video) {
-			video = nullptr;
-			obs_view_remove(view);
-			obs_view_set_source(view, 0, nullptr);
+			DestroyVideo();
 		}
 	} else {
 		QMetaObject::invokeMethod(this, "OnReplayBufferStart");
@@ -5839,9 +5837,7 @@ void CanvasDock::StartStreamOutput(std::vector<StreamServer>::iterator it)
 	it->stopping = false;
 	if (!obs_output_start(it->output)) {
 		if (started_video) {
-			video = nullptr;
-			obs_view_remove(view);
-			obs_view_set_source(view, 0, nullptr);
+			DestroyVideo();
 		}
 		it->stopping = true;
 		QMetaObject::invokeMethod(this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_ERROR),
@@ -6116,8 +6112,17 @@ void CanvasDock::DestroyVideo()
 	if (!video)
 		return;
 	video = nullptr;
+	if (replayOutput)
+		obs_encoder_set_video(obs_output_get_video_encoder(replayOutput), nullptr);
+	if (recordOutput)
+		obs_encoder_set_video(obs_output_get_video_encoder(recordOutput), nullptr);
+	if (virtualCamOutput)
+		obs_output_set_media(virtualCamOutput, nullptr, obs_get_audio());
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		if (it->output)
+			obs_encoder_set_video(obs_output_get_video_encoder(it->output), nullptr);
+	}
 	obs_view_remove(view);
-	obs_view_set_source(view, 0, nullptr);
 }
 
 obs_scene_t *CanvasDock::GetCurrentScene()
