@@ -301,6 +301,29 @@ static void get_stream_output(void *data, calldata_t *cd)
 	}
 }
 
+static void add_chapter(void *data, calldata_t *cd)
+{
+	UNUSED_PARAMETER(data);
+	const auto width = calldata_int(cd, "width");
+	const auto height = calldata_int(cd, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
+			continue;
+		auto output = it->GetRecordOutput();
+		if (!output)
+			continue;
+
+		proc_handler_t *ph = obs_output_get_proc_handler(output);
+		calldata cd2;
+		calldata_init(&cd2);
+		calldata_set_string(&cd2, "chapter_name", calldata_string(cd, "chapter_name"));
+		proc_handler_call(ph, "add_chapter", &cd2);
+		calldata_free(&cd2);
+		obs_output_release(output);
+		return;
+	}
+}
+
 obs_websocket_vendor vendor = nullptr;
 
 void vendor_request_version(obs_data_t *request_data, obs_data_t *response_data, void *)
@@ -647,6 +670,8 @@ void obs_module_post_load(void)
 			 start_stream_output, nullptr);
 	proc_handler_add(ph, "void aitum_vertical_stop_stream_output(in int width, in int height, in string name)",
 			 stop_stream_output, nullptr);
+	proc_handler_add(ph, "void aitum_vertical_add_chapter(in int width, in int height, in string chapter_name)", add_chapter,
+			 nullptr);
 
 	if (!vendor)
 		vendor = obs_websocket_register_vendor("aitum-vertical-canvas");
