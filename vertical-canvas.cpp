@@ -5857,8 +5857,50 @@ void CanvasDock::StartStreamOutput(std::vector<StreamServer>::iterator it)
 {
 	CreateStreamOutput(it);
 	const bool started_video = StartVideo();
-	obs_output_set_video_encoder(it->output, GetStreamVideoEncoder());
-	obs_output_set_audio_encoder(it->output, GetStreamAudioEncoder(), 0);
+	if (it->settings && obs_data_get_bool(it->settings, "advanced")) {
+		auto venc_name = obs_data_get_string(it->settings, "video_encoder");
+		if (!venc_name || venc_name[0] == '\0') {
+			//use main encoder
+			obs_output_set_video_encoder(it->output, GetStreamVideoEncoder());
+		} else {
+			obs_data_t *s = nullptr;
+			auto ves = obs_data_get_obj(it->settings, "video_encoder_settings");
+			if (ves) {
+				s = obs_data_create();
+				obs_data_apply(s, ves);
+				obs_data_release(ves);
+			}
+			std::string video_encoder_name = "vertical_canvas_video_encoder_";
+			video_encoder_name += it->name;
+			auto venc = obs_video_encoder_create(venc_name, video_encoder_name.c_str(), s, nullptr);
+			obs_data_release(s);
+			obs_encoder_set_video(venc, video);
+			obs_output_set_video_encoder(it->output, venc);
+		}
+		auto aenc_name = obs_data_get_string(it->settings, "audio_encoder");
+		if (!aenc_name || aenc_name[0] == '\0') {
+			//use main encoder
+			obs_output_set_audio_encoder(it->output, GetStreamAudioEncoder(), 0);
+		} else {
+			obs_data_t *s = nullptr;
+			auto aes = obs_data_get_obj(it->settings, "audio_encoder_settings");
+			if (aes) {
+				s = obs_data_create();
+				obs_data_apply(s, aes);
+				obs_data_release(aes);
+			}
+			std::string audio_encoder_name = "vertical_canvas_audio_encoder_";
+			audio_encoder_name += it->name;
+			auto aenc = obs_audio_encoder_create(venc_name, audio_encoder_name.c_str(), s,
+							     obs_data_get_int(it->settings, "audio_track"), nullptr);
+			obs_data_release(s);
+			obs_encoder_set_audio(aenc, obs_get_audio());
+			obs_output_set_audio_encoder(it->output, aenc, 0);
+		}
+	} else {
+		obs_output_set_video_encoder(it->output, GetStreamVideoEncoder());
+		obs_output_set_audio_encoder(it->output, GetStreamAudioEncoder(), 0);
+	}
 	it->stopping = false;
 	if (!obs_output_start(it->output)) {
 		if (started_video) {
@@ -6037,6 +6079,8 @@ void CanvasDock::StartStream()
 		return;
 	}
 
+	obs_encoder_t *video_encoder = nullptr;
+	obs_encoder_t *audio_encoder = nullptr;
 	const bool started_video = StartVideo();
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
 		if (!it->enabled)
@@ -6051,13 +6095,58 @@ void CanvasDock::StartStream()
 		obs_data_release(s);
 
 		CreateStreamOutput(it);
-	}
-
-	auto video_encoder = GetStreamVideoEncoder();
-	auto audio_encoder = GetStreamAudioEncoder();
-	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
-		obs_output_set_video_encoder(it->output, video_encoder);
-		obs_output_set_audio_encoder(it->output, audio_encoder, 0);
+		if (it->settings && obs_data_get_bool(it->settings, "advanced")) {
+			auto venc_name = obs_data_get_string(it->settings, "video_encoder");
+			if (!venc_name || venc_name[0] == '\0') {
+				//use main encoder
+				if (!video_encoder)
+					video_encoder = GetStreamVideoEncoder();
+				obs_output_set_video_encoder(it->output, video_encoder);
+			} else {
+				obs_data_t *s = nullptr;
+				auto ves = obs_data_get_obj(it->settings, "video_encoder_settings");
+				if (ves) {
+					s = obs_data_create();
+					obs_data_apply(s, ves);
+					obs_data_release(ves);
+				}
+				std::string video_encoder_name = "vertical_canvas_video_encoder_";
+				video_encoder_name += it->name;
+				auto venc = obs_video_encoder_create(venc_name, video_encoder_name.c_str(), s, nullptr);
+				obs_data_release(s);
+				obs_encoder_set_video(venc, video);
+				obs_output_set_video_encoder(it->output, venc);
+			}
+			auto aenc_name = obs_data_get_string(it->settings, "audio_encoder");
+			if (!aenc_name || aenc_name[0] == '\0') {
+				//use main encoder
+				if (!audio_encoder)
+					audio_encoder = GetStreamAudioEncoder();
+				obs_output_set_audio_encoder(it->output, audio_encoder, 0);
+			} else {
+				obs_data_t *s = nullptr;
+				auto aes = obs_data_get_obj(it->settings, "audio_encoder_settings");
+				if (aes) {
+					s = obs_data_create();
+					obs_data_apply(s, aes);
+					obs_data_release(aes);
+				}
+				std::string audio_encoder_name = "vertical_canvas_audio_encoder_";
+				audio_encoder_name += it->name;
+				auto aenc = obs_audio_encoder_create(venc_name, audio_encoder_name.c_str(), s,
+								     obs_data_get_int(it->settings, "audio_track"), nullptr);
+				obs_data_release(s);
+				obs_encoder_set_audio(aenc, obs_get_audio());
+				obs_output_set_audio_encoder(it->output, aenc, 0);
+			}
+		} else {
+			if (!video_encoder)
+				video_encoder = GetStreamVideoEncoder();
+			obs_output_set_video_encoder(it->output, video_encoder);
+			if (!audio_encoder)
+				audio_encoder = GetStreamAudioEncoder();
+			obs_output_set_audio_encoder(it->output, audio_encoder, 0);
+		}
 	}
 
 	SendVendorEvent("streaming_starting");
