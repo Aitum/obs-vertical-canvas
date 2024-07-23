@@ -213,6 +213,39 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		}
 		hotkeys.push_back(hw);
 	}
+
+	OBSHotkeyWidget *otherHotkey = nullptr;
+	auto hotkey = GetHotkeyByName("VerticalCanvasDockStartBacktrack");
+	if (hotkey) {
+		auto id = obs_hotkey_get_id(hotkey);
+		std::vector<obs_key_combination_t> combos = GetCombosForHotkey(id);
+		auto hn = obs_hotkey_get_name(hotkey);
+		auto hw = new OBSHotkeyWidget(this, id, hn, combos);
+		otherHotkey = hw;
+		auto label = new OBSHotkeyLabel;
+		label->setText(QString::fromUtf8(obs_module_text("StartBacktrackHotkey")));
+		hw->label = label;
+		backtrackLayout->addRow(label, hw);
+		hotkeys.push_back(hw);
+	}
+
+	hotkey = GetHotkeyByName("VerticalCanvasDockStopBacktrack");
+	if (hotkey) {
+		auto id = obs_hotkey_get_id(hotkey);
+		std::vector<obs_key_combination_t> combos = GetCombosForHotkey(id);
+		auto hn = obs_hotkey_get_name(hotkey);
+		auto hw = new OBSHotkeyWidget(this, id, hn, combos);
+		auto label = new OBSHotkeyLabel;
+		label->setText(QString::fromUtf8(obs_module_text("StopBacktrackHotkey")));
+		hw->label = label;
+		backtrackLayout->addRow(label, hw);
+		hotkeys.push_back(hw);
+		if (otherHotkey) {
+			hw->label->pairPartner = otherHotkey->label;
+			otherHotkey->label->pairPartner = hw->label;
+		}
+	}
+
 	auto maxWidth = 180;
 	for (int row = 0; row < generalLayout->rowCount(); row++) {
 		auto item = generalLayout->itemAt(row, QFormLayout::LabelRole);
@@ -295,8 +328,8 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	streamingMatchMain = new QCheckBox(QString::fromUtf8(obs_module_text("StreamingMatchMain")));
 	streamingLayout->addWidget(streamingMatchMain);
 
-	OBSHotkeyWidget *otherHotkey = nullptr;
-	auto hotkey = GetHotkeyByName("VerticalCanvasDockStartStreaming");
+	otherHotkey = nullptr;
+	hotkey = GetHotkeyByName("VerticalCanvasDockStartStreaming");
 	if (hotkey) {
 		auto id = obs_hotkey_get_id(hotkey);
 		std::vector<obs_key_combination_t> combos = GetCombosForHotkey(id);

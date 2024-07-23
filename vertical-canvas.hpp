@@ -152,6 +152,7 @@ private:
 	QIcon recordInactiveIcon = QIcon(":/aitum/media/record.svg");
 	QPushButton *replayButton;
 	QPushButton *replayEnableButton;
+	QCheckBox *replayEnable;
 	QLabel *statusLabel;
 	QTimer replayStatusResetTimer;
 	QTimer recordDurationTimer;
@@ -178,6 +179,7 @@ private:
 	obs_hotkey_pair_id stream_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
 	obs_hotkey_pair_id record_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
 	obs_hotkey_pair_id virtual_cam_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
+	obs_hotkey_pair_id backtrack_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
 
 	obs_output_t *virtualCamOutput = nullptr;
 	obs_output_t *recordOutput = nullptr;

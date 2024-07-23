@@ -1325,19 +1325,58 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	replayEnableButton->setSizePolicy(sp2);
 	replayEnableButton->setStyleSheet(QString::fromUtf8(
 		"QPushButton:checked{background: rgb(26,87,255);} QPushButton{ border-top-right-radius: 0; border-bottom-right-radius: 0;} QWidget{width: 30px; padding-left: 4px; padding-right: 4px;}"));
-	auto replayEnable = new QCheckBox;
+	replayEnable = new QCheckBox;
 	auto testl = new QHBoxLayout;
 	replayEnableButton->setLayout(testl);
 	testl->addWidget(replayEnable);
 
-	connect(replayEnableButton, &QPushButton::clicked, [this, replayEnable] {
+	connect(replayEnableButton, &QPushButton::clicked, [this] {
 		replayAlwaysOn = !replayAlwaysOn;
 		replayEnableButton->setChecked(replayAlwaysOn);
 		replayEnable->setChecked(replayAlwaysOn);
 		CheckReplayBuffer();
 	});
 
-	connect(replayEnable, &QCheckBox::stateChanged, [this, replayEnable] {
+	backtrack_hotkey = obs_hotkey_pair_register_frontend(
+		"VerticalCanvasDockStartBacktrack",
+		(title + " " + QString::fromUtf8(obs_module_text("BacktrackOn"))).toUtf8().constData(),
+		"VerticalCanvasDockStopBacktrack",
+		(title + " " + QString::fromUtf8(obs_module_text("BacktrackOff"))).toUtf8().constData(),
+		[](void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed) {
+			UNUSED_PARAMETER(id);
+			UNUSED_PARAMETER(hotkey);
+			auto cd = (CanvasDock *)data;
+			if (!cd->replayAlwaysOn && pressed) {
+				cd->replayAlwaysOn = true;
+				cd->replayEnableButton->setChecked(cd->replayAlwaysOn);
+				cd->replayEnable->setChecked(cd->replayAlwaysOn);
+				cd->CheckReplayBuffer();
+				return true;
+			}
+			return false;
+		},
+		[](void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed) {
+			UNUSED_PARAMETER(id);
+			UNUSED_PARAMETER(hotkey);
+			auto cd = (CanvasDock *)data;
+			if (cd->replayAlwaysOn && pressed) {
+				cd->replayAlwaysOn = false;
+				cd->replayEnableButton->setChecked(cd->replayAlwaysOn);
+				cd->replayEnable->setChecked(cd->replayAlwaysOn);
+				cd->CheckReplayBuffer();
+				return true;
+			}
+			return false;
+		},
+		this, this);
+
+	obs_data_array_t *start_hotkey = obs_data_get_array(settings, "start_backtrack_hotkey");
+	obs_data_array_t *stop_hotkey = obs_data_get_array(settings, "stop_backtrack_hotkey");
+	obs_hotkey_pair_load(backtrack_hotkey, start_hotkey, stop_hotkey);
+	obs_data_array_release(start_hotkey);
+	obs_data_array_release(stop_hotkey);
+
+	connect(replayEnable, &QCheckBox::stateChanged, [this] {
 		if (replayEnable->isChecked() != replayEnableButton->isChecked()) {
 			replayEnableButton->setChecked(replayEnable->isChecked());
 			if (replayEnable->isChecked() == replayAlwaysOn)
@@ -1453,8 +1492,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.StopVirtualCam"))).toUtf8().constData(),
 		start_virtual_cam_hotkey, stop_virtual_cam_hotkey, this, this);
 
-	obs_data_array_t *start_hotkey = obs_data_get_array(settings, "start_virtual_cam_hotkey");
-	obs_data_array_t *stop_hotkey = obs_data_get_array(settings, "stop_virtual_cam_hotkey");
+	start_hotkey = obs_data_get_array(settings, "start_virtual_cam_hotkey");
+	stop_hotkey = obs_data_get_array(settings, "stop_virtual_cam_hotkey");
 	obs_hotkey_pair_load(virtual_cam_hotkey, start_hotkey, stop_hotkey);
 	obs_data_array_release(start_hotkey);
 	obs_data_array_release(stop_hotkey);
@@ -1508,6 +1547,7 @@ CanvasDock::~CanvasDock()
 		delete projector;
 	}
 	canvas_docks.remove(this);
+	obs_hotkey_pair_unregister(backtrack_hotkey);
 	obs_hotkey_pair_unregister(virtual_cam_hotkey);
 	obs_hotkey_pair_unregister(record_hotkey);
 	obs_hotkey_pair_unregister(stream_hotkey);
@@ -6344,6 +6384,13 @@ obs_data_t *CanvasDock::SaveSettings()
 
 	obs_data_array_t *start_hotkey = nullptr;
 	obs_data_array_t *stop_hotkey = nullptr;
+	obs_hotkey_pair_save(backtrack_hotkey, &start_hotkey, &stop_hotkey);
+	obs_data_set_array(data, "start_backtrack_hotkey", start_hotkey);
+	obs_data_set_array(data, "stop_backtrack_hotkey", stop_hotkey);
+	obs_data_array_release(start_hotkey);
+	obs_data_array_release(stop_hotkey);
+	start_hotkey = nullptr;
+	stop_hotkey = nullptr;
 	obs_hotkey_pair_save(virtual_cam_hotkey, &start_hotkey, &stop_hotkey);
 	obs_data_set_array(data, "start_virtual_cam_hotkey", start_hotkey);
 	obs_data_set_array(data, "stop_virtual_cam_hotkey", stop_hotkey);
