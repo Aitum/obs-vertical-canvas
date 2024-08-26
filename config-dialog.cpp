@@ -828,47 +828,58 @@ OBSBasicSettings::~OBSBasicSettings()
 
 QIcon OBSBasicSettings::GetGeneralIcon() const
 {
-	return generalIcon;
+	return listWidget->item(0)->icon();
 }
+
+QIcon OBSBasicSettings::GetAppearanceIcon() const
+{
+	return QIcon();
+}
+
 
 QIcon OBSBasicSettings::GetStreamIcon() const
 {
-	return streamIcon;
+	return listWidget->item(1)->icon();
 }
 
 QIcon OBSBasicSettings::GetOutputIcon() const
 {
-	return outputIcon;
+	return listWidget->item(2)->icon();
 }
 
 QIcon OBSBasicSettings::GetAudioIcon() const
 {
-	return audioIcon;
+	return QIcon();
 }
 
 QIcon OBSBasicSettings::GetVideoIcon() const
 {
-	return videoIcon;
+	return QIcon();
 }
 
 QIcon OBSBasicSettings::GetHotkeysIcon() const
 {
-	return hotkeysIcon;
+	return QIcon();
 }
 
 QIcon OBSBasicSettings::GetAccessibilityIcon() const
 {
-	return accessibilityIcon;
+	return QIcon();
 }
 
 QIcon OBSBasicSettings::GetAdvancedIcon() const
 {
-	return advancedIcon;
+	return QIcon();
 }
 
 void OBSBasicSettings::SetGeneralIcon(const QIcon &icon)
 {
 	listWidget->item(0)->setIcon(icon);
+}
+
+void OBSBasicSettings::SetAppearanceIcon(const QIcon &icon)
+{
+	UNUSED_PARAMETER(icon);
 }
 
 void OBSBasicSettings::SetStreamIcon(const QIcon &icon)
