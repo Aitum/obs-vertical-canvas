@@ -5899,7 +5899,7 @@ void CanvasDock::StartStreamOutput(std::vector<StreamServer>::iterator it)
 {
 	CreateStreamOutput(it);
 	const bool started_video = StartVideo();
-	if (it->settings && obs_data_get_bool(it->settings, "advanced")) {
+	if (it->settings && obs_data_get_bool(it->settings, "advanced") && obs_get_module("aitum-multistream")) {
 		auto venc_name = obs_data_get_string(it->settings, "video_encoder");
 		if (!venc_name || venc_name[0] == '\0') {
 			//use main encoder
@@ -6137,7 +6137,7 @@ void CanvasDock::StartStream()
 		obs_data_release(s);
 
 		CreateStreamOutput(it);
-		if (it->settings && obs_data_get_bool(it->settings, "advanced")) {
+		if (it->settings && obs_data_get_bool(it->settings, "advanced") && obs_get_module("aitum-multistream")) {
 			auto venc_name = obs_data_get_string(it->settings, "video_encoder");
 			if (!venc_name || venc_name[0] == '\0') {
 				//use main encoder
