@@ -6175,7 +6175,7 @@ void CanvasDock::StartStream()
 				}
 				std::string audio_encoder_name = "vertical_canvas_audio_encoder_";
 				audio_encoder_name += it->name;
-				auto aenc = obs_audio_encoder_create(venc_name, audio_encoder_name.c_str(), s,
+				auto aenc = obs_audio_encoder_create(aenc_name, audio_encoder_name.c_str(), s,
 								     obs_data_get_int(it->settings, "audio_track"), nullptr);
 				obs_data_release(s);
 				obs_encoder_set_audio(aenc, obs_get_audio());
