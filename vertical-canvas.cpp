@@ -5900,6 +5900,7 @@ void CanvasDock::StartStreamOutput(std::vector<StreamServer>::iterator it)
 	CreateStreamOutput(it);
 	const bool started_video = StartVideo();
 	if (it->settings && obs_data_get_bool(it->settings, "advanced") && obs_get_module("aitum-multistream")) {
+		blog(LOG_INFO, "[Vertical Canvas] Start output '%s' with multistream advanced settings", it->name.c_str());
 		auto venc_name = obs_data_get_string(it->settings, "video_encoder");
 		if (!venc_name || venc_name[0] == '\0') {
 			//use main encoder
@@ -5940,6 +5941,7 @@ void CanvasDock::StartStreamOutput(std::vector<StreamServer>::iterator it)
 			obs_output_set_audio_encoder(it->output, aenc, 0);
 		}
 	} else {
+		blog(LOG_INFO, "[Vertical Canvas] Start output '%s'", it->name.c_str());
 		obs_output_set_video_encoder(it->output, GetStreamVideoEncoder());
 		obs_output_set_audio_encoder(it->output, GetStreamAudioEncoder(), 0);
 	}
@@ -6111,6 +6113,7 @@ void CanvasDock::StartStream()
 			to_start = true;
 	}
 	if (!to_start) {
+		blog(LOG_WARNING, "[Vertical Canvas] No stream output to start");
 		QMetaObject::invokeMethod(this, "OnStreamStop", Q_ARG(int, OBS_OUTPUT_SUCCESS),
 					  Q_ARG(QString, QString::fromUtf8("")), Q_ARG(QString, QString::fromUtf8("")),
 					  Q_ARG(QString, QString::fromUtf8("")));
@@ -6138,6 +6141,7 @@ void CanvasDock::StartStream()
 
 		CreateStreamOutput(it);
 		if (it->settings && obs_data_get_bool(it->settings, "advanced") && obs_get_module("aitum-multistream")) {
+			blog(LOG_INFO, "[Vertical Canvas] Start output '%s' with multistream advanced settings", it->name.c_str());
 			auto venc_name = obs_data_get_string(it->settings, "video_encoder");
 			if (!venc_name || venc_name[0] == '\0') {
 				//use main encoder
@@ -6182,6 +6186,7 @@ void CanvasDock::StartStream()
 				obs_output_set_audio_encoder(it->output, aenc, 0);
 			}
 		} else {
+			blog(LOG_INFO, "[Vertical Canvas] Start output '%s'", it->name.c_str());
 			if (!video_encoder)
 				video_encoder = GetStreamVideoEncoder();
 			obs_output_set_video_encoder(it->output, video_encoder);
