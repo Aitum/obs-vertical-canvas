@@ -295,28 +295,32 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	streamingLayout->addRow(streaming_title_layout);
 
-	auto hl = new QHBoxLayout;
-	auto addButton = new QPushButton(QIcon(QString::fromUtf8(":/res/images/plus.svg")),
-					 QString::fromUtf8(obs_frontend_get_locale_string("Add")));
-	addButton->setProperty("themeID", QVariant(QString::fromUtf8("addIconSmall")));
-	connect(addButton, &QPushButton::clicked, [this] { AddServer(); });
-	hl->addWidget(addButton);
-	auto removeButton =
-		new QPushButton(QIcon(":/res/images/minus.svg"), QString::fromUtf8(obs_frontend_get_locale_string("Remove")));
-	removeButton->setProperty("themeID", QVariant(QString::fromUtf8("removeIconSmall")));
-	connect(removeButton, &QPushButton::clicked, [this] {
-		if (servers.size() <= 1)
-			return;
-		auto idx = (int)servers.size();
-		streamingLayout->removeRow(idx);
-		server_names.pop_back();
-		servers.pop_back();
-		keys.pop_back();
-		servers_enabled.pop_back();
-	});
-	hl->addWidget(removeButton);
+	if (canvasDock->disable_stream_settings) {
+		streamingLayout->addRow(new QLabel(QString::fromUtf8(obs_module_text("OutputsMulistream"))));
+	} else {
+		auto hl = new QHBoxLayout;
+		auto addButton = new QPushButton(QIcon(QString::fromUtf8(":/res/images/plus.svg")),
+						 QString::fromUtf8(obs_frontend_get_locale_string("Add")));
+		addButton->setProperty("themeID", QVariant(QString::fromUtf8("addIconSmall")));
+		connect(addButton, &QPushButton::clicked, [this] { AddServer(); });
+		hl->addWidget(addButton);
+		auto removeButton = new QPushButton(QIcon(":/res/images/minus.svg"),
+						    QString::fromUtf8(obs_frontend_get_locale_string("Remove")));
+		removeButton->setProperty("themeID", QVariant(QString::fromUtf8("removeIconSmall")));
+		connect(removeButton, &QPushButton::clicked, [this] {
+			if (servers.size() <= 1)
+				return;
+			auto idx = (int)servers.size();
+			streamingLayout->removeRow(idx);
+			server_names.pop_back();
+			servers.pop_back();
+			keys.pop_back();
+			servers_enabled.pop_back();
+		});
+		hl->addWidget(removeButton);
 
-	streamingLayout->addRow(hl);
+		streamingLayout->addRow(hl);
+	}
 
 	streamingVideoBitrate = new QSpinBox;
 	streamingVideoBitrate->setSuffix(" Kbps");
@@ -836,7 +840,6 @@ QIcon OBSBasicSettings::GetAppearanceIcon() const
 	return QIcon();
 }
 
-
 QIcon OBSBasicSettings::GetStreamIcon() const
 {
 	return listWidget->item(1)->icon();
@@ -1001,24 +1004,25 @@ void OBSBasicSettings::LoadSettings()
 	backtrackClip->setChecked(canvasDock->startReplay);
 	backtrackDuration->setValue(canvasDock->replayDuration);
 	backtrackPath->setText(QString::fromUtf8(canvasDock->replayPath));
+	if (!canvasDock->disable_stream_settings) {
+		for (size_t idx = 0; idx < canvasDock->streamOutputs.size(); idx++) {
+			if (idx >= servers.size()) {
+				AddServer();
+			}
+			auto name = canvasDock->streamOutputs[idx].name;
+			server_names[idx]->setText(name.empty() ? QString::fromUtf8(obs_module_text("Output")) + " " +
+									  QString::number(idx + 1)
+								: QString::fromUtf8(name));
+			auto key = keys[idx];
+			key->setEchoMode(QLineEdit::Password);
+			key->setText(QString::fromUtf8(canvasDock->streamOutputs[idx].stream_key));
+			servers[idx]->setCurrentText(QString::fromUtf8(canvasDock->streamOutputs[idx].stream_server));
+			servers_enabled[idx]->setChecked(canvasDock->streamOutputs[idx].enabled);
+		}
 
-	for (size_t idx = 0; idx < canvasDock->streamOutputs.size(); idx++) {
-		if (idx >= servers.size()) {
+		if (servers.empty()) {
 			AddServer();
 		}
-		auto name = canvasDock->streamOutputs[idx].name;
-		server_names[idx]->setText(name.empty()
-						   ? QString::fromUtf8(obs_module_text("Output")) + " " + QString::number(idx + 1)
-						   : QString::fromUtf8(name));
-		auto key = keys[idx];
-		key->setEchoMode(QLineEdit::Password);
-		key->setText(QString::fromUtf8(canvasDock->streamOutputs[idx].stream_key));
-		servers[idx]->setCurrentText(QString::fromUtf8(canvasDock->streamOutputs[idx].stream_server));
-		servers_enabled[idx]->setChecked(canvasDock->streamOutputs[idx].enabled);
-	}
-
-	if (servers.empty()) {
-		AddServer();
 	}
 
 	streamingUseMain->setChecked(!canvasDock->stream_advanced_settings);
@@ -1148,38 +1152,40 @@ void OBSBasicSettings::SaveSettings()
 			canvasDock->StopReplayBuffer();
 		}
 	}
-
-	for (size_t idx = 0; idx < servers.size(); idx++) {
-		std::string sk = keys[idx]->text().toUtf8().constData();
-		std::string ss = servers[idx]->currentText().toUtf8().constData();
-		if (idx >= canvasDock->streamOutputs.size()) {
-			StreamServer so;
-			so.stream_server = ss;
-			so.stream_key = sk;
-			std::string service_name = "vertical_canvas_stream_service_";
-			service_name += std::to_string(idx);
-			so.service = obs_service_create("rtmp_custom", service_name.c_str(), nullptr, nullptr);
-			canvasDock->streamOutputs.push_back(so);
-		}
-		canvasDock->streamOutputs[idx].name = server_names[idx]->text().toUtf8().constData();
-		if (sk != canvasDock->streamOutputs[idx].stream_key || ss != canvasDock->streamOutputs[idx].stream_server) {
-			canvasDock->streamOutputs[idx].stream_key = sk;
-			canvasDock->streamOutputs[idx].stream_server = ss;
-			if (obs_output_active(canvasDock->streamOutputs[idx].output)) {
-				//TODO restart
-				//StopStream();
-				//StartStream();
+	if (!canvasDock->disable_stream_settings) {
+		for (size_t idx = 0; idx < servers.size(); idx++) {
+			std::string sk = keys[idx]->text().toUtf8().constData();
+			std::string ss = servers[idx]->currentText().toUtf8().constData();
+			if (idx >= canvasDock->streamOutputs.size()) {
+				StreamServer so;
+				so.stream_server = ss;
+				so.stream_key = sk;
+				std::string service_name = "vertical_canvas_stream_service_";
+				service_name += std::to_string(idx);
+				so.service = obs_service_create("rtmp_custom", service_name.c_str(), nullptr, nullptr);
+				canvasDock->streamOutputs.push_back(so);
 			}
+			canvasDock->streamOutputs[idx].name = server_names[idx]->text().toUtf8().constData();
+			if (sk != canvasDock->streamOutputs[idx].stream_key || ss != canvasDock->streamOutputs[idx].stream_server) {
+				canvasDock->streamOutputs[idx].stream_key = sk;
+				canvasDock->streamOutputs[idx].stream_server = ss;
+				if (obs_output_active(canvasDock->streamOutputs[idx].output)) {
+					//TODO restart
+					//StopStream();
+					//StartStream();
+				}
+			}
+			canvasDock->streamOutputs[idx].enabled = servers_enabled[idx]->isChecked();
 		}
-		canvasDock->streamOutputs[idx].enabled = servers_enabled[idx]->isChecked();
-	}
-	if (canvasDock->streamOutputs.size() > servers.size()) {
-		for (auto idx = canvasDock->streamOutputs.size() - 1; idx >= servers.size(); idx--) {
-			if (obs_output_active(canvasDock->streamOutputs[idx].output))
-				obs_output_stop(canvasDock->streamOutputs[idx].output);
-			obs_output_release(canvasDock->streamOutputs[idx].output);
-			obs_service_release(canvasDock->streamOutputs[idx].service);
-			canvasDock->streamOutputs.pop_back();
+
+		if (canvasDock->streamOutputs.size() > servers.size()) {
+			for (auto idx = canvasDock->streamOutputs.size() - 1; idx >= servers.size(); idx--) {
+				if (obs_output_active(canvasDock->streamOutputs[idx].output))
+					obs_output_stop(canvasDock->streamOutputs[idx].output);
+				obs_output_release(canvasDock->streamOutputs[idx].output);
+				obs_service_release(canvasDock->streamOutputs[idx].service);
+				canvasDock->streamOutputs.pop_back();
+			}
 		}
 	}
 	canvasDock->UpdateMulti();

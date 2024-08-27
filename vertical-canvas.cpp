@@ -237,6 +237,7 @@ static void get_stream_settings(void *data, calldata_t *cd)
 	for (const auto &it : canvas_docks) {
 		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
 			continue;
+		it->DisableStreamSettings();
 		calldata_set_ptr(cd, "outputs", it->SaveStreamOutputs());
 		return;
 	}
@@ -252,6 +253,7 @@ static void set_stream_settings(void *data, calldata_t *cd)
 			continue;
 		obs_data_array_t *outputs = (obs_data_array_t *)calldata_ptr(cd, "outputs");
 		if (outputs) {
+			it->DisableStreamSettings();
 			it->LoadStreamOutputs(outputs);
 			it->UpdateMulti();
 		}
@@ -7829,6 +7831,11 @@ void CanvasDock::UpdateMulti()
 		streamButton->setChecked(active_count > 0);
 		streamButton->setStyleSheet(QString::fromUtf8("QPushButton:checked{background: rgb(0,210,153);}"));
 	}
+}
+
+void CanvasDock::DisableStreamSettings()
+{
+	disable_stream_settings = true;
 }
 
 LockedCheckBox::LockedCheckBox()

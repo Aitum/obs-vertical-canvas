@@ -225,6 +225,7 @@ private:
 	QString currentSceneName;
 	bool first_time = false;
 	bool multi_rtmp = false;
+	bool disable_stream_settings = false;
 
 	QColor GetSelectionColor() const;
 	QColor GetCropColor() const;
@@ -438,6 +439,7 @@ public:
 	obs_output_t *GetStreamOutput(std::string name);
 	inline obs_output_t *GetRecordOutput() const { return obs_output_get_ref(recordOutput); }
 	void UpdateMulti();
+	void DisableStreamSettings();
 
 	obs_data_t *SaveSettings();
 
