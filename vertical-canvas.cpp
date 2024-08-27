@@ -591,6 +591,22 @@ bool obs_module_load(void)
 	obs_register_source(&audio_wrapper_source);
 	obs_register_source(&multi_canvas_source);
 
+	auto ph = obs_get_proc_handler();
+	proc_handler_add(ph, "void aitum_vertical_get_view(in int width, in int height, out ptr view)", get_view, nullptr);
+	proc_handler_add(ph, "void aitum_vertical_get_video(in int width, in int height, out ptr video)", get_video, nullptr);
+	proc_handler_add(ph, "void aitum_vertical_get_stream_settings(in int width, in int height, out ptr outputs)",
+			 get_stream_settings, nullptr);
+	proc_handler_add(ph, "void aitum_vertical_set_stream_settings(in int width, in int height, in ptr outputs)",
+			 set_stream_settings, nullptr);
+	proc_handler_add(ph, "void aitum_vertical_get_stream_output(in int width, in int height, in string name, out ptr output)",
+			 get_stream_output, nullptr);
+	proc_handler_add(ph, "void aitum_vertical_start_stream_output(in int width, in int height, in string name)",
+			 start_stream_output, nullptr);
+	proc_handler_add(ph, "void aitum_vertical_stop_stream_output(in int width, in int height, in string name)",
+			 stop_stream_output, nullptr);
+	proc_handler_add(ph, "void aitum_vertical_add_chapter(in int width, in int height, in string chapter_name)", add_chapter,
+			 nullptr);
+
 	return true;
 }
 
@@ -658,22 +674,6 @@ void obs_module_post_load(void)
 		canvas_docks.push_back(canvasDock);
 	}
 	obs_data_array_release(canvas);
-
-	auto ph = obs_get_proc_handler();
-	proc_handler_add(ph, "void aitum_vertical_get_view(in int width, in int height, out ptr view)", get_view, nullptr);
-	proc_handler_add(ph, "void aitum_vertical_get_video(in int width, in int height, out ptr video)", get_video, nullptr);
-	proc_handler_add(ph, "void aitum_vertical_get_stream_settings(in int width, in int height, out ptr outputs)",
-			 get_stream_settings, nullptr);
-	proc_handler_add(ph, "void aitum_vertical_set_stream_settings(in int width, in int height, in ptr outputs)",
-			 set_stream_settings, nullptr);
-	proc_handler_add(ph, "void aitum_vertical_get_stream_output(in int width, in int height, in string name, out ptr output)",
-			 get_stream_output, nullptr);
-	proc_handler_add(ph, "void aitum_vertical_start_stream_output(in int width, in int height, in string name)",
-			 start_stream_output, nullptr);
-	proc_handler_add(ph, "void aitum_vertical_stop_stream_output(in int width, in int height, in string name)",
-			 stop_stream_output, nullptr);
-	proc_handler_add(ph, "void aitum_vertical_add_chapter(in int width, in int height, in string chapter_name)", add_chapter,
-			 nullptr);
 
 	if (!vendor)
 		vendor = obs_websocket_register_vendor("aitum-vertical-canvas");
