@@ -284,17 +284,6 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	streamingLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 	streamingLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
 
-	// Multistream is active, show warning
-	auto multistream_warning_widget = new QGroupBox(obs_frontend_get_locale_string("Warning"));
-	auto multistream_warning_layout = new QVBoxLayout;
-	multistream_warning_widget->setStyleSheet("QGroupBox { background: #332701; border: 1px solid #997404; color: #ffda6a; padding-top: 16px; }");
-
-	auto multistream_warning_label = new QLabel(QString::fromUtf8(obs_module_text("OutputsMulistream")));
-	multistream_warning_label->setStyleSheet("color: #ffda6a; font-weight: bold;");
-
-	multistream_warning_layout->addWidget(multistream_warning_label);
-	multistream_warning_widget->setLayout(multistream_warning_layout);
-
 	
 	auto streaming_title_layout = new QHBoxLayout;
 	auto streaming_title = new QLabel(QString::fromUtf8(obs_module_text("Streaming")));
@@ -507,6 +496,16 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	// multistream is active, show warning
 	if (canvasDock->disable_stream_settings)
 	{
+		auto multistream_warning_widget = new QGroupBox(QString::fromUtf8(obs_frontend_get_locale_string("Warning")));
+		auto multistream_warning_layout = new QVBoxLayout;
+		multistream_warning_widget->setStyleSheet(
+			"QGroupBox { background: #332701; border: 1px solid #997404; color: #ffda6a; padding-top: 16px; }");
+
+		auto multistream_warning_label = new QLabel(QString::fromUtf8(obs_module_text("OutputsMulistream")));
+		multistream_warning_label->setStyleSheet("color: #ffda6a; font-weight: bold;");
+
+		multistream_warning_layout->addWidget(multistream_warning_label);
+		multistream_warning_widget->setLayout(multistream_warning_layout);
 		vb->addWidget(multistream_warning_widget);
 	}
 	
