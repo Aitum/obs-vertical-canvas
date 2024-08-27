@@ -284,6 +284,18 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	streamingLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 	streamingLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
 
+	// Multistream is active, show warning
+	auto multistream_warning_widget = new QGroupBox(obs_frontend_get_locale_string("Warning"));
+	auto multistream_warning_layout = new QVBoxLayout;
+	multistream_warning_widget->setStyleSheet("QGroupBox { background: #332701; border: 1px solid #997404; color: #ffda6a; padding-top: 16px; }");
+
+	auto multistream_warning_label = new QLabel(QString::fromUtf8(obs_module_text("OutputsMulistream")));
+	multistream_warning_label->setStyleSheet("color: #ffda6a; font-weight: bold;");
+
+	multistream_warning_layout->addWidget(multistream_warning_label);
+	multistream_warning_widget->setLayout(multistream_warning_layout);
+
+	
 	auto streaming_title_layout = new QHBoxLayout;
 	auto streaming_title = new QLabel(QString::fromUtf8(obs_module_text("Streaming")));
 	streaming_title->setStyleSheet(QString::fromUtf8("font-weight: bold;"));
@@ -295,9 +307,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	streamingLayout->addRow(streaming_title_layout);
 
-	if (canvasDock->disable_stream_settings) {
-		streamingLayout->addRow(new QLabel(QString::fromUtf8(obs_module_text("OutputsMulistream"))));
-	} else {
+	if (!canvasDock->disable_stream_settings) {
 		auto hl = new QHBoxLayout;
 		auto addButton = new QPushButton(QIcon(QString::fromUtf8(":/res/images/plus.svg")),
 						 QString::fromUtf8(obs_frontend_get_locale_string("Add")));
@@ -493,6 +503,13 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	vb = new QVBoxLayout;
 	vb->setContentsMargins(0, 0, 0, 0);
+	
+	// multistream is active, show warning
+	if (canvasDock->disable_stream_settings)
+	{
+		vb->addWidget(multistream_warning_widget);
+	}
+	
 	vb->addWidget(streamingGroup);
 	vb->addWidget(streamingAdvancedGroup);
 	vb->addWidget(streamingDelayGroup);
