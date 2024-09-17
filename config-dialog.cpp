@@ -284,7 +284,6 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	streamingLayout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 	streamingLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
 
-	
 	auto streaming_title_layout = new QHBoxLayout;
 	auto streaming_title = new QLabel(QString::fromUtf8(obs_module_text("Streaming")));
 	streaming_title->setStyleSheet(QString::fromUtf8("font-weight: bold;"));
@@ -492,10 +491,9 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	vb = new QVBoxLayout;
 	vb->setContentsMargins(0, 0, 0, 0);
-	
+
 	// multistream is active, show warning
-	if (canvasDock->disable_stream_settings)
-	{
+	if (canvasDock->disable_stream_settings) {
 		auto multistream_warning_widget = new QGroupBox(QString::fromUtf8(obs_frontend_get_locale_string("Warning")));
 		auto multistream_warning_layout = new QVBoxLayout;
 		multistream_warning_widget->setStyleSheet(
@@ -508,7 +506,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		multistream_warning_widget->setLayout(multistream_warning_layout);
 		vb->addWidget(multistream_warning_widget);
 	}
-	
+
 	vb->addWidget(streamingGroup);
 	vb->addWidget(streamingAdvancedGroup);
 	vb->addWidget(streamingDelayGroup);

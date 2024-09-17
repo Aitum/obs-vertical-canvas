@@ -49,9 +49,11 @@ static inline void endRegion()
 	gs_projection_pop();
 }
 
+config_t *get_user_config(void);
+
 OBSProjector::OBSProjector(CanvasDock *canvas_, int monitor) : OBSQTDisplay(nullptr, Qt::Window), canvas(canvas_)
 {
-	isAlwaysOnTop = config_get_bool(obs_frontend_get_global_config(), "BasicWindow", "ProjectorAlwaysOnTop");
+	isAlwaysOnTop = config_get_bool(get_user_config(), "BasicWindow", "ProjectorAlwaysOnTop");
 
 	if (isAlwaysOnTop)
 		setWindowFlags(Qt::WindowStaysOnTopHint);
@@ -131,7 +133,7 @@ void OBSProjector::SetHideCursor()
 	if (savedMonitor == -1)
 		return;
 
-	bool hideCursor = config_get_bool(obs_frontend_get_global_config(), "BasicWindow", "HideProjectorCursor");
+	bool hideCursor = config_get_bool(get_user_config(), "BasicWindow", "HideProjectorCursor");
 
 	if (hideCursor)
 		setCursor(Qt::BlankCursor);

@@ -1666,12 +1666,39 @@ static bool SceneItemHasVideo(obs_sceneitem_t *item)
 	return (flags & OBS_SOURCE_VIDEO) != 0;
 }
 
+static config_t *(*get_user_config_func)(void) = nullptr;
+
+config_t *get_user_config(void)
+{
+#if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(31, 0, 0)
+	if (!get_user_config_func) {
+		if (obs_get_version() < MAKE_SEMANTIC_VERSION(31, 0, 0)) {
+			get_user_config_func = obs_frontend_get_global_config;
+			blog(LOG_INFO, "[Vertical Canvas] use global config");
+		} else {
+			auto handle = os_dlopen("obs-frontend-api");
+			if (handle) {
+				get_user_config_func = (config_t * (*)(void)) os_dlsym(handle, "obs_frontend_get_user_config");
+				os_dlclose(handle);
+				if (get_user_config_func)
+					blog(LOG_INFO, "[Vertical Canvas] use user config");
+			}
+		}
+	}
+	if (get_user_config_func)
+		return get_user_config_func();
+	return obs_frontend_get_global_config();
+#else
+	return obs_frontend_get_user_config();
+#endif
+}
+
 void CanvasDock::DrawOverflow(float scale)
 {
 	if (locked)
 		return;
 
-	config_t *config = obs_frontend_get_global_config();
+	auto config = get_user_config();
 	if (!config)
 		return;
 
@@ -1713,7 +1740,7 @@ bool CanvasDock::DrawSelectedOverflow(obs_scene_t *scene, obs_sceneitem_t *item,
 	if (!SceneItemHasVideo(item))
 		return true;
 
-	config_t *config = obs_frontend_get_global_config();
+	auto config = get_user_config();
 	if (!config)
 		return true;
 
@@ -2624,7 +2651,7 @@ static inline QColor color_from_int(long long val)
 
 QColor CanvasDock::GetSelectionColor() const
 {
-	config_t *config = obs_frontend_get_global_config();
+	auto config = get_user_config();
 	if (config && config_get_bool(config, "Accessibility", "OverrideColors")) {
 		return color_from_int(config_get_int(config, "Accessibility", "SelectRed"));
 	}
@@ -2633,7 +2660,7 @@ QColor CanvasDock::GetSelectionColor() const
 
 QColor CanvasDock::GetCropColor() const
 {
-	config_t *config = obs_frontend_get_global_config();
+	auto config = get_user_config();
 	if (config && config_get_bool(config, "Accessibility", "OverrideColors")) {
 		return color_from_int(config_get_int(config, "Accessibility", "SelectGreen"));
 	}
@@ -2642,7 +2669,7 @@ QColor CanvasDock::GetCropColor() const
 
 QColor CanvasDock::GetHoverColor() const
 {
-	config_t *config = obs_frontend_get_global_config();
+	auto config = get_user_config();
 	if (config && config_get_bool(config, "Accessibility", "OverrideColors")) {
 		return color_from_int(config_get_int(config, "Accessibility", "SelectBlue"));
 	}
@@ -3975,7 +4002,7 @@ vec3 CanvasDock::GetSnapOffset(const vec3 &tl, const vec3 &br)
 
 	vec3_zero(&clampOffset);
 
-	config_t *config = obs_frontend_get_global_config();
+	auto config = get_user_config();
 	if (!config)
 		return clampOffset;
 
@@ -4182,7 +4209,7 @@ void CanvasDock::SnapItemMovement(vec2 &offset)
 
 	vec3 snapOffset = GetSnapOffset(data.tl, data.br);
 
-	config_t *config = obs_frontend_get_global_config();
+	auto config = get_user_config();
 	if (!config)
 		return;
 
@@ -5055,7 +5082,7 @@ int GetConfigPath(char *path, size_t size, const char *name)
 static inline int GetProfilePath(char *path, size_t size, const char *file)
 {
 	char profiles_path[512];
-	config_t *config = obs_frontend_get_global_config();
+	auto config = get_user_config();
 	if (!config)
 		return -1;
 	const char *profile = config_get_string(config, "Basic", "ProfileDir");
@@ -7544,7 +7571,7 @@ OBSProjector *CanvasDock::OpenProjector(int monitor)
 	/* seriously?  10 monitors? */
 	if (monitor > 9 || monitor > QGuiApplication::screens().size() - 1)
 		return nullptr;
-	config_t *config = obs_frontend_get_global_config();
+	auto config = get_user_config();
 	if (!config)
 		return nullptr;
 
