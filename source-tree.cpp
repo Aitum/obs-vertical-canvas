@@ -184,6 +184,11 @@ SourceTreeItem::SourceTreeItem(SourceTree *tree_, OBSSceneItem sceneitem_) : tre
 	connect(lock, &QAbstractButton::clicked, setItemLocked);
 }
 
+SourceTreeItem::~SourceTreeItem()
+{
+	DisconnectSignals();
+}
+
 void SourceTreeItem::paintEvent(QPaintEvent *event)
 {
 	QStyleOption opt;
@@ -196,23 +201,105 @@ void SourceTreeItem::paintEvent(QPaintEvent *event)
 
 void SourceTreeItem::DisconnectSignals()
 {
-	sceneRemoveSignal.Disconnect();
-	itemRemoveSignal.Disconnect();
-	selectSignal.Disconnect();
-	deselectSignal.Disconnect();
-	visibleSignal.Disconnect();
-	lockedSignal.Disconnect();
-	renameSignal.Disconnect();
-	removeSignal.Disconnect();
+	obs_scene_t *scene = obs_sceneitem_get_scene(sceneitem);
+	if (scene) {
+		obs_source_t *sceneSource = obs_scene_get_source(scene);
+		signal_handler_t *signal = obs_source_get_signal_handler(sceneSource);
+		signal_handler_disconnect(signal, "remove", removeItem, this);
+		signal_handler_disconnect(signal, "item_remove", removeItem, this);
+		signal_handler_disconnect(signal, "item_visible", itemVisible, this);
+		signal_handler_disconnect(signal, "item_locked", itemLocked, this);
+		signal_handler_disconnect(signal, "item_select", itemSelect, this);
+		signal_handler_disconnect(signal, "item_deselect", itemDeselect, this);
+	}
 
-	if (obs_sceneitem_is_group(sceneitem))
-		groupReorderSignal.Disconnect();
+	obs_source_t *source = obs_sceneitem_get_source(sceneitem);
+	if (source) {
+		signal_handler_t *signal = obs_source_get_signal_handler(source);
+		signal_handler_disconnect(signal, "rename", renamed, this);
+		signal_handler_disconnect(signal, "remove", removeSource, this);
+		signal_handler_disconnect(signal, "reorder", reorderGroup, this);
+	}
 }
 
 void SourceTreeItem::Clear()
 {
 	DisconnectSignals();
 	sceneitem = nullptr;
+}
+
+void SourceTreeItem::removeItem(void *data, calldata_t *cd)
+{
+	SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
+	obs_sceneitem_t *curItem = (obs_sceneitem_t *)calldata_ptr(cd, "item");
+	obs_scene_t *curScene = (obs_scene_t *)calldata_ptr(cd, "scene");
+
+	if (curItem == this_->sceneitem) {
+		QMetaObject::invokeMethod(this_->tree, "Remove", Q_ARG(OBSSceneItem, curItem), Q_ARG(OBSScene, curScene));
+		curItem = nullptr;
+	}
+	if (!curItem)
+		QMetaObject::invokeMethod(this_, "Clear");
+}
+
+void SourceTreeItem::itemVisible(void *data, calldata_t *cd)
+{
+	SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
+	obs_sceneitem_t *curItem = (obs_sceneitem_t *)calldata_ptr(cd, "item");
+	bool visible = calldata_bool(cd, "visible");
+
+	if (curItem == this_->sceneitem)
+		QMetaObject::invokeMethod(this_, "VisibilityChanged", Q_ARG(bool, visible));
+}
+
+void SourceTreeItem::itemLocked(void *data, calldata_t *cd)
+{
+	SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
+	obs_sceneitem_t *curItem = (obs_sceneitem_t *)calldata_ptr(cd, "item");
+	bool locked = calldata_bool(cd, "locked");
+
+	if (curItem == this_->sceneitem)
+		QMetaObject::invokeMethod(this_, "LockedChanged", Q_ARG(bool, locked));
+}
+
+void SourceTreeItem::itemSelect(void *data, calldata_t *cd)
+{
+	SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
+	obs_sceneitem_t *curItem = (obs_sceneitem_t *)calldata_ptr(cd, "item");
+
+	if (curItem == this_->sceneitem)
+		QMetaObject::invokeMethod(this_, "Select");
+}
+
+void SourceTreeItem::itemDeselect(void *data, calldata_t *cd)
+{
+	SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
+	obs_sceneitem_t *curItem = (obs_sceneitem_t *)calldata_ptr(cd, "item");
+
+	if (curItem == this_->sceneitem)
+		QMetaObject::invokeMethod(this_, "Deselect");
+}
+
+void SourceTreeItem::reorderGroup(void *data, calldata_t *)
+{
+	SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
+	QMetaObject::invokeMethod(this_->tree, "ReorderItems");
+};
+
+void SourceTreeItem::renamed(void *data, calldata_t *cd)
+{
+	SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
+	const char *name = calldata_string(cd, "new_name");
+
+	QMetaObject::invokeMethod(this_, "Renamed", Q_ARG(QString, QString::fromUtf8(name)));
+}
+
+void SourceTreeItem::removeSource(void *data, calldata_t *)
+{
+	SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
+	this_->DisconnectSignals();
+	this_->sceneitem = nullptr;
+	QMetaObject::invokeMethod(this_->tree, "RefreshItems");
 }
 
 void SourceTreeItem::ReconnectSignals()
@@ -222,98 +309,27 @@ void SourceTreeItem::ReconnectSignals()
 
 	DisconnectSignals();
 
-	/* --------------------------------------------------------- */
-
-	auto removeItem = [](void *data, calldata_t *cd) {
-		SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
-		obs_sceneitem_t *curItem = (obs_sceneitem_t *)calldata_ptr(cd, "item");
-		obs_scene_t *curScene = (obs_scene_t *)calldata_ptr(cd, "scene");
-
-		if (curItem == this_->sceneitem) {
-			QMetaObject::invokeMethod(this_->tree, "Remove", Q_ARG(OBSSceneItem, curItem), Q_ARG(OBSScene, curScene));
-			curItem = nullptr;
-		}
-		if (!curItem)
-			QMetaObject::invokeMethod(this_, "Clear");
-	};
-
-	auto itemVisible = [](void *data, calldata_t *cd) {
-		SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
-		obs_sceneitem_t *curItem = (obs_sceneitem_t *)calldata_ptr(cd, "item");
-		bool visible = calldata_bool(cd, "visible");
-
-		if (curItem == this_->sceneitem)
-			QMetaObject::invokeMethod(this_, "VisibilityChanged", Q_ARG(bool, visible));
-	};
-
-	auto itemLocked = [](void *data, calldata_t *cd) {
-		SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
-		obs_sceneitem_t *curItem = (obs_sceneitem_t *)calldata_ptr(cd, "item");
-		bool locked = calldata_bool(cd, "locked");
-
-		if (curItem == this_->sceneitem)
-			QMetaObject::invokeMethod(this_, "LockedChanged", Q_ARG(bool, locked));
-	};
-
-	auto itemSelect = [](void *data, calldata_t *cd) {
-		SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
-		obs_sceneitem_t *curItem = (obs_sceneitem_t *)calldata_ptr(cd, "item");
-
-		if (curItem == this_->sceneitem)
-			QMetaObject::invokeMethod(this_, "Select");
-	};
-
-	auto itemDeselect = [](void *data, calldata_t *cd) {
-		SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
-		obs_sceneitem_t *curItem = (obs_sceneitem_t *)calldata_ptr(cd, "item");
-
-		if (curItem == this_->sceneitem)
-			QMetaObject::invokeMethod(this_, "Deselect");
-	};
-
-	auto reorderGroup = [](void *data, calldata_t *) {
-		SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
-		QMetaObject::invokeMethod(this_->tree, "ReorderItems");
-	};
-
 	obs_scene_t *scene = obs_sceneitem_get_scene(sceneitem);
 	obs_source_t *sceneSource = obs_scene_get_source(scene);
 	signal_handler_t *signal = obs_source_get_signal_handler(sceneSource);
-
-	sceneRemoveSignal.Connect(signal, "remove", removeItem, this);
-	itemRemoveSignal.Connect(signal, "item_remove", removeItem, this);
-	visibleSignal.Connect(signal, "item_visible", itemVisible, this);
-	lockedSignal.Connect(signal, "item_locked", itemLocked, this);
-	selectSignal.Connect(signal, "item_select", itemSelect, this);
-	deselectSignal.Connect(signal, "item_deselect", itemDeselect, this);
+	signal_handler_connect(signal, "remove", removeItem, this);
+	signal_handler_connect(signal, "item_remove", removeItem, this);
+	signal_handler_connect(signal, "item_visible", itemVisible, this);
+	signal_handler_connect(signal, "item_locked", itemLocked, this);
+	signal_handler_connect(signal, "item_select", itemSelect, this);
+	signal_handler_connect(signal, "item_deselect", itemDeselect, this);
 
 	if (obs_sceneitem_is_group(sceneitem)) {
 		obs_source_t *source = obs_sceneitem_get_source(sceneitem);
 		signal = obs_source_get_signal_handler(source);
 
-		groupReorderSignal.Connect(signal, "reorder", reorderGroup, this);
+		signal_handler_connect(signal, "reorder", reorderGroup, this);
 	}
-
-	/* --------------------------------------------------------- */
-
-	auto renamed = [](void *data, calldata_t *cd) {
-		SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
-		const char *name = calldata_string(cd, "new_name");
-
-		QMetaObject::invokeMethod(this_, "Renamed", Q_ARG(QString, QString::fromUtf8(name)));
-	};
-
-	auto removeSource = [](void *data, calldata_t *) {
-		SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
-		this_->DisconnectSignals();
-		this_->sceneitem = nullptr;
-		QMetaObject::invokeMethod(this_->tree, "RefreshItems");
-	};
 
 	obs_source_t *source = obs_sceneitem_get_source(sceneitem);
 	signal = obs_source_get_signal_handler(source);
-	renameSignal.Connect(signal, "rename", renamed, this);
-	removeSignal.Connect(signal, "remove", removeSource, this);
+	signal_handler_connect(signal, "rename", renamed, this);
+	signal_handler_connect(signal, "remove", removeSource, this);
 }
 
 void SourceTreeItem::mouseDoubleClickEvent(QMouseEvent *event)

@@ -59,6 +59,7 @@ class SourceTreeItem : public QFrame {
 
 public:
 	explicit SourceTreeItem(SourceTree *tree, OBSSceneItem sceneitem);
+	~SourceTreeItem();
 	bool IsEditing();
 
 private:
@@ -76,15 +77,14 @@ private:
 
 	SourceTree *tree;
 	OBSSceneItem sceneitem;
-	OBSSignal sceneRemoveSignal;
-	OBSSignal itemRemoveSignal;
-	OBSSignal groupReorderSignal;
-	OBSSignal selectSignal;
-	OBSSignal deselectSignal;
-	OBSSignal visibleSignal;
-	OBSSignal lockedSignal;
-	OBSSignal renameSignal;
-	OBSSignal removeSignal;
+	static void removeItem(void *data, calldata_t *cd);
+	static void itemVisible(void *data, calldata_t *cd);
+	static void itemLocked(void *data, calldata_t *cd);
+	static void itemSelect(void *data, calldata_t *cd);
+	static void itemDeselect(void *data, calldata_t *cd);
+	static void reorderGroup(void *data, calldata_t *);
+	static void renamed(void *data, calldata_t *cd);
+	static void removeSource(void *data, calldata_t *);
 
 	virtual void paintEvent(QPaintEvent *event) override;
 
