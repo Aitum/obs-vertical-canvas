@@ -299,11 +299,13 @@ void OBSHotkeyWidget::AddEdit(obs_key_combination combo, int idx)
 
 	auto revert = new QPushButton;
 	revert->setProperty("themeID", "revertIcon");
+	revert->setProperty("class", "icon-revert");
 	revert->setToolTip(QString::fromUtf8(obs_frontend_get_locale_string("Revert")));
 	revert->setEnabled(false);
 
 	auto clear = new QPushButton;
 	clear->setProperty("themeID", "clearIconSmall");
+	clear->setProperty("class", "icon-trash");
 	clear->setToolTip(QString::fromUtf8(obs_frontend_get_locale_string("Clear")));
 	clear->setEnabled(!obs_key_combination_is_empty(combo));
 
@@ -314,10 +316,12 @@ void OBSHotkeyWidget::AddEdit(obs_key_combination combo, int idx)
 
 	auto add = new QPushButton;
 	add->setProperty("themeID", "addIconSmall");
+	add->setProperty("class", "icon-plus");
 	add->setToolTip(QString::fromUtf8(obs_frontend_get_locale_string("Add")));
 
 	auto remove = new QPushButton;
 	remove->setProperty("themeID", "removeIconSmall");
+	remove->setProperty("class", "icon-minus");
 	remove->setToolTip(QString::fromUtf8(obs_frontend_get_locale_string("Remove")));
 	remove->setEnabled(removeButtons.size() > 0);
 

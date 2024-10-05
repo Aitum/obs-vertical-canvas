@@ -43,6 +43,7 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock, QWidget *p
 	addButton->setToolTip(QString::fromUtf8(obs_frontend_get_locale_string("Basic.AddTransition")));
 	addButton->setIcon(QIcon(":/res/images/add.png"));
 	addButton->setProperty("themeID", "addIconSmall");
+	addButton->setProperty("class", "icon-plus");
 	addButton->setProperty("toolButton", true);
 	addButton->setFlat(false);
 
@@ -129,6 +130,7 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock, QWidget *p
 	removeButton->setToolTip(QString::fromUtf8(obs_frontend_get_locale_string("Basic.RemoveTransition")));
 	removeButton->setIcon(QIcon(":/res/images/list_remove.png"));
 	removeButton->setProperty("themeID", "removeIconSmall");
+	removeButton->setProperty("class", "icon-minus");
 	removeButton->setProperty("toolButton", true);
 	removeButton->setFlat(false);
 
@@ -163,6 +165,7 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock, QWidget *p
 	propsButton->setToolTip(QString::fromUtf8(obs_frontend_get_locale_string("Basic.TransitionProperties")));
 	propsButton->setIcon(QIcon(":/settings/images/settings/general.svg"));
 	propsButton->setProperty("themeID", "menuIconSmall");
+	propsButton->setProperty("class", "icon-dots-vert");
 	propsButton->setProperty("toolButton", true);
 	propsButton->setFlat(false);
 

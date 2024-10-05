@@ -75,6 +75,7 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 					    menu->exec(QCursor::pos());
 				    });
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("addIconSmall")));
+	toolbar->widgetForAction(a)->setProperty("class", "icon-plus");
 
 	a = toolbar->addAction(
 		QIcon(":/res/images/minus.svg"), QString::fromUtf8(obs_frontend_get_locale_string("RemoveSource")), [this] {
@@ -137,6 +138,7 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 				obs_sceneitem_remove(item);
 		});
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("removeIconSmall")));
+	toolbar->widgetForAction(a)->setProperty("class", "icon-minus");
 	a->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 #ifdef __APPLE__
 	a->setShortcut({Qt::Key_Backspace});
@@ -153,6 +155,7 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 					       obs_frontend_open_source_filters(source);
 			       });
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("filtersIcon")));
+	toolbar->widgetForAction(a)->setProperty("class", "icon-filter");
 
 	a = toolbar->addAction(QIcon(":/settings/images/settings/general.svg"),
 			       QString::fromUtf8(obs_frontend_get_locale_string("SourceProperties")), [this] {
@@ -162,6 +165,7 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 					       obs_frontend_open_source_properties(source);
 			       });
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("propertiesIconSmall")));
+	toolbar->widgetForAction(a)->setProperty("class", "icon-gear");
 
 	toolbar->addSeparator();
 	a = toolbar->addAction(QIcon(":/res/images/up.svg"), QString::fromUtf8(obs_frontend_get_locale_string("MoveSourceUp")),
@@ -170,12 +174,14 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 				       obs_sceneitem_set_order(item, OBS_ORDER_MOVE_UP);
 			       });
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("upArrowIconSmall")));
+	toolbar->widgetForAction(a)->setProperty("class", "icon-up");
 	a = toolbar->addAction(QIcon(":/res/images/down.svg"), QString::fromUtf8(obs_frontend_get_locale_string("MoveSourceDown")),
 			       [this] {
 				       auto item = GetCurrentSceneItem();
 				       obs_sceneitem_set_order(item, OBS_ORDER_MOVE_DOWN);
 			       });
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("downArrowIconSmall")));
+	toolbar->widgetForAction(a)->setProperty("class", "icon-down");
 	mainLayout->addWidget(toolbar, 0);
 
 	setObjectName(QStringLiteral("contextContainer"));

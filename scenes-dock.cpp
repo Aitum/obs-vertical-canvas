@@ -302,6 +302,7 @@ CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent) : Q
 	auto a = toolbar->addAction(QIcon(QString::fromUtf8(":/res/images/plus.svg")),
 				    QString::fromUtf8(obs_frontend_get_locale_string("Add")), [this] { canvasDock->AddScene(); });
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("addIconSmall")));
+	toolbar->widgetForAction(a)->setProperty("class", "icon-plus");
 
 	a = toolbar->addAction(QIcon(":/res/images/minus.svg"), QString::fromUtf8(obs_frontend_get_locale_string("RemoveScene")),
 			       [this] {
@@ -311,6 +312,7 @@ CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent) : Q
 				       canvasDock->RemoveScene(item->text());
 			       });
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("removeIconSmall")));
+	toolbar->widgetForAction(a)->setProperty("class", "icon-minus");
 	a->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 #ifdef __APPLE__
 	a->setShortcut({Qt::Key_Backspace});
@@ -331,13 +333,16 @@ CanvasScenesDock::CanvasScenesDock(CanvasDock *canvas_dock, QWidget *parent) : Q
 				       obs_source_release(s);
 			       });
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("filtersIcon")));
+	toolbar->widgetForAction(a)->setProperty("class", "icon-filter");
 	toolbar->addSeparator();
 	a = toolbar->addAction(QIcon(":/res/images/up.svg"), QString::fromUtf8(obs_frontend_get_locale_string("MoveSceneUp")),
 			       [this] { ChangeSceneIndex(true, -1, 0); });
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("upArrowIconSmall")));
+	toolbar->widgetForAction(a)->setProperty("class", "icon-up");
 	a = toolbar->addAction(QIcon(":/res/images/down.svg"), QString::fromUtf8(obs_frontend_get_locale_string("MoveSceneDown")),
 			       [this] { ChangeSceneIndex(true, 1, sceneList->count() - 1); });
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("downArrowIconSmall")));
+	toolbar->widgetForAction(a)->setProperty("class", "icon-down");
 	mainLayout->addWidget(toolbar, 0);
 
 	setObjectName(QStringLiteral("contextContainer"));

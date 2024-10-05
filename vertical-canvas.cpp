@@ -959,11 +959,13 @@ void CanvasDock::CreateScenesRow()
 
 	auto addButton = new QPushButton;
 	addButton->setProperty("themeID", "addIconSmall");
+	addButton->setProperty("class", "icon-plus");
 	addButton->setToolTip(QString::fromUtf8(obs_module_text("AddVerticalScene")));
 	connect(addButton, &QPushButton::clicked, [this] { AddScene(); });
 	sceneRow->addWidget(addButton);
 	auto removeButton = new QPushButton;
 	removeButton->setProperty("themeID", "removeIconSmall");
+	removeButton->setProperty("class", "icon-minus");
 	removeButton->setToolTip(QString::fromUtf8(obs_module_text("RemoveVerticalScene")));
 	connect(removeButton, &QPushButton::clicked, [this] { RemoveScene(scenesCombo->currentText()); });
 	sceneRow->addWidget(removeButton);
@@ -1449,6 +1451,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	configButton = new QPushButton(this);
 	configButton->setMinimumHeight(30);
 	configButton->setProperty("themeID", "configIconSmall");
+	configButton->setProperty("class", "icon-gear");
 	configButton->setFlat(true);
 	configButton->setAutoDefault(false);
 	configButton->setSizePolicy(sp2);
@@ -1572,7 +1575,7 @@ CanvasDock::~CanvasDock()
 	signal_handler_disconnect(sh, "source_rename", source_rename, this);
 	signal_handler_disconnect(sh, "source_remove", source_remove, this);
 	signal_handler_disconnect(sh, "source_destroy", source_remove, this);
-	//signal_handler_connect(sh, "source_create", source_create, this);
+	//signal_handler_disconnect(sh, "source_create", source_create, this);
 	//signal_handler_disconnect(sh, "source_load", source_load, this);
 	signal_handler_disconnect(sh, "source_save", source_save, this);
 
@@ -7868,6 +7871,7 @@ void CanvasDock::DisableStreamSettings()
 LockedCheckBox::LockedCheckBox()
 {
 	setProperty("lockCheckBox", true);
+	setProperty("class", "indicator-lock");
 }
 
 LockedCheckBox::LockedCheckBox(QWidget *parent) : QCheckBox(parent) {}
@@ -7875,6 +7879,7 @@ LockedCheckBox::LockedCheckBox(QWidget *parent) : QCheckBox(parent) {}
 VisibilityCheckBox::VisibilityCheckBox()
 {
 	setProperty("visibilityCheckBox", true);
+	setProperty("class", "indicator-visibility");
 }
 
 VisibilityCheckBox::VisibilityCheckBox(QWidget *parent) : QCheckBox(parent) {}

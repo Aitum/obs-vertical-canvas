@@ -184,6 +184,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	auto button = new QPushButton(QString::fromUtf8(obs_frontend_get_locale_string("Browse")));
 	button->setProperty("themeID", "settingsButtons");
+	button->setProperty("class", "icon-gear");
 	button->setAutoDefault(false);
 	connect(button, &QPushButton::clicked, [this] {
 		const QString dir = QFileDialog::getExistingDirectory(this, QString::fromUtf8(obs_module_text("BacktrackPath")),
@@ -300,11 +301,13 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		auto addButton = new QPushButton(QIcon(QString::fromUtf8(":/res/images/plus.svg")),
 						 QString::fromUtf8(obs_frontend_get_locale_string("Add")));
 		addButton->setProperty("themeID", QVariant(QString::fromUtf8("addIconSmall")));
+		addButton->setProperty("class", "icon-plus");
 		connect(addButton, &QPushButton::clicked, [this] { AddServer(); });
 		hl->addWidget(addButton);
 		auto removeButton = new QPushButton(QIcon(":/res/images/minus.svg"),
 						    QString::fromUtf8(obs_frontend_get_locale_string("Remove")));
 		removeButton->setProperty("themeID", QVariant(QString::fromUtf8("removeIconSmall")));
+		removeButton->setProperty("class", "icon-minus");
 		connect(removeButton, &QPushButton::clicked, [this] {
 			if (servers.size() <= 1)
 				return;
@@ -817,6 +820,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	newVersion = new QLabel;
 	newVersion->setProperty("themeID", "warning");
+	button->setProperty("class", "text-warning");
 	newVersion->setVisible(false);
 	newVersion->setOpenExternalLinks(true);
 	newVersion->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
