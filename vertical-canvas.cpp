@@ -6000,23 +6000,36 @@ void CanvasDock::CreateStreamOutput(std::vector<StreamServer>::iterator it)
 	//password
 	obs_service_update(it->service, s);
 	obs_data_release(s);
-#if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(29, 1, 0)
-	const char *type = obs_service_get_output_type(it->service);
-#else
-	const char *type = obs_service_get_preferred_output_type(it->service);
-#endif
-	if (!type) {
-#if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(29, 1, 0)
-		const char *url = obs_service_get_url(it->service);
-#else
-		const char *url = obs_service_get_connect_info(it->service, OBS_SERVICE_CONNECT_INFO_SERVER_URL);
-#endif
-		type = "rtmp_output";
-		if (url != NULL && strncmp(url, "ftl", 3) == 0) {
-			type = "ftl_output";
-		} else if (url != NULL && strncmp(url, "rtmp", 4) != 0) {
-			type = "ffmpeg_mpegts_muxer";
+	const char *type = nullptr;
+	auto handle = os_dlopen("obs");
+	if (handle) {
+		auto type_func = (const char *(*)(obs_service_t *))os_dlsym(handle, "obs_service_get_output_type");
+		if (!type_func)
+			type_func = (const char *(*)(obs_service_t *))os_dlsym(handle, "obs_service_get_preferred_output_type");
+		if (type_func) {
+			type = type_func(it->service);
 		}
+		if (!type) {
+			const char *url = nullptr;
+			auto url_func = (const char *(*)(obs_service_t *))os_dlsym(handle, "obs_service_get_url");
+			if (url_func) {
+				url = url_func(it->service);
+			} else {
+				auto info_func = (const char *(*)(obs_service_t *,
+								  uint32_t))os_dlsym(handle, "obs_service_get_connect_info");
+				if (info_func)
+					url = info_func(it->service, 0); // OBS_SERVICE_CONNECT_INFO_SERVER_URL
+			}
+			type = "rtmp_output";
+			if (url != nullptr && strncmp(url, "ftl", 3) == 0) {
+				type = "ftl_output";
+			} else if (url != nullptr && strncmp(url, "rtmp", 4) != 0) {
+				type = "ffmpeg_mpegts_muxer";
+			}
+		}
+		os_dlclose(handle);
+	} else {
+		type = "rtmp_output";
 	}
 	if (!it->output || strcmp(type, obs_output_get_id(it->output)) != 0) {
 		if (it->output) {
