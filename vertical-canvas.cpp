@@ -1584,6 +1584,11 @@ CanvasDock::~CanvasDock()
 	obs_output_release(recordOutput);
 	recordOutput = nullptr;
 
+	if (replayOutput) {
+		auto rpsh = obs_output_get_signal_handler(replayOutput);
+		signal_handler_disconnect(rpsh, "saved", replay_saved, this);
+	}
+
 	if (obs_output_active(replayOutput))
 		obs_output_stop(replayOutput);
 	obs_output_release(replayOutput);
@@ -5628,11 +5633,14 @@ const char *get_simple_output_encoder(const char *encoder)
 	if (strcmp(encoder, SIMPLE_ENCODER_AMD_AV1) == 0)
 		return "av1_texture_amf";
 	if (strcmp(encoder, SIMPLE_ENCODER_NVENC) == 0)
-		return EncoderAvailable("jim_nvenc") ? "jim_nvenc" : "ffmpeg_nvenc";
+		return EncoderAvailable("obs_nvenc_h264_tex") ? "obs_nvenc_h264_tex"
+							      : (EncoderAvailable("jim_nvenc") ? "jim_nvenc" : "ffmpeg_nvenc");
 	if (strcmp(encoder, SIMPLE_ENCODER_NVENC_HEVC) == 0)
-		return EncoderAvailable("jim_hevc_nvenc") ? "jim_hevc_nvenc" : "ffmpeg_hevc_nvenc";
+		return EncoderAvailable("obs_nvenc_hevc_tex")
+			       ? "obs_nvenc_hevc_tex"
+			       : (EncoderAvailable("jim_hevc_nvenc") ? "jim_hevc_nvenc" : "ffmpeg_hevc_nvenc");
 	if (strcmp(encoder, SIMPLE_ENCODER_NVENC_AV1) == 0)
-		return "jim_av1_nvenc";
+		return EncoderAvailable("obs_nvenc_av1_tex") ? "obs_nvenc_av1_tex" : "jim_av1_nvenc";
 	if (strcmp(encoder, SIMPLE_ENCODER_APPLE_H264) == 0)
 		return "com.apple.videotoolbox.videoencoder.ave.avc";
 	if (strcmp(encoder, SIMPLE_ENCODER_APPLE_HEVC) == 0)
@@ -6582,7 +6590,7 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 		if (oldSource) {
 			auto ost = obs_source_get_type(oldSource);
 			if (ost == OBS_SOURCE_TYPE_TRANSITION) {
-				auto data = obs_source_get_private_settings(s);
+				auto data = s ? obs_source_get_private_settings(s) : nullptr;
 				obs_source_t *override_transition = GetTransition(obs_data_get_string(data, "transition"));
 				if (SwapTransition(override_transition)) {
 					obs_source_release(oldSource);

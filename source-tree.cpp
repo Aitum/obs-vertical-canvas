@@ -1550,7 +1550,7 @@ void SourceTree::Remove(OBSSceneItem item, OBSScene scene)
 	obs_source_t *sceneSource = obs_scene_get_source(scene);
 	obs_source_t *itemSource = obs_sceneitem_get_source(item);
 	blog(LOG_INFO, "User Removed source '%s' (%s) from scene '%s'", obs_source_get_name(itemSource),
-	     obs_source_get_id(itemSource), obs_source_get_name(sceneSource));
+	     obs_source_get_id(itemSource), sceneSource ? obs_source_get_name(sceneSource) : "");
 }
 
 void SourceTree::GroupSelectedItems()
