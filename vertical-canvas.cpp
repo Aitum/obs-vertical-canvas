@@ -931,11 +931,10 @@ void CanvasDock::CheckReplayBuffer(bool start)
 	if (start && active) {
 		StartReplayBuffer();
 	} else if (!active) {
-		if (video && !obs_output_active(replayOutput) && !obs_output_active(virtualCamOutput)) {
-			DestroyVideo();
-		}
 		if (!start)
 			StopReplayBuffer();
+		if (video)
+			DestroyVideo();
 	}
 }
 
@@ -6330,6 +6329,16 @@ void CanvasDock::DestroyVideo()
 {
 	if (!video)
 		return;
+
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		if (it->output && obs_output_active(it->output))
+			return;
+	}
+
+	if (obs_output_active(replayOutput) || obs_output_active(recordOutput) ||
+	    (obs_output_active(virtualCamOutput) && multiCanvasVideo == nullptr))
+		return;
+
 	video = nullptr;
 	if (replayOutput)
 		obs_encoder_set_video(obs_output_get_video_encoder(replayOutput), nullptr);
