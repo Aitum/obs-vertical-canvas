@@ -7794,18 +7794,51 @@ void CanvasDock::get_transitions(void *data, struct obs_frontend_source_list *so
 bool CanvasDock::LoadStreamOutputs(obs_data_array_t *outputs)
 {
 	auto count = obs_data_array_count(outputs);
-	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); it++) {
-		if (obs_output_active(it->output))
-			obs_output_stop(it->output);
-		obs_output_release(it->output);
-		obs_data_release(it->settings);
-	}
-	streamOutputs.clear();
 	auto enabled_count = 0;
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end();) {
+		bool found = false;
+		for (size_t i = 0; !found && i < count; i++) {
+			auto item = obs_data_array_item(outputs, i);
+			if (it->name == obs_data_get_string(item, "name")) {
+				it->stream_server = obs_data_get_string(item, "stream_server");
+				it->stream_key = obs_data_get_string(item, "stream_key");
+				it->enabled = obs_data_get_bool(item, "enabled");
+				if (it->enabled)
+					enabled_count++;
+				obs_data_release(it->settings);
+				it->settings = item;
+				found = true;
+				break;
+			}
+			obs_data_release(item);
+		}
+		if (!found) {
+			if (obs_output_active(it->output))
+				obs_output_stop(it->output);
+			obs_output_release(it->output);
+			obs_data_release(it->settings);
+			it = streamOutputs.erase(it);
+		} else {
+			it++;
+		}
+	}
+
 	for (size_t i = 0; i < count; i++) {
 		auto item = obs_data_array_item(outputs, i);
+		auto name = obs_data_get_string(item, "name");
+		bool found = false;
+		for (auto it = streamOutputs.begin(); it != streamOutputs.end(); it++) {
+			if (it->name == name) {
+				found = true;
+				break;
+			}
+		}
+		if (found) {
+			obs_data_release(item);
+			continue;
+		}
 		StreamServer ss;
-		ss.name = obs_data_get_string(item, "name");
+		ss.name = name;
 		ss.stream_server = obs_data_get_string(item, "stream_server");
 		ss.stream_key = obs_data_get_string(item, "stream_key");
 		ss.enabled = obs_data_get_bool(item, "enabled");
