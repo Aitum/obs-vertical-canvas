@@ -547,6 +547,44 @@ void vendor_request_add_chapter(obs_data_t *request_data, obs_data_t *response_d
 	obs_data_set_bool(response_data, "success", false);
 }
 
+void vendor_request_pause_recording(obs_data_t *request_data, obs_data_t *response_data, void *)
+{
+	const auto width = obs_data_get_int(request_data, "width");
+	const auto height = obs_data_get_int(request_data, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
+			continue;
+
+		auto output = it->GetRecordOutput();
+		if (!output || !obs_output_active(output) || obs_output_paused(output))
+			continue;
+		obs_output_pause(output, true);
+		obs_output_release(output);
+		obs_data_set_bool(response_data, "success", true);
+		return;
+	}
+	obs_data_set_bool(response_data, "success", false);
+}
+
+void vendor_request_unpause_recording(obs_data_t *request_data, obs_data_t *response_data, void *)
+{
+	const auto width = obs_data_get_int(request_data, "width");
+	const auto height = obs_data_get_int(request_data, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
+			continue;
+
+		auto output = it->GetRecordOutput();
+		if (!output || !obs_output_active(output) || !obs_output_paused(output))
+			continue;
+		obs_output_pause(output, false);
+		obs_output_release(output);
+		obs_data_set_bool(response_data, "success", true);
+		return;
+	}
+	obs_data_set_bool(response_data, "success", false);
+}
+
 update_info_t *verison_update_info = nullptr;
 
 bool version_info_downloaded(void *param, struct file_download_data *file)
@@ -698,6 +736,8 @@ void obs_module_post_load(void)
 	obs_websocket_vendor_register_request(vendor, "update_stream_key", vendor_request_update_stream_key, nullptr);
 	obs_websocket_vendor_register_request(vendor, "update_stream_server", vendor_request_update_stream_server, nullptr);
 	obs_websocket_vendor_register_request(vendor, "add_chapter", vendor_request_add_chapter, nullptr);
+	obs_websocket_vendor_register_request(vendor, "pause_recording", vendor_request_pause_recording, nullptr);
+	obs_websocket_vendor_register_request(vendor, "pause_recording", vendor_request_unpause_recording, nullptr);
 
 	verison_update_info = update_info_create_single("[Vertical Canvas]", "OBS", "https://api.aitum.tv/vertical",
 							version_info_downloaded, nullptr);
@@ -1024,7 +1064,9 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		StreamServer ss;
 		ss.stream_server = obs_data_get_string(settings, "stream_server");
 		ss.stream_key = obs_data_get_string(settings, "stream_key");
-		ss.service = obs_service_create("rtmp_custom", "vertical_canvas_stream_service_0", nullptr, nullptr);
+		bool whip = strstr(ss.stream_server.c_str(), "whip") != nullptr;
+		ss.service = obs_service_create(whip ? "whip_custom" : "rtmp_custom", "vertical_canvas_stream_service_0", nullptr,
+						nullptr);
 		streamOutputs.push_back(ss);
 	}
 
@@ -1527,6 +1569,33 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	obs_hotkey_pair_load(stream_hotkey, start_hotkey, stop_hotkey);
 	obs_data_array_release(start_hotkey);
 	obs_data_array_release(stop_hotkey);
+
+	pause_hotkey = obs_hotkey_pair_register_frontend(
+		"VerticalCanvasDockPause",
+		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.PauseRecording"))).toUtf8().constData(),
+		"VerticalCanvasDockUnpause",
+		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.UnpauseRecording")))
+			.toUtf8()
+			.constData(),
+		pause_recording_hotkey, unpause_recording_hotkey, this, this);
+
+	start_hotkey = obs_data_get_array(settings, "pause_hotkey");
+	stop_hotkey = obs_data_get_array(settings, "unpause_hotkey");
+	obs_hotkey_pair_load(pause_hotkey, start_hotkey, stop_hotkey);
+	obs_data_array_release(start_hotkey);
+	obs_data_array_release(stop_hotkey);
+
+	chapter_hotkey = obs_hotkey_register_frontend(
+		"VerticalCanvasDockChapter",
+		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.AddChapterMarker")))
+			.toUtf8()
+			.constData(),
+		recording_chapter_hotkey, this);
+
+	start_hotkey = obs_data_get_array(settings, "chapter_hotkey");
+	obs_hotkey_load(chapter_hotkey, start_hotkey);
+	obs_data_array_release(start_hotkey);
+
 	if (first_time) {
 		obs_data_release(settings);
 	}
@@ -1555,6 +1624,8 @@ CanvasDock::~CanvasDock()
 	obs_hotkey_pair_unregister(virtual_cam_hotkey);
 	obs_hotkey_pair_unregister(record_hotkey);
 	obs_hotkey_pair_unregister(stream_hotkey);
+	obs_hotkey_pair_unregister(pause_hotkey);
+	obs_hotkey_unregister(chapter_hotkey);
 	obs_display_remove_draw_callback(preview->GetDisplay(), DrawPreview, this);
 	for (uint32_t i = MAX_CHANNELS - 1; i > 0; i--) {
 		auto s = obs_get_output_source(i);
@@ -6002,6 +6073,7 @@ void CanvasDock::CreateStreamOutput(std::vector<StreamServer>::iterator it)
 	auto s = obs_data_create();
 	obs_data_set_string(s, "server", it->stream_server.c_str());
 	obs_data_set_string(s, "key", it->stream_key.c_str());
+	obs_data_set_string(s, "bearer_token", it->stream_key.c_str());
 	//use_auth
 	//username
 	//password
@@ -6185,6 +6257,7 @@ void CanvasDock::StartStream()
 		auto s = obs_data_create();
 		obs_data_set_string(s, "server", it->stream_server.c_str());
 		obs_data_set_string(s, "key", it->stream_key.c_str());
+		obs_data_set_string(s, "bearer_token", it->stream_key.c_str());
 		//use_auth
 		//username
 		//password
@@ -6477,6 +6550,16 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_array(data, "stop_stream_hotkey", stop_hotkey);
 	obs_data_array_release(start_hotkey);
 	obs_data_array_release(stop_hotkey);
+	start_hotkey = nullptr;
+	stop_hotkey = nullptr;
+	obs_hotkey_pair_save(pause_hotkey, &start_hotkey, &stop_hotkey);
+	obs_data_set_array(data, "pause_hotkey", start_hotkey);
+	obs_data_set_array(data, "unpause_hotkey", stop_hotkey);
+	obs_data_array_release(start_hotkey);
+	obs_data_array_release(stop_hotkey);
+	start_hotkey = obs_hotkey_save(chapter_hotkey);
+	obs_data_set_array(data, "chapter_hotkey", start_hotkey);
+	obs_data_array_release(start_hotkey);
 
 	obs_data_array_t *transition_array = obs_data_array_create();
 	for (auto transition : transitions) {
@@ -7282,6 +7365,48 @@ bool CanvasDock::stop_streaming_hotkey(void *data, obs_hotkey_pair_id id, obs_ho
 	return true;
 }
 
+bool CanvasDock::pause_recording_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed)
+{
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(hotkey);
+	if (!pressed)
+		return false;
+	const auto d = static_cast<CanvasDock *>(data);
+	if (!obs_output_active(d->recordOutput) || obs_output_paused(d->recordOutput))
+		return false;
+	obs_output_pause(d->recordOutput, true);
+	return true;
+}
+
+bool CanvasDock::unpause_recording_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed)
+{
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(hotkey);
+	if (!pressed)
+		return false;
+	const auto d = static_cast<CanvasDock *>(data);
+	if (!obs_output_active(d->recordOutput) || !obs_output_paused(d->recordOutput))
+		return false;
+	obs_output_pause(d->recordOutput, false);
+	return true;
+}
+
+void CanvasDock::recording_chapter_hotkey(void *data, obs_hotkey_id id, obs_hotkey_t *hotkey, bool pressed)
+{
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(hotkey);
+	if (!pressed)
+		return;
+	const auto d = static_cast<CanvasDock *>(data);
+	if (!obs_output_active(d->recordOutput))
+		return;
+	proc_handler_t *ph = obs_output_get_proc_handler(d->recordOutput);
+	calldata cd2;
+	calldata_init(&cd2);
+	proc_handler_call(ph, "add_chapter", &cd2);
+	calldata_free(&cd2);
+}
+
 QIcon CanvasDock::GetIconFromType(enum obs_icon_type icon_type) const
 {
 	const auto main_window = static_cast<QMainWindow *>(obs_frontend_get_main_window());
@@ -7846,7 +7971,8 @@ bool CanvasDock::LoadStreamOutputs(obs_data_array_t *outputs)
 			enabled_count++;
 		std::string service_name = "vertical_canvas_stream_service_";
 		service_name += std::to_string(i);
-		ss.service = obs_service_create("rtmp_custom", service_name.c_str(), nullptr, nullptr);
+		bool whip = strstr(ss.stream_server.c_str(), "whip") != nullptr;
+		ss.service = obs_service_create(whip ? "whip_custom" : "rtmp_custom", service_name.c_str(), nullptr, nullptr);
 		ss.settings = item;
 		streamOutputs.push_back(ss);
 	}
