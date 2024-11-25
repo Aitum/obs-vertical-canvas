@@ -1,5 +1,4 @@
-
-#include <obs-module.h>
+#include <obs.h>
 #include "audio-wrapper-source.h"
 
 const char *audio_wrapper_get_name(void *type_data)
