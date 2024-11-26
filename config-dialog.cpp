@@ -113,7 +113,6 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	settingsPages->addWidget(supportPage);
 
-
 	connect(listWidget, &QListWidget::currentRowChanged, settingsPages, &QStackedWidget::setCurrentIndex);
 
 	auto generalGroup = new QGroupBox;
@@ -193,6 +192,8 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	backtrack_title_layout->addWidget(guide_link, 0, Qt::AlignRight);
 
 	backtrackLayout->addRow(backtrack_title_layout);
+
+	backtrackLayout->addRow(new QLabel(QString::fromUtf8(obs_module_text("BacktrackEncoder"))));
 
 	backtrackClip = new QCheckBox(QString::fromUtf8(obs_module_text("BacktrackEnable")));
 	backtrackLayout->addWidget(backtrackClip);
@@ -589,6 +590,30 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	recordingMatchMain = new QCheckBox(QString::fromUtf8(obs_module_text("RecordingMatchMain")));
 	recordLayout->addWidget(recordingMatchMain);
+
+	auto max_time_layout = new QHBoxLayout();
+	maxTimeEnable = new QCheckBox();
+	max_time_layout->addWidget(maxTimeEnable);
+	maxTime = new QSpinBox();
+	maxTime->setMinimum(0);
+	maxTime->setMaximum(31536000);
+	maxTime->setSuffix(" s");
+	connect(maxTimeEnable, &QCheckBox::stateChanged, [this] { maxTime->setEnabled(maxTimeEnable->isChecked()); });
+	max_time_layout->addWidget(maxTime, 1);
+	recordLayout->addRow(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Settings.Output.SplitFile.Time")),
+			     max_time_layout);
+
+	auto max_size_layout = new QHBoxLayout();
+	maxSizeEnable = new QCheckBox();
+	max_size_layout->addWidget(maxSizeEnable);
+	maxSize = new QSpinBox();
+	maxSize->setMinimum(0);
+	maxSize->setMaximum(1073741824);
+	maxSize->setSuffix(" MB");
+	connect(maxSizeEnable, &QCheckBox::stateChanged, [this] { maxSize->setEnabled(maxSizeEnable->isChecked()); });
+	max_size_layout->addWidget(maxSize, 1);
+	recordLayout->addRow(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Settings.Output.SplitFile.Size")),
+			     max_size_layout);
 
 	otherHotkey = nullptr;
 
@@ -1098,6 +1123,10 @@ void OBSBasicSettings::LoadSettings()
 	showScenes->setChecked(!canvasDock->hideScenes);
 	virtualCameraMode->setCurrentIndex(canvasDock->virtual_cam_mode);
 	recordVideoBitrate->setValue(canvasDock->recordVideoBitrate ? canvasDock->recordVideoBitrate : 6000);
+	maxTimeEnable->setChecked(canvasDock->max_time_sec > 0);
+	maxTime->setValue(canvasDock->max_time_sec);
+	maxSizeEnable->setChecked(canvasDock->max_size_mb > 0);
+	maxSize->setValue(canvasDock->max_size_mb);
 	recordingMatchMain->setChecked(canvasDock->recordingMatchMain);
 	streamingVideoBitrate->setValue(canvasDock->streamingVideoBitrate ? canvasDock->streamingVideoBitrate : 6000);
 	streamingMatchMain->setChecked(canvasDock->streamingMatchMain);
@@ -1219,6 +1248,8 @@ void OBSBasicSettings::SaveSettings()
 		SetEncoderBitrate(obs_output_get_video_encoder(canvasDock->replayOutput), true);
 		SetEncoderBitrate(obs_output_get_video_encoder(canvasDock->recordOutput), true);
 	}
+	canvasDock->max_size_mb = maxSizeEnable->isChecked() ? maxSize->value() : 0;
+	canvasDock->max_time_sec = maxTimeEnable->isChecked() ? maxTime->value() : 0;
 	canvasDock->recordingMatchMain = recordingMatchMain->isChecked();
 	bitrate = (uint32_t)streamingVideoBitrate->value();
 	if (bitrate != canvasDock->streamingVideoBitrate) {

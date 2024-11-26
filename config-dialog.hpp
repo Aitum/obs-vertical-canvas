@@ -42,6 +42,10 @@ private:
 	QCheckBox *backtrackClip;
 	QSpinBox *backtrackDuration;
 	QLineEdit *backtrackPath;
+	QCheckBox *maxSizeEnable;
+	QSpinBox *maxSize;
+	QCheckBox *maxTimeEnable;
+	QSpinBox *maxTime;
 
 	QFormLayout *streamingLayout;
 	std::vector<QLineEdit *> server_names;

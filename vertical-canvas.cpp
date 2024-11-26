@@ -1047,6 +1047,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	recordVideoBitrate = (uint32_t)obs_data_get_int(settings, "record_video_bitrate");
 	if (!recordVideoBitrate)
 		recordVideoBitrate = (uint32_t)obs_data_get_int(settings, "video_bitrate");
+	max_size_mb = (uint32_t)obs_data_get_int(settings, "max_size_mb");
+	max_time_sec = (uint32_t)obs_data_get_int(settings, "max_time_sec");
 	recordingMatchMain = obs_data_get_bool(settings, "recording_match_main");
 
 	audioBitrate = (uint32_t)obs_data_get_int(settings, "audio_bitrate");
@@ -1304,6 +1306,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	streamButton = new QPushButton;
 	streamButton->setMinimumHeight(30);
+	streamButton->setMaximumWidth(34);
 	streamButton->setObjectName(QStringLiteral("canvasStream"));
 	streamButton->setIcon(streamInactiveIcon);
 	streamButton->setCheckable(true);
@@ -1319,6 +1322,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	// Little up arrow in the case of there being multiple enabled outputs
 	streamButtonMulti = new QPushButton;
 	streamButtonMulti->setMinimumHeight(30);
+	streamButtonMulti->setMaximumWidth(18);
 	streamButtonMulti->setObjectName(QStringLiteral("canvasStreamMulti"));
 	streamButtonMulti->setToolTip(QString::fromUtf8(obs_module_text("StreamVerticalMulti")));
 	streamButtonMulti->setChecked(false);
@@ -1335,6 +1339,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	recordButton = new QPushButton;
 	recordButton->setMinimumHeight(30);
+	recordButton->setMaximumWidth(34);
 	recordButton->setObjectName(QStringLiteral("canvasRecord"));
 	recordButton->setIcon(recordInactiveIcon);
 	recordButton->setCheckable(true);
@@ -1351,6 +1356,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	replayButton = new QPushButton;
 	replayButton->setMinimumHeight(30);
+	replayButton->setMaximumWidth(34);
 	replayButton->setObjectName(QStringLiteral("canvasReplay"));
 	replayButton->setIcon(replayInactiveIcon);
 	replayButton->setContentsMargins(0, 0, 0, 0);
@@ -1358,18 +1364,19 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	replayButton->setToolTip(QString::fromUtf8(obs_module_text("BacktrackClipVertical")));
 	replayButton->setCheckable(true);
 	replayButton->setStyleSheet(QString::fromUtf8(
-		"QPushButton:checked{background: rgb(26,87,255);} QPushButton{width: 30px; padding-left: 4px; padding-right: 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;}"));
+		"QPushButton:checked{background: rgb(26,87,255);} QPushButton{width: 32px; padding-left: 0px; padding-right: 0px; border-top-left-radius: 0; border-bottom-left-radius: 0;}"));
 	connect(replayButton, SIGNAL(clicked()), this, SLOT(ReplayButtonClicked()));
 
 	replayEnableButton = new QPushButton;
 	replayEnableButton->setMinimumHeight(30);
+	//replayEnableButton->setMaximumWidth(34);
 	replayEnableButton->setObjectName(QStringLiteral("canvasBacktrackEnable"));
 	replayEnableButton->setToolTip(QString::fromUtf8(obs_module_text("BacktrackOn")));
 	replayEnableButton->setCheckable(true);
 	replayEnableButton->setChecked(false);
 	replayEnableButton->setSizePolicy(sp2);
 	replayEnableButton->setStyleSheet(QString::fromUtf8(
-		"QPushButton:checked{background: rgb(26,87,255);} QPushButton{ border-top-right-radius: 0; border-bottom-right-radius: 0;} QWidget{width: 30px; padding-left: 4px; padding-right: 4px;}"));
+		"QPushButton:checked{background: rgb(26,87,255);} QPushButton{ border-top-right-radius: 0; border-bottom-right-radius: 0; width: 32px; padding-left: 0px; padding-right: 0px;}"));
 	replayEnable = new QCheckBox;
 	auto testl = new QHBoxLayout;
 	replayEnableButton->setLayout(testl);
@@ -1438,6 +1445,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	virtualCamButton = new QPushButton;
 	virtualCamButton->setMinimumHeight(30);
+	virtualCamButton->setMaximumWidth(34);
 	virtualCamButton->setObjectName(QStringLiteral("canvasVirtualCam"));
 	virtualCamButton->setIcon(virtualCamInactiveIcon);
 	virtualCamButton->setCheckable(true);
@@ -1491,6 +1499,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	configButton = new QPushButton(this);
 	configButton->setMinimumHeight(30);
+	configButton->setMaximumWidth(34);
 	configButton->setProperty("themeID", "configIconSmall");
 	configButton->setProperty("class", "icon-gear");
 	configButton->setFlat(true);
@@ -1500,8 +1509,13 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	connect(configButton, SIGNAL(clicked()), this, SLOT(ConfigButtonClicked()));
 	buttonRow->addWidget(configButton);
 
+	auto aitumButtonGroupLayout = new QHBoxLayout();
+	aitumButtonGroupLayout->setContentsMargins(0, 0, 0, 0);
+	aitumButtonGroupLayout->setSpacing(0);
+
 	auto contributeButton = new QPushButton;
 	contributeButton->setMinimumHeight(30);
+	contributeButton->setMaximumWidth(34);
 	QPixmap pixmap(32, 32);
 	pixmap.fill(Qt::transparent);
 
@@ -1512,17 +1526,27 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	painter.drawText(pixmap.rect(), Qt::AlignCenter, "❤️");
 	contributeButton->setIcon(QIcon(pixmap));
 	contributeButton->setToolTip(QString::fromUtf8(obs_module_text("VerticalDonate")));
+	contributeButton->setStyleSheet(QString::fromUtf8(
+		"QPushButton{ border-top-right-radius: 0; border-bottom-right-radius: 0; padding-left: 4px; padding-right: 4px;}"));
 	QPushButton::connect(contributeButton, &QPushButton::clicked,
 			     [] { QDesktopServices::openUrl(QUrl("https://aitum.tv/contribute")); });
-	buttonRow->addWidget(contributeButton);
+
+	aitumButtonGroupLayout->addWidget(contributeButton);
 
 	auto aitumButton = new QPushButton;
 	aitumButton->setMinimumHeight(30);
+	aitumButton->setMaximumWidth(34);
 	aitumButton->setSizePolicy(sp2);
 	aitumButton->setIcon(QIcon(":/aitum/media/aitum.png"));
 	aitumButton->setToolTip(QString::fromUtf8("https://aitum.tv"));
+	aitumButton->setStyleSheet(QString::fromUtf8(
+		"QPushButton{padding-left: 4px; padding-right: 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;}"));
 	connect(aitumButton, &QPushButton::clicked, [] { QDesktopServices::openUrl(QUrl("https://aitum.tv")); });
-	buttonRow->addWidget(aitumButton);
+	aitumButtonGroupLayout->addWidget(aitumButton);
+
+	buttonRow->addLayout(aitumButtonGroupLayout);
+
+	setStyleSheet(QString::fromUtf8("QPushButton{width: 20px;}"));
 
 	mainLayout->addLayout(buttonRow);
 
@@ -1614,9 +1638,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	split_hotkey = obs_hotkey_register_frontend(
 		"VerticalCanvasDockSplit",
-		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.SplitFile")))
-			.toUtf8()
-			.constData(),
+		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.SplitFile"))).toUtf8().constData(),
 		recording_split_hotkey, this);
 
 	start_hotkey = obs_data_get_array(settings, "split_hotkey");
@@ -6577,6 +6599,8 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_int(data, "streaming_video_bitrate", streamingVideoBitrate);
 	obs_data_set_bool(data, "streaming_match_main", streamingMatchMain);
 	obs_data_set_int(data, "record_video_bitrate", recordVideoBitrate);
+	obs_data_set_int(data, "max_size_mb", max_size_mb);
+	obs_data_set_int(data, "max_time_sec", max_time_sec);
 	obs_data_set_bool(data, "recording_match_main", recordingMatchMain);
 	obs_data_set_int(data, "audio_bitrate", audioBitrate);
 	obs_data_set_bool(data, "backtrack", startReplay);
