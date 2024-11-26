@@ -182,6 +182,7 @@ private:
 	obs_hotkey_pair_id backtrack_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
 	obs_hotkey_pair_id pause_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
 	obs_hotkey_id chapter_hotkey = OBS_INVALID_HOTKEY_ID;
+	obs_hotkey_id split_hotkey = OBS_INVALID_HOTKEY_ID;
 
 	obs_output_t *virtualCamOutput = nullptr;
 	obs_output_t *recordOutput = nullptr;
@@ -223,6 +224,8 @@ private:
 	obs_data_t *record_encoder_settings;
 	bool virtual_cam_warned;
 	uint32_t virtual_cam_mode = 0;
+	uint32_t max_size_mb = 0;
+	uint32_t max_time_sec = 0;
 
 	QString currentSceneName;
 	bool first_time = false;
@@ -360,6 +363,7 @@ private:
 	static bool pause_recording_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed);
 	static bool unpause_recording_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed);
 	static void recording_chapter_hotkey(void *data, obs_hotkey_id id, obs_hotkey_t *hotkey, bool pressed);
+	static void recording_split_hotkey(void *data, obs_hotkey_id id, obs_hotkey_t *hotkey, bool pressed);
 
 	static void SceneItemAdded(void *data, calldata_t *params);
 	static void SceneReordered(void *data, calldata_t *params);

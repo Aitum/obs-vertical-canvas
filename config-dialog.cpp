@@ -624,6 +624,68 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		}
 	}
 
+	otherHotkey = nullptr;
+
+	hotkey = GetHotkeyByName("VerticalCanvasDockPause");
+	if (hotkey) {
+		auto id = obs_hotkey_get_id(hotkey);
+		std::vector<obs_key_combination_t> combos = GetCombosForHotkey(id);
+		auto hn = obs_hotkey_get_name(hotkey);
+		auto hw = new OBSHotkeyWidget(this, id, hn, combos);
+		otherHotkey = hw;
+		auto label = new OBSHotkeyLabel;
+		label->setText(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.PauseRecording")));
+		hw->label = label;
+		recordLayout->addRow(label, hw);
+		hotkeys.push_back(hw);
+	}
+
+	hotkey = GetHotkeyByName("VerticalCanvasDockUnpause");
+	if (hotkey) {
+		auto id = obs_hotkey_get_id(hotkey);
+		std::vector<obs_key_combination_t> combos = GetCombosForHotkey(id);
+		auto hn = obs_hotkey_get_name(hotkey);
+		auto hw = new OBSHotkeyWidget(this, id, hn, combos);
+
+		auto label = new OBSHotkeyLabel;
+		label->setText(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.UnpauseRecording")));
+		hw->label = label;
+		recordLayout->addRow(label, hw);
+		hotkeys.push_back(hw);
+		if (otherHotkey) {
+			hw->label->pairPartner = otherHotkey->label;
+			otherHotkey->label->pairPartner = hw->label;
+		}
+	}
+
+	hotkey = GetHotkeyByName("VerticalCanvasDockChapter");
+	if (hotkey) {
+		auto id = obs_hotkey_get_id(hotkey);
+		std::vector<obs_key_combination_t> combos = GetCombosForHotkey(id);
+		auto hn = obs_hotkey_get_name(hotkey);
+		auto hw = new OBSHotkeyWidget(this, id, hn, combos);
+
+		auto label = new OBSHotkeyLabel;
+		label->setText(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.AddChapterMarker")));
+		hw->label = label;
+		recordLayout->addRow(label, hw);
+		hotkeys.push_back(hw);
+	}
+
+	hotkey = GetHotkeyByName("VerticalCanvasDockSplit");
+	if (hotkey) {
+		auto id = obs_hotkey_get_id(hotkey);
+		std::vector<obs_key_combination_t> combos = GetCombosForHotkey(id);
+		auto hn = obs_hotkey_get_name(hotkey);
+		auto hw = new OBSHotkeyWidget(this, id, hn, combos);
+
+		auto label = new OBSHotkeyLabel;
+		label->setText(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.SplitFile")));
+		hw->label = label;
+		recordLayout->addRow(label, hw);
+		hotkeys.push_back(hw);
+	}
+
 	recordGroup->setLayout(recordLayout);
 
 	auto recordingAdvancedGroup = new QGroupBox(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Settings.Advanced")));

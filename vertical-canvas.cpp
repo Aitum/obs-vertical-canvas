@@ -1612,6 +1612,17 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	obs_hotkey_load(chapter_hotkey, start_hotkey);
 	obs_data_array_release(start_hotkey);
 
+	split_hotkey = obs_hotkey_register_frontend(
+		"VerticalCanvasDockSplit",
+		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.SplitFile")))
+			.toUtf8()
+			.constData(),
+		recording_split_hotkey, this);
+
+	start_hotkey = obs_data_get_array(settings, "split_hotkey");
+	obs_hotkey_load(split_hotkey, start_hotkey);
+	obs_data_array_release(start_hotkey);
+
 	if (first_time) {
 		obs_data_release(settings);
 	}
@@ -1642,6 +1653,7 @@ CanvasDock::~CanvasDock()
 	obs_hotkey_pair_unregister(stream_hotkey);
 	obs_hotkey_pair_unregister(pause_hotkey);
 	obs_hotkey_unregister(chapter_hotkey);
+	obs_hotkey_unregister(split_hotkey);
 	obs_display_remove_draw_callback(preview->GetDisplay(), DrawPreview, this);
 	for (uint32_t i = MAX_CHANNELS - 1; i > 0; i--) {
 		auto s = obs_get_output_source(i);
@@ -5368,6 +5380,13 @@ void CanvasDock::StartRecord()
 	bfree(filename);
 	ensure_directory(path);
 	obs_data_set_string(ps, ffmpegOutput ? "url" : "path", path);
+	obs_data_set_string(ps, "path", path);
+	obs_data_set_string(ps, "directory", dir);
+	obs_data_set_string(ps, "format", filenameFormat.c_str());
+	obs_data_set_string(ps, "extension", ext.c_str());
+	obs_data_set_bool(ps, "split_file", true);
+	obs_data_set_int(ps, "max_size_mb", max_size_mb);
+	obs_data_set_int(ps, "max_time_sec", max_time_sec);
 	obs_output_update(recordOutput, ps);
 	obs_data_release(ps);
 
@@ -6630,6 +6649,9 @@ obs_data_t *CanvasDock::SaveSettings()
 	start_hotkey = obs_hotkey_save(chapter_hotkey);
 	obs_data_set_array(data, "chapter_hotkey", start_hotkey);
 	obs_data_array_release(start_hotkey);
+	start_hotkey = obs_hotkey_save(split_hotkey);
+	obs_data_set_array(data, "split_hotkey", start_hotkey);
+	obs_data_array_release(start_hotkey);
 
 	obs_data_array_t *transition_array = obs_data_array_create();
 	for (auto transition : transitions) {
@@ -7475,6 +7497,22 @@ void CanvasDock::recording_chapter_hotkey(void *data, obs_hotkey_id id, obs_hotk
 	calldata_init(&cd2);
 	proc_handler_call(ph, "add_chapter", &cd2);
 	calldata_free(&cd2);
+}
+
+void CanvasDock::recording_split_hotkey(void *data, obs_hotkey_id id, obs_hotkey_t *hotkey, bool pressed)
+{
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(hotkey);
+	if (!pressed)
+		return;
+	const auto d = static_cast<CanvasDock *>(data);
+	if (!obs_output_active(d->recordOutput))
+		return;
+	proc_handler_t *ph = obs_output_get_proc_handler(d->recordOutput);
+	calldata cd;
+	calldata_init(&cd);
+	proc_handler_call(ph, "split_file", &cd);
+	calldata_free(&cd);
 }
 
 QIcon CanvasDock::GetIconFromType(enum obs_icon_type icon_type) const
