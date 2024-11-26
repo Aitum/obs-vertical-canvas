@@ -16,6 +16,7 @@
 #include <QListWidget>
 #include <QMenu>
 #include <QMessageBox>
+#include <QPainter>
 #include <QTimer>
 #include <QToolBar>
 #include <QWidgetAction>
@@ -599,16 +600,15 @@ bool version_info_downloaded(void *param, struct file_download_data *file)
 	obs_data_release(d);
 	if (!data)
 		return true;
-	auto version = QString::fromUtf8(obs_data_get_string(data, "version"));
-	QStringList pieces = version.split(".");
-	if (pieces.count() > 2) {
-		auto major = pieces[0].toInt();
-		auto minor = pieces[1].toInt();
-		auto patch = pieces[2].toInt();
+	auto version = obs_data_get_string(data, "version");
+	int major;
+	int minor;
+	int patch;
+	if (sscanf(version, "%d.%d.%d", &major, &minor, &patch) == 3) {
 		auto sv = MAKE_SEMANTIC_VERSION(major, minor, patch);
 		if (sv > MAKE_SEMANTIC_VERSION(PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR, PROJECT_VERSION_PATCH)) {
 			for (const auto &it : canvas_docks) {
-				QMetaObject::invokeMethod(it, "NewerVersionAvailable", Q_ARG(QString, version));
+				QMetaObject::invokeMethod(it, "NewerVersionAvailable", Q_ARG(QString, QString::fromUtf8(version)));
 			}
 		}
 	}
@@ -1499,6 +1499,22 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	configButton->setToolTip(QString::fromUtf8(obs_module_text("VerticalSettings")));
 	connect(configButton, SIGNAL(clicked()), this, SLOT(ConfigButtonClicked()));
 	buttonRow->addWidget(configButton);
+
+	auto contributeButton = new QPushButton;
+	contributeButton->setMinimumHeight(30);
+	QPixmap pixmap(32, 32);
+	pixmap.fill(Qt::transparent);
+
+	QPainter painter(&pixmap);
+	QFont font = painter.font();
+	font.setPixelSize(32);
+	painter.setFont(font);
+	painter.drawText(pixmap.rect(), Qt::AlignCenter, "❤️");
+	contributeButton->setIcon(QIcon(pixmap));
+	contributeButton->setToolTip(QString::fromUtf8(obs_module_text("VerticalDonate")));
+	QPushButton::connect(contributeButton, &QPushButton::clicked,
+			     [] { QDesktopServices::openUrl(QUrl("https://aitum.tv/contribute")); });
+	buttonRow->addWidget(contributeButton);
 
 	auto aitumButton = new QPushButton;
 	aitumButton->setMinimumHeight(30);

@@ -49,6 +49,10 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	listwidgetitem->setIcon(canvasDock->GetIconFromType(OBS_ICON_TYPE_UNKNOWN));
 	listwidgetitem->setText(QString::fromUtf8(obs_module_text("Help")));
 
+	listwidgetitem = new QListWidgetItem(listWidget);
+	listwidgetitem->setIcon(QIcon(QString::fromUtf8(":/aitum/media/aitum.png")));
+	listwidgetitem->setText(QString::fromUtf8(obs_module_text("SupportButton")));
+
 	listWidget->setCurrentRow(0);
 	listWidget->setSpacing(1);
 
@@ -88,6 +92,27 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	scrollArea->setLineWidth(0);
 	scrollArea->setFrameShape(QFrame::NoFrame);
 	settingsPages->addWidget(scrollArea);
+
+	// Support page
+	QWidget *supportPage = new QWidget;
+	auto supportPageLayout = new QVBoxLayout;
+	supportPage->setLayout(supportPageLayout);
+
+	auto supportInfoBox = new QGroupBox(QString::fromUtf8(obs_module_text("SupportTitle")));
+	supportInfoBox->setStyleSheet("padding-top: 12px");
+	auto supportLayout = new QVBoxLayout;
+	supportInfoBox->setLayout(supportLayout);
+
+	auto supportLabel = new QLabel(QString::fromUtf8(obs_module_text("SupportText")));
+	supportLabel->setStyleSheet("font-size: 14px");
+	supportLabel->setWordWrap(true);
+	supportLabel->setTextFormat(Qt::RichText);
+	supportLabel->setOpenExternalLinks(true);
+	supportLayout->addWidget(supportLabel, 1);
+	supportPageLayout->addWidget(supportInfoBox, 1, Qt::AlignTop);
+
+	settingsPages->addWidget(supportPage);
+
 
 	connect(listWidget, &QListWidget::currentRowChanged, settingsPages, &QStackedWidget::setCurrentIndex);
 
