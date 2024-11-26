@@ -6044,6 +6044,33 @@ void CanvasDock::StartStreamOutput(std::vector<StreamServer>::iterator it)
 			auto venc = obs_video_encoder_create(venc_name, video_encoder_name.c_str(), s, nullptr);
 			obs_data_release(s);
 			obs_encoder_set_video(venc, video);
+			auto divisor = obs_data_get_int(it->settings, "frame_rate_divisor");
+			bool scale = obs_data_get_bool(it->settings, "scale");
+			void *handle = nullptr;
+			if (scale || divisor > 1)
+				handle = os_dlopen("obs");
+			if (divisor > 1) {
+				auto func =
+					(bool (*)(obs_encoder_t *, uint32_t))os_dlsym(handle, "obs_encoder_set_frame_rate_divisor");
+				if (func)
+					func(venc, (uint32_t)divisor);
+				//obs_encoder_set_frame_rate_divisor(venc, (uint32_t)divisor);
+			}
+			if (scale) {
+				auto func = (void (*)(obs_encoder_t *, uint32_t, uint32_t))os_dlsym(handle,
+												    "obs_encoder_set_scaled_size");
+				if (func)
+					func(venc, (uint32_t)obs_data_get_int(it->settings, "width"),
+					     (uint32_t)obs_data_get_int(it->settings, "height"));
+				//obs_encoder_set_scaled_size(venc, (uint32_t)obs_data_get_int(it->settings, "width"), (uint32_t)obs_data_get_int(it->settings, "height"));
+				auto func2 = (void (*)(obs_encoder_t *, obs_scale_type))os_dlsym(handle,
+												 "obs_encoder_set_gpu_scale_type");
+				if (func2)
+					func2(venc, (obs_scale_type)obs_data_get_int(it->settings, "scale_type"));
+				//obs_encoder_set_gpu_scale_type(venc, (obs_scale_type)obs_data_get_int(it->settings, "scale_type"));
+			}
+			if (handle)
+				os_dlclose(handle);
 			obs_output_set_video_encoder(it->output, venc);
 		}
 		auto aenc_name = obs_data_get_string(it->settings, "audio_encoder");
@@ -6302,6 +6329,33 @@ void CanvasDock::StartStream()
 				auto venc = obs_video_encoder_create(venc_name, video_encoder_name.c_str(), s, nullptr);
 				obs_data_release(s);
 				obs_encoder_set_video(venc, video);
+				auto divisor = obs_data_get_int(it->settings, "frame_rate_divisor");
+				bool scale = obs_data_get_bool(it->settings, "scale");
+				void *handle = nullptr;
+				if (scale || divisor > 1)
+					handle = os_dlopen("obs");
+				if (divisor > 1) {
+					auto func = (bool (*)(obs_encoder_t *,
+							      uint32_t))os_dlsym(handle, "obs_encoder_set_frame_rate_divisor");
+					if (func)
+						func(venc, (uint32_t)divisor);
+					//obs_encoder_set_frame_rate_divisor(venc, (uint32_t)divisor);
+				}
+				if (scale) {
+					auto func = (void (*)(obs_encoder_t *, uint32_t,
+							      uint32_t))os_dlsym(handle, "obs_encoder_set_scaled_size");
+					if (func)
+						func(venc, (uint32_t)obs_data_get_int(it->settings, "width"),
+						     (uint32_t)obs_data_get_int(it->settings, "height"));
+					//obs_encoder_set_scaled_size(venc, (uint32_t)obs_data_get_int(it->settings, "width"), (uint32_t)obs_data_get_int(it->settings, "height"));
+					auto func2 = (void (*)(obs_encoder_t *,
+							       obs_scale_type))os_dlsym(handle, "obs_encoder_set_gpu_scale_type");
+					if (func2)
+						func2(venc, (obs_scale_type)obs_data_get_int(it->settings, "scale_type"));
+					//obs_encoder_set_gpu_scale_type(venc, (obs_scale_type)obs_data_get_int(it->settings, "scale_type"));
+				}
+				if (handle)
+					os_dlclose(handle);
 				obs_output_set_video_encoder(it->output, venc);
 			}
 			auto aenc_name = obs_data_get_string(it->settings, "audio_encoder");
