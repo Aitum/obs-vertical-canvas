@@ -433,7 +433,11 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	streamingAdvancedLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
 
 	streamingUseMain = new QCheckBox(QString::fromUtf8(obs_module_text("UseMain")));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+	connect(streamingUseMain, &QCheckBox::checkStateChanged, [this, streamingAdvancedLayout, streamingDelayGroup] {
+#else
 	connect(streamingUseMain, &QCheckBox::stateChanged, [this, streamingAdvancedLayout, streamingDelayGroup] {
+#endif
 		bool checked = streamingUseMain->isChecked();
 		streamingVideoBitrate->setEnabled(checked);
 		streamingDelayGroup->setEnabled(!checked);
@@ -598,7 +602,11 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	maxTime->setMinimum(0);
 	maxTime->setMaximum(31536000);
 	maxTime->setSuffix(" s");
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+	connect(maxTimeEnable, &QCheckBox::checkStateChanged, [this] { maxTime->setEnabled(maxTimeEnable->isChecked()); });
+#else
 	connect(maxTimeEnable, &QCheckBox::stateChanged, [this] { maxTime->setEnabled(maxTimeEnable->isChecked()); });
+#endif
 	max_time_layout->addWidget(maxTime, 1);
 	recordLayout->addRow(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Settings.Output.SplitFile.Time")),
 			     max_time_layout);
@@ -610,7 +618,11 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	maxSize->setMinimum(0);
 	maxSize->setMaximum(1073741824);
 	maxSize->setSuffix(" MB");
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+	connect(maxSizeEnable, &QCheckBox::checkStateChanged, [this] { maxSize->setEnabled(maxSizeEnable->isChecked()); });
+#else
 	connect(maxSizeEnable, &QCheckBox::stateChanged, [this] { maxSize->setEnabled(maxSizeEnable->isChecked()); });
+#endif
 	max_size_layout->addWidget(maxSize, 1);
 	recordLayout->addRow(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Settings.Output.SplitFile.Size")),
 			     max_size_layout);
@@ -720,7 +732,11 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	recordingAdvancedLayout->setLabelAlignment(Qt::AlignRight | Qt::AlignTrailing | Qt::AlignVCenter);
 
 	recordingUseMain = new QCheckBox(QString::fromUtf8(obs_module_text("UseMain")));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+	connect(recordingUseMain, &QCheckBox::checkStateChanged, [this, recordingAdvancedLayout] {
+#else
 	connect(recordingUseMain, &QCheckBox::stateChanged, [this, recordingAdvancedLayout] {
+#endif
 		bool checked = recordingUseMain->isChecked();
 		recordVideoBitrate->setEnabled(checked);
 		for (int i = 1; i < recordingAdvancedLayout->rowCount(); i++) {
@@ -759,7 +775,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 #elif defined(_WIN32)
 	safeStr.replace(QRegularExpression("[<>:\"\\|\\?\\*]"), "");
 #else
-		// TODO: Add filtering for other platforms
+	// TODO: Add filtering for other platforms
 #endif
 		if (text != safeStr)
 			filenameFormat->setText(safeStr);
@@ -1556,7 +1572,11 @@ void OBSBasicSettings::AddProperty(obs_property_t *property, obs_data_t *setting
 			}
 		}
 		widgets->emplace(property, widget);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+		connect(widget, &QCheckBox::checkStateChanged, [this, property, settings, widget, widgets, layout] {
+#else
 		connect(widget, &QCheckBox::stateChanged, [this, property, settings, widget, widgets, layout] {
+#endif
 			obs_data_set_bool(settings, obs_property_name(property), widget->isChecked());
 			if (obs_property_modified(property, settings)) {
 				RefreshProperties(widgets, layout);

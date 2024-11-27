@@ -986,7 +986,11 @@ void CanvasDock::CreateScenesRow()
 	sceneRow->addWidget(scenesCombo, 1);
 
 	linkedButton = new LockedCheckBox;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+	connect(linkedButton, &QCheckBox::checkStateChanged, [this] {
+#else
 	connect(linkedButton, &QCheckBox::stateChanged, [this] {
+#endif
 		auto scene = obs_frontend_get_current_scene();
 		if (!scene)
 			return;
@@ -1428,7 +1432,11 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	obs_data_array_release(start_hotkey);
 	obs_data_array_release(stop_hotkey);
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+	connect(replayEnable, &QCheckBox::checkStateChanged, [this] {
+#else
 	connect(replayEnable, &QCheckBox::stateChanged, [this] {
+#endif
 		if (replayEnable->isChecked() != replayEnableButton->isChecked()) {
 			replayEnableButton->setChecked(replayEnable->isChecked());
 			if (replayEnable->isChecked() == replayAlwaysOn)

@@ -171,7 +171,11 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *item)
 			if (!obs_data_get_bool(settings, "custom_size")) {
 				auto name = QString::fromUtf8(obs_source_get_name(src));
 				auto *checkBox = new QCheckBox(name, linkedScenesMenu);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+				connect(checkBox, &QCheckBox::checkStateChanged, [this, src, checkBox] {
+#else
 				connect(checkBox, &QCheckBox::stateChanged, [this, src, checkBox] {
+#endif
 					canvasDock->SetLinkedScene(src,
 								   checkBox->isChecked() ? sceneList->currentItem()->text() : "");
 				});
