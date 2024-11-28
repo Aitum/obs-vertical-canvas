@@ -936,7 +936,7 @@ void CanvasDock::CheckReplayBuffer(bool start)
 		StartReplayBuffer();
 		return;
 	}
-	if (!startReplay)
+	if (start && !startReplay)
 		return;
 	bool active = obs_frontend_streaming_active() || obs_frontend_recording_active() || obs_frontend_replay_buffer_active() ||
 		      (recordOutput && obs_output_active(recordOutput));
