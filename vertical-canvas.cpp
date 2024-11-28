@@ -1234,9 +1234,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	mainLayout->addWidget(previewDisabledWidget, 1);
 	previewDisabledWidget->setVisible(preview_disabled);
 
-	QSizePolicy sp2;
-	sp2.setHeightForWidth(true);
-
 	auto buttonRow = new QHBoxLayout(this);
 	buttonRow->setContentsMargins(0, 0, 0, 0);
 
@@ -1249,12 +1246,10 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	streamButton = new QPushButton;
 	streamButton->setMinimumHeight(30);
-	streamButton->setMaximumWidth(34);
 	streamButton->setObjectName(QStringLiteral("canvasStream"));
 	streamButton->setIcon(streamInactiveIcon);
 	streamButton->setCheckable(true);
 	streamButton->setChecked(false);
-	streamButton->setSizePolicy(sp2);
 	streamButton->setToolTip(QString::fromUtf8(obs_module_text("StreamVertical")));
 	streamButton->setStyleSheet(
 		QString::fromUtf8("QPushButton:checked{background: rgb(0,210,153);}") +
@@ -1265,16 +1260,14 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	// Little up arrow in the case of there being multiple enabled outputs
 	streamButtonMulti = new QPushButton;
 	streamButtonMulti->setMinimumHeight(30);
-	streamButtonMulti->setMaximumWidth(18);
 	streamButtonMulti->setObjectName(QStringLiteral("canvasStreamMulti"));
 	streamButtonMulti->setToolTip(QString::fromUtf8(obs_module_text("StreamVerticalMulti")));
 	streamButtonMulti->setChecked(false);
-	streamButtonMulti->setSizePolicy(sp2);
 	auto multi_menu = new QMenu(this);
 	connect(multi_menu, &QMenu::aboutToShow, [this, multi_menu] { StreamButtonMultiMenu(multi_menu); });
 	streamButtonMulti->setMenu(multi_menu);
 	streamButtonMulti->setStyleSheet(QString::fromUtf8(
-		"QPushButton{width: 16px; padding-left: 4px; padding-right: 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;}"));
+		"QPushButton{width: 16px; border-top-left-radius: 0; border-bottom-left-radius: 0;}"));
 	streamButtonMulti->setVisible(multi_rtmp);
 	streamButtonGroup->layout()->addWidget(streamButtonMulti);
 
@@ -1282,12 +1275,10 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	recordButton = new QPushButton;
 	recordButton->setMinimumHeight(30);
-	recordButton->setMaximumWidth(34);
 	recordButton->setObjectName(QStringLiteral("canvasRecord"));
 	recordButton->setIcon(recordInactiveIcon);
 	recordButton->setCheckable(true);
 	recordButton->setChecked(false);
-	recordButton->setSizePolicy(sp2);
 	recordButton->setStyleSheet(QString::fromUtf8("QPushButton:checked{background: rgb(255,0,0);}"));
 	recordButton->setToolTip(QString::fromUtf8(obs_module_text("RecordVertical")));
 	connect(recordButton, SIGNAL(clicked()), this, SLOT(RecordButtonClicked()));
@@ -1299,11 +1290,9 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	replayButton = new QPushButton;
 	replayButton->setMinimumHeight(30);
-	replayButton->setMaximumWidth(34);
 	replayButton->setObjectName(QStringLiteral("canvasReplay"));
 	replayButton->setIcon(replayInactiveIcon);
 	replayButton->setContentsMargins(0, 0, 0, 0);
-	replayButton->setSizePolicy(sp2);
 	replayButton->setToolTip(QString::fromUtf8(obs_module_text("BacktrackClipVertical")));
 	replayButton->setCheckable(true);
 	replayButton->setStyleSheet(QString::fromUtf8(
@@ -1312,12 +1301,10 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	replayEnableButton = new QPushButton;
 	replayEnableButton->setMinimumHeight(30);
-	//replayEnableButton->setMaximumWidth(34);
 	replayEnableButton->setObjectName(QStringLiteral("canvasBacktrackEnable"));
 	replayEnableButton->setToolTip(QString::fromUtf8(obs_module_text("BacktrackOn")));
 	replayEnableButton->setCheckable(true);
 	replayEnableButton->setChecked(false);
-	replayEnableButton->setSizePolicy(sp2);
 	replayEnableButton->setStyleSheet(QString::fromUtf8(
 		"QPushButton:checked{background: rgb(26,87,255);} QPushButton{ border-top-right-radius: 0; border-bottom-right-radius: 0; width: 32px; padding-left: 0px; padding-right: 0px;}"));
 	replayEnable = new QCheckBox;
@@ -1388,12 +1375,10 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	virtualCamButton = new QPushButton;
 	virtualCamButton->setMinimumHeight(30);
-	virtualCamButton->setMaximumWidth(34);
 	virtualCamButton->setObjectName(QStringLiteral("canvasVirtualCam"));
 	virtualCamButton->setIcon(virtualCamInactiveIcon);
 	virtualCamButton->setCheckable(true);
 	virtualCamButton->setChecked(false);
-	virtualCamButton->setSizePolicy(sp2);
 	virtualCamButton->setStyleSheet(QString::fromUtf8("QPushButton:checked{background: rgb(192,128,0);}"));
 	virtualCamButton->setToolTip(QString::fromUtf8(obs_module_text("VirtualCameraVertical")));
 	connect(virtualCamButton, SIGNAL(clicked()), this, SLOT(VirtualCamButtonClicked()));
@@ -1439,12 +1424,10 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	configButton = new QPushButton(this);
 	configButton->setMinimumHeight(30);
-	configButton->setMaximumWidth(34);
 	configButton->setProperty("themeID", "configIconSmall");
 	configButton->setProperty("class", "icon-gear");
 	configButton->setFlat(true);
 	configButton->setAutoDefault(false);
-	configButton->setSizePolicy(sp2);
 	configButton->setToolTip(QString::fromUtf8(obs_module_text("VerticalSettings")));
 	connect(configButton, SIGNAL(clicked()), this, SLOT(ConfigButtonClicked()));
 	buttonRow->addWidget(configButton);
@@ -1455,7 +1438,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	auto contributeButton = new QPushButton;
 	contributeButton->setMinimumHeight(30);
-	contributeButton->setMaximumWidth(34);
 	QPixmap pixmap(32, 32);
 	pixmap.fill(Qt::transparent);
 
@@ -1467,7 +1449,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	contributeButton->setIcon(QIcon(pixmap));
 	contributeButton->setToolTip(QString::fromUtf8(obs_module_text("VerticalDonate")));
 	contributeButton->setStyleSheet(QString::fromUtf8(
-		"QPushButton{ border-top-right-radius: 0; border-bottom-right-radius: 0; padding-left: 4px; padding-right: 4px;}"));
+		"QPushButton{ border-top-right-radius: 0; border-bottom-right-radius: 0;}"));
 	QPushButton::connect(contributeButton, &QPushButton::clicked,
 			     [] { QDesktopServices::openUrl(QUrl("https://aitum.tv/contribute")); });
 
@@ -1475,18 +1457,16 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 
 	auto aitumButton = new QPushButton;
 	aitumButton->setMinimumHeight(30);
-	aitumButton->setMaximumWidth(34);
-	aitumButton->setSizePolicy(sp2);
 	aitumButton->setIcon(QIcon(":/aitum/media/aitum.png"));
 	aitumButton->setToolTip(QString::fromUtf8("https://aitum.tv"));
 	aitumButton->setStyleSheet(QString::fromUtf8(
-		"QPushButton{padding-left: 4px; padding-right: 4px; border-top-left-radius: 0; border-bottom-left-radius: 0;}"));
+		"QPushButton{border-top-left-radius: 0; border-bottom-left-radius: 0;}"));
 	connect(aitumButton, &QPushButton::clicked, [] { QDesktopServices::openUrl(QUrl("https://aitum.tv")); });
 	aitumButtonGroupLayout->addWidget(aitumButton);
 
 	buttonRow->addLayout(aitumButtonGroupLayout);
 
-	setStyleSheet(QString::fromUtf8("QPushButton{width: 20px;}"));
+	setStyleSheet(QString::fromUtf8("QPushButton{padding-left: 4px; padding-right: 4px;}"));
 
 	mainLayout->addLayout(buttonRow);
 
@@ -7117,7 +7097,7 @@ void CanvasDock::OnRecordStop(int code, QString last_error)
 	recordButton->setChecked(false);
 	HandleRecordError(code, last_error);
 	CheckReplayBuffer();
-
+	QTimer::singleShot(500, this, [this] { CheckReplayBuffer(); });
 	obs_data_t *s = obs_output_get_settings(recordOutput);
 	std::string path = obs_data_get_string(s, "path");
 	obs_data_release(s);
@@ -7275,6 +7255,7 @@ void CanvasDock::OnStreamStop(int code, QString last_error, QString stream_serve
 											: QString::fromUtf8("")));
 	}
 	CheckReplayBuffer();
+	QTimer::singleShot(500, this, [this] { CheckReplayBuffer(); });
 }
 
 void CanvasDock::OnReplayBufferStart()
