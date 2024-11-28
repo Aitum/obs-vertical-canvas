@@ -7,7 +7,11 @@
 
 .vscode
 .idea
+.deps/
 
 # ignore generated files
 *.generated.*
 **/.Brewfile.lock.json
+version.h
+cmake/.CMakeBuildNumber
+.ccache.conf

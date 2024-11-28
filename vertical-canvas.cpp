@@ -1802,7 +1802,9 @@ static bool SceneItemHasVideo(obs_sceneitem_t *item)
 	return (flags & OBS_SOURCE_VIDEO) != 0;
 }
 
+#if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(31, 0, 0)
 static config_t *(*get_user_config_func)(void) = nullptr;
+#endif
 
 config_t *get_user_config(void)
 {
