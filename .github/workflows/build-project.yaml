@@ -124,8 +124,8 @@ jobs:
         with:
           codesignIdentity: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
           installerIdentity: ${{ secrets.APPLE_CODESIGN_INSTALLER_IDENTITY }}
-          codesignCertificate: ${{ secrets.APPLE_OBS_CERT }}
-          certificatePassword: ${{ secrets.APPLE_OBS_SECRET }}
+          codesignCertificate: ${{ secrets.APPLE_CSC_VERTICAL }}
+          certificatePassword: ${{ secrets.APPLE_CSC_VERTICAL_PASSWORD }}
           keychainPassword: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
           provisioningProfile: ${{ secrets.MACOS_SIGNING_PROVISIONING_PROFILE }}
           notarizationUser: ${{ secrets.MACOS_NOTARIZATION_USERNAME }}
