@@ -330,7 +330,7 @@ void OBSHotkeyWidget::AddEdit(obs_key_combination combo, int idx)
 		return std::distance(begin(removeButtons), res);
 	};
 
-	QObject::connect(add, &QPushButton::clicked, [&, CurrentIndex] { AddEdit({0, OBS_KEY_NONE}, CurrentIndex() + 1); });
+	QObject::connect(add, &QPushButton::clicked, [&, CurrentIndex] { AddEdit({0, OBS_KEY_NONE}, (int)CurrentIndex() + 1); });
 
 	QObject::connect(remove, &QPushButton::clicked, [&, CurrentIndex] { RemoveEdit(CurrentIndex()); });
 
@@ -361,7 +361,7 @@ void OBSHotkeyWidget::AddEdit(obs_key_combination combo, int idx)
 	QObject::connect(clear, &QPushButton::clicked, edit, &OBSHotkeyEdit::ClearKey);
 
 	QObject::connect(edit, &OBSHotkeyEdit::KeyChanged, [&](obs_key_combination) { emit KeyChanged(); });
-	QObject::connect(edit, &OBSHotkeyEdit::SearchKey, [=](obs_key_combination combo) { emit SearchKey(combo); });
+	QObject::connect(edit, &OBSHotkeyEdit::SearchKey, [=](obs_key_combination c) { emit SearchKey(c); });
 }
 
 void OBSHotkeyWidget::RemoveEdit(size_t idx, bool signal)
@@ -413,9 +413,9 @@ void OBSHotkeyWidget::HandleChangedBindings(obs_hotkey_id id_)
 	using LoadBindings_t = decltype(&LoadBindings);
 
 	obs_enum_hotkey_bindings(
-		[](void *data, size_t, obs_hotkey_binding_t *binding) {
-			auto LoadBindings = *static_cast<LoadBindings_t>(data);
-			LoadBindings(binding);
+		[](void *param, size_t, obs_hotkey_binding_t *binding) {
+			auto LoadBindingsFunc = *static_cast<LoadBindings_t>(param);
+			LoadBindingsFunc(binding);
 			return true;
 		},
 		static_cast<void *>(&LoadBindings));

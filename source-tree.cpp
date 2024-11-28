@@ -83,7 +83,7 @@ SourceTreeItem::SourceTreeItem(SourceTree *tree_, OBSSceneItem sceneitem_) : tre
 	const char *name = obs_source_get_name(source);
 
 	OBSDataAutoRelease privData = obs_sceneitem_get_private_settings(sceneitem);
-	int preset = obs_data_get_int(privData, "color-preset");
+	int preset = (int)obs_data_get_int(privData, "color-preset");
 
 	if (preset == 1) {
 		const char *color = obs_data_get_string(privData, "color");
@@ -356,7 +356,7 @@ void SourceTreeItem::enterEvent(QEvent *event)
 
 	//OBSBasicPreview *preview = OBSBasicPreview::Get();
 
-	std::lock_guard<std::mutex> lock(tree->canvasDock->selectMutex);
+	std::lock_guard<std::mutex> l(tree->canvasDock->selectMutex);
 	tree->canvasDock->hoveredPreviewItems.clear();
 	tree->canvasDock->hoveredPreviewItems.push_back(sceneitem);
 }
@@ -365,7 +365,7 @@ void SourceTreeItem::leaveEvent(QEvent *event)
 {
 	QWidget::leaveEvent(event);
 
-	std::lock_guard<std::mutex> lock(tree->canvasDock->selectMutex);
+	std::lock_guard<std::mutex> l(tree->canvasDock->selectMutex);
 	tree->canvasDock->hoveredPreviewItems.clear();
 }
 
@@ -579,9 +579,9 @@ void SourceTreeItem::Update(bool force)
 #endif
 		boxLayout->insertWidget(0, expand);
 
-		OBSDataAutoRelease data = obs_sceneitem_get_private_settings(sceneitem);
+		OBSDataAutoRelease private_settings = obs_sceneitem_get_private_settings(sceneitem);
 		expand->blockSignals(true);
-		expand->setChecked(obs_data_get_bool(data, "collapsed"));
+		expand->setChecked(obs_data_get_bool(private_settings, "collapsed"));
 		expand->blockSignals(false);
 
 		connect(expand, &QPushButton::toggled, this, &SourceTreeItem::ExpandClicked);
@@ -594,9 +594,9 @@ void SourceTreeItem::Update(bool force)
 
 void SourceTreeItem::ExpandClicked(bool checked)
 {
-	OBSDataAutoRelease data = obs_sceneitem_get_private_settings(sceneitem);
+	OBSDataAutoRelease private_settings = obs_sceneitem_get_private_settings(sceneitem);
 
-	obs_data_set_bool(data, "collapsed", checked);
+	obs_data_set_bool(private_settings, "collapsed", checked);
 
 	if (!checked)
 		tree->GetStm()->ExpandGroup(sceneitem);
@@ -842,7 +842,7 @@ SourceTreeModel::~SourceTreeModel()
 
 int SourceTreeModel::rowCount(const QModelIndex &parent) const
 {
-	return parent.isValid() ? 0 : items.count();
+	return parent.isValid() ? 0 : (int)items.count();
 }
 
 QVariant SourceTreeModel::data(const QModelIndex &index, int role) const
@@ -914,9 +914,9 @@ void SourceTreeModel::GroupSelectedItems(QModelIndexList &indices)
 
 	QVector<obs_sceneitem_t *> item_order;
 
-	for (int i = indices.count() - 1; i >= 0; i--) {
-		obs_sceneitem_t *item = items[indices[i].row()];
-		item_order << item;
+	for (auto i = indices.count() - 1; i >= 0; i--) {
+		obs_sceneitem_t *si = items[indices[i].row()];
+		item_order << si;
 	}
 
 	obs_sceneitem_t *item = obs_scene_insert_group(scene, name.toUtf8().constData(), item_order.data(), item_order.size());
@@ -924,8 +924,8 @@ void SourceTreeModel::GroupSelectedItems(QModelIndexList &indices)
 		return;
 	}
 
-	for (obs_sceneitem_t *item : item_order)
-		obs_sceneitem_select(item, false);
+	for (obs_sceneitem_t *si : item_order)
+		obs_sceneitem_select(si, false);
 
 	hasGroups = true;
 	st->UpdateWidgets(true);
@@ -946,7 +946,7 @@ void SourceTreeModel::UngroupSelectedGroups(QModelIndexList &indices)
 	if (indices.count() == 0)
 		return;
 
-	for (int i = indices.count() - 1; i >= 0; i--) {
+	for (auto i = indices.count() - 1; i >= 0; i--) {
 		obs_sceneitem_t *item = items[indices[i].row()];
 		obs_sceneitem_group_ungroup(item);
 	}
@@ -956,7 +956,7 @@ void SourceTreeModel::UngroupSelectedGroups(QModelIndexList &indices)
 
 void SourceTreeModel::ExpandGroup(obs_sceneitem_t *item)
 {
-	int itemIdx = items.indexOf(item);
+	auto itemIdx = items.indexOf(item);
 	if (itemIdx == -1)
 		return;
 
@@ -970,8 +970,8 @@ void SourceTreeModel::ExpandGroup(obs_sceneitem_t *item)
 	if (!subItems.size())
 		return;
 
-	beginInsertRows(QModelIndex(), itemIdx, itemIdx + subItems.size() - 1);
-	for (int i = 0; i < subItems.size(); i++)
+	beginInsertRows(QModelIndex(), (int)itemIdx, (int)itemIdx + (int)subItems.size() - 1);
+	for (qsizetype i = 0; i < subItems.size(); i++)
 		items.insert(i + itemIdx, subItems[i]);
 	endInsertRows();
 
@@ -1145,7 +1145,7 @@ void SourceTree::dropEvent(QDropEvent *event)
 			return;
 		}
 
-		row = items.size() - 1;
+		row = (int)items.size() - 1;
 		indicator = QAbstractItemView::BelowItem;
 	}
 
@@ -1170,9 +1170,9 @@ void SourceTree::dropEvent(QDropEvent *event)
 
 	bool dropOnCollapsed = false;
 	if (dropGroup) {
-		obs_data_t *data = obs_sceneitem_get_private_settings(dropGroup);
-		dropOnCollapsed = obs_data_get_bool(data, "collapsed");
-		obs_data_release(data);
+		obs_data_t *private_settings = obs_sceneitem_get_private_settings(dropGroup);
+		dropOnCollapsed = obs_data_get_bool(private_settings, "collapsed");
+		obs_data_release(private_settings);
 	}
 
 	if (indicator == QAbstractItemView::BelowItem || indicator == QAbstractItemView::OnItem ||
@@ -1240,7 +1240,7 @@ void SourceTree::dropEvent(QDropEvent *event)
 
 	if (hasGroups) {
 		/* remove sub-items if selected */
-		for (int i = indices.size() - 1; i >= 0; i--) {
+		for (auto i = indices.size() - 1; i >= 0; i--) {
 			obs_sceneitem_t *item = items[indices[i].row()];
 			obs_scene_t *itemScene = obs_sceneitem_get_scene(item);
 
@@ -1250,11 +1250,11 @@ void SourceTree::dropEvent(QDropEvent *event)
 		}
 
 		/* add all sub-items of selected groups */
-		for (int i = indices.size() - 1; i >= 0; i--) {
+		for (auto i = indices.size() - 1; i >= 0; i--) {
 			obs_sceneitem_t *item = items[indices[i].row()];
 
 			if (obs_sceneitem_is_group(item)) {
-				for (int j = items.size() - 1; j >= 0; j--) {
+				for (int j = (int)items.size() - 1; j >= 0; j--) {
 					obs_sceneitem_t *subitem = items[j];
 					obs_sceneitem_t *subitemGroup = obs_sceneitem_get_group(scene, subitem);
 
@@ -1324,8 +1324,8 @@ void SourceTree::dropEvent(QDropEvent *event)
 	};
 
 	auto insertLastGroup = [&]() {
-		OBSDataAutoRelease data = obs_sceneitem_get_private_settings(lastGroup);
-		bool collapsed = obs_data_get_bool(data, "collapsed");
+		OBSDataAutoRelease private_settings = obs_sceneitem_get_private_settings(lastGroup);
+		bool collapsed = obs_data_get_bool(private_settings, "collapsed");
 
 		if (collapsed) {
 			insertCollapsedIdx = 0;
@@ -1378,8 +1378,8 @@ void SourceTree::dropEvent(QDropEvent *event)
 
 	using updateScene_t = decltype(updateScene);
 
-	auto preUpdateScene = [](void *data, obs_scene_t *) {
-		(*reinterpret_cast<updateScene_t *>(data))();
+	auto preUpdateScene = [](void *d, obs_scene_t *) {
+		(*reinterpret_cast<updateScene_t *>(d))();
 	};
 
 	ignoreReorder = true;
@@ -1616,7 +1616,7 @@ void SourceTree::paintEvent(QPaintEvent *event)
 
 		qreal x = thisSize.width() / 2.0 - textSize.width() / 2.0;
 		//y += spacing + iconSize.height();
-		p.drawStaticText(x, y, textNoSources);
+		p.drawStaticText((int)x, (int)y, textNoSources);
 	} else {
 		QListView::paintEvent(event);
 	}

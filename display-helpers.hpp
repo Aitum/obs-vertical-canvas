@@ -44,8 +44,8 @@ static inline void GetScaleAndCenterPos(int baseCX, int baseCY, int windowCX, in
 
 static inline void GetCenterPosFromFixedScale(int baseCX, int baseCY, int windowCX, int windowCY, int &x, int &y, float scale)
 {
-	x = (float(windowCX) - float(baseCX) * scale) / 2.0f;
-	y = (float(windowCY) - float(baseCY) * scale) / 2.0f;
+	x = (int)((float(windowCX) - float(baseCX) * scale) / 2.0f);
+	y = (int)((float(windowCY) - float(baseCY) * scale) / 2.0f);
 }
 
 static inline QSize GetPixelSize(QWidget *widget)
@@ -119,8 +119,8 @@ static inline void RenderSafeAreas(gs_vertbuffer_t *vb, int cx, int cy)
 
 	matrix4 transform;
 	matrix4_identity(&transform);
-	transform.x.x = cx;
-	transform.y.y = cy;
+	transform.x.x = (float)cx;
+	transform.y.y = (float)cy;
 
 	gs_load_vertexbuffer(vb);
 

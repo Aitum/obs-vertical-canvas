@@ -512,12 +512,8 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		}
 		QMetaObject::invokeMethod(streamingUseMain, "stateChanged", Q_ARG(int, streamingUseMain->checkState()));
 	});
-	streamingAdvancedLayout->addRow(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			(obs_get_version() >= MAKE_SEMANTIC_VERSION(29, 1, 0) || strncmp(obs_get_version_string(), "29.1.", 5) == 0)
-				? "Basic.Settings.Output.Encoder.Video"
-				: "Basic.Settings.Output.Encoder")),
-		streamingEncoder);
+	streamingAdvancedLayout->addRow(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Settings.Output.Encoder.Video")),
+					streamingEncoder);
 	QMetaObject::invokeMethod(streamingEncoder, "currentIndexChanged", Q_ARG(int, streamingEncoder->currentIndex()));
 
 	streamingAdvancedGroup->setLayout(streamingAdvancedLayout);
@@ -853,12 +849,8 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		QMetaObject::invokeMethod(recordingUseMain, "stateChanged", Q_ARG(int, recordingUseMain->checkState()));
 	});
 
-	recordingAdvancedLayout->addRow(
-		QString::fromUtf8(obs_frontend_get_locale_string(
-			(obs_get_version() >= MAKE_SEMANTIC_VERSION(29, 1, 0) || strncmp(obs_get_version_string(), "29.1.", 5) == 0)
-				? "Basic.Settings.Output.Encoder.Video"
-				: "Basic.Settings.Output.Encoder")),
-		recordingEncoder);
+	recordingAdvancedLayout->addRow(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Settings.Output.Encoder.Video")),
+					recordingEncoder);
 
 	recordingAdvancedGroup->setLayout(recordingAdvancedLayout);
 
@@ -1474,11 +1466,10 @@ std::vector<obs_hotkey_t *> OBSBasicSettings::GetHotKeysFromOutput(obs_output_t 
 	find_hotkey t = {};
 	t.output = obs_output_get_weak_output(output);
 	obs_enum_hotkeys(
-		[](void *data, obs_hotkey_id id, obs_hotkey_t *key) {
-			UNUSED_PARAMETER(id);
+		[](void *param, obs_hotkey_id, obs_hotkey_t *key) {
 			if (obs_hotkey_get_registerer_type(key) != OBS_HOTKEY_REGISTERER_OUTPUT)
 				return true;
-			auto hp = (struct find_hotkey *)data;
+			auto hp = (struct find_hotkey *)param;
 			auto o = obs_hotkey_get_registerer(key);
 			if (o == hp->output || obs_weak_output_references_output(hp->output, (obs_output_t *)o)) {
 				hp->hotkeys.push_back(key);
@@ -1498,11 +1489,11 @@ std::vector<obs_key_combination_t> OBSBasicSettings::GetCombosForHotkey(obs_hotk
 	};
 	find_combos t = {hotkey, {}};
 	obs_enum_hotkey_bindings(
-		[](void *data, size_t idx, obs_hotkey_binding_t *binding) {
+		[](void *param, size_t idx, obs_hotkey_binding_t *binding) {
 			UNUSED_PARAMETER(idx);
-			auto t = (struct find_combos *)data;
-			if (t->hotkey == obs_hotkey_binding_get_hotkey_id(binding)) {
-				t->combos.push_back(obs_hotkey_binding_get_key_combination(binding));
+			auto fc = (struct find_combos *)param;
+			if (fc->hotkey == obs_hotkey_binding_get_hotkey_id(binding)) {
+				fc->combos.push_back(obs_hotkey_binding_get_key_combination(binding));
 			}
 			return true;
 		},
@@ -1519,8 +1510,8 @@ std::vector<obs_hotkey_t *> OBSBasicSettings::GetHotkeyById(obs_hotkey_id hotkey
 	find_hotkey t = {};
 	t.hotkey_id = hotkey;
 	obs_enum_hotkeys(
-		[](void *data, obs_hotkey_id id, obs_hotkey_t *key) {
-			auto hp = (struct find_hotkey *)data;
+		[](void *param, obs_hotkey_id id, obs_hotkey_t *key) {
+			auto hp = (struct find_hotkey *)param;
 			if (hp->hotkey_id == id) {
 				hp->hotkeys.push_back(key);
 			}
@@ -1540,9 +1531,9 @@ obs_hotkey_t *OBSBasicSettings::GetHotkeyByName(QString name)
 	auto n = name.toUtf8();
 	t.name = n.constData();
 	obs_enum_hotkeys(
-		[](void *data, obs_hotkey_id id, obs_hotkey_t *key) {
+		[](void *param, obs_hotkey_id id, obs_hotkey_t *key) {
 			UNUSED_PARAMETER(id);
-			const auto hp = (struct find_hotkey *)data;
+			const auto hp = (struct find_hotkey *)param;
 			const auto hn = obs_hotkey_get_name(key);
 			if (strcmp(hp->name, hn) == 0)
 				hp->hotkey = key;
@@ -1807,7 +1798,7 @@ void OBSBasicSettings::LoadProperty(obs_property_t *prop, obs_data_t *settings, 
 	if (type == OBS_PROPERTY_BOOL) {
 		((QCheckBox *)widget)->setChecked(obs_data_get_bool(settings, obs_property_name(prop)));
 	} else if (type == OBS_PROPERTY_INT) {
-		((QSpinBox *)widget)->setValue(obs_data_get_int(settings, obs_property_name(prop)));
+		((QSpinBox *)widget)->setValue((int)obs_data_get_int(settings, obs_property_name(prop)));
 	} else if (type == OBS_PROPERTY_FLOAT) {
 		((QDoubleSpinBox *)widget)->setValue(obs_data_get_double(settings, obs_property_name(prop)));
 	} else if (type == OBS_PROPERTY_TEXT) {

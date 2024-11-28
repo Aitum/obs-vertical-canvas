@@ -59,7 +59,7 @@ class OBSHotkeyEdit : public QLineEdit {
 	Q_OBJECT;
 
 public:
-	OBSHotkeyEdit(QWidget *parent, obs_key_combination_t original) : QLineEdit(parent), original(original)
+	OBSHotkeyEdit(QWidget *parent, obs_key_combination_t original_) : QLineEdit(parent), original(original_)
 	{
 #ifdef __APPLE__
 		// disable the input cursor on OSX, focus should be clear
@@ -70,18 +70,6 @@ public:
 		setAttribute(Qt::WA_MacShowFocusRect, true);
 		InitSignalHandler();
 		CreateDupeIcon();
-		ResetKey();
-	}
-	OBSHotkeyEdit(QWidget *parent = nullptr) : QLineEdit(parent), original({})
-	{
-#ifdef __APPLE__
-		// disable the input cursor on OSX, focus should be clear
-		// enough with the default focus frame
-		setReadOnly(true);
-#endif
-		setAttribute(Qt::WA_InputMethodEnabled, false);
-		setAttribute(Qt::WA_MacShowFocusRect, true);
-		InitSignalHandler();
 		ResetKey();
 	}
 
@@ -123,10 +111,10 @@ class OBSHotkeyWidget : public QWidget {
 	Q_OBJECT;
 
 public:
-	OBSHotkeyWidget(QWidget *parent, obs_hotkey_id id, std::string name, const std::vector<obs_key_combination_t> &combos = {})
+	OBSHotkeyWidget(QWidget *parent, obs_hotkey_id id_, std::string name_, const std::vector<obs_key_combination_t> &combos = {})
 		: QWidget(parent),
-		  id(id),
-		  name(name),
+		  id(id_),
+		  name(name_),
 		  bindingsChanged(obs_get_signal_handler(), "hotkey_bindings_changed", &OBSHotkeyWidget::BindingsChanged, this)
 	{
 		auto layout = new QVBoxLayout;

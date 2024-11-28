@@ -12,10 +12,14 @@
 #include <Windows.h>
 #endif
 
-#ifdef ENABLE_WAYLAND
+#if !defined(_WIN32) && !defined(__APPLE__)
 #include <obs-nix-platform.h>
-#include <qpa/qplatformnativeinterface.h>
+#endif
+
+#ifdef ENABLE_WAYLAND
 #include <QGuiApplication>
+#include <qpa/qplatformnativeinterface.h>
+#endif
 
 class SurfaceEventFilter : public QObject {
 	OBSQTDisplay *display;
@@ -72,12 +76,11 @@ private:
 	}
 };
 
-#endif
 
 static inline long long color_to_int(const QColor &color)
 {
-	auto shift = [&](unsigned val, int shift) {
-		return ((val & 0xff) << shift);
+	auto shift = [&](unsigned val, int shift_left) {
+		return ((val & 0xff) << shift_left);
 	};
 
 	return shift(color.red(), 0) | shift(color.green(), 8) | shift(color.blue(), 16) | shift(color.alpha(), 24);
@@ -159,7 +162,7 @@ bool QTToGSWindow(QWindow *window, gs_window &gswindow)
 	gswindow.view = (id)window->winId();
 #else
 	if (obs_get_nix_platform() == OBS_NIX_PLATFORM_X11_EGL) {
-		gswindow.id = window->winId();
+		gswindow.id = (uint32_t)window->winId();
 		gswindow.display = obs_get_nix_platform_display();
 	}
 #ifdef ENABLE_WAYLAND

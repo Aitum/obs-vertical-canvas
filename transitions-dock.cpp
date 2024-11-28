@@ -83,9 +83,9 @@ CanvasTransitionsDock::CanvasTransitionsDock(CanvasDock *canvas_dock, QWidget *p
 		while (obs_enum_transition_types(idx++, &id)) {
 			if (!obs_is_source_configurable(id))
 				continue;
-			const char *name = obs_source_get_display_name(id);
+			const char *display_name = obs_source_get_display_name(id);
 
-			auto action = menu.addAction(QString::fromUtf8(name));
+			auto action = menu.addAction(QString::fromUtf8(display_name));
 			connect(action, &QAction::triggered, [this, id] {
 				OBSSourceAutoRelease t = obs_source_create_private(id, obs_source_get_display_name(id), nullptr);
 				if (t) {

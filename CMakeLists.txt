@@ -27,10 +27,18 @@ endif()
 
 if(BUILD_OUT_OF_TREE)
   find_qt(COMPONENTS Widgets Core)
+  if(OS_LINUX OR OS_FREEBSD OR OS_OPENBSD)
+    find_package(Qt6 REQUIRED Gui)
+  endif()
 else()
   find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
 endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt::Core Qt::Widgets)
+
+if(OS_LINUX OR OS_FREEBSD OR OS_OPENBSD)
+	target_link_libraries(${PROJECT_NAME} PRIVATE Qt::GuiPrivate)
+endif()
+
 target_compile_options(
 ${PROJECT_NAME} PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header
                                 -Wno-comma>)
