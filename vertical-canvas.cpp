@@ -713,7 +713,7 @@ void obs_module_post_load(void)
 	obs_websocket_vendor_register_request(vendor, "update_stream_server", vendor_request_update_stream_server, nullptr);
 	obs_websocket_vendor_register_request(vendor, "add_chapter", vendor_request_add_chapter, nullptr);
 	obs_websocket_vendor_register_request(vendor, "pause_recording", vendor_request_pause_recording, nullptr);
-	obs_websocket_vendor_register_request(vendor, "pause_recording", vendor_request_unpause_recording, nullptr);
+	obs_websocket_vendor_register_request(vendor, "unpause_recording", vendor_request_unpause_recording, nullptr);
 
 	verison_update_info = update_info_create_single("[Vertical Canvas]", "OBS", "https://api.aitum.tv/vertical",
 							version_info_downloaded, nullptr);
