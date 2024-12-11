@@ -1266,8 +1266,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	auto multi_menu = new QMenu(this);
 	connect(multi_menu, &QMenu::aboutToShow, [this, multi_menu] { StreamButtonMultiMenu(multi_menu); });
 	streamButtonMulti->setMenu(multi_menu);
-	streamButtonMulti->setStyleSheet(QString::fromUtf8(
-		"QPushButton{width: 16px; border-top-left-radius: 0; border-bottom-left-radius: 0;}"));
+	streamButtonMulti->setStyleSheet(
+		QString::fromUtf8("QPushButton{width: 16px; border-top-left-radius: 0; border-bottom-left-radius: 0;}"));
 	streamButtonMulti->setVisible(multi_rtmp);
 	streamButtonGroup->layout()->addWidget(streamButtonMulti);
 
@@ -1448,8 +1448,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	painter.drawText(pixmap.rect(), Qt::AlignCenter, "❤️");
 	contributeButton->setIcon(QIcon(pixmap));
 	contributeButton->setToolTip(QString::fromUtf8(obs_module_text("VerticalDonate")));
-	contributeButton->setStyleSheet(QString::fromUtf8(
-		"QPushButton{ border-top-right-radius: 0; border-bottom-right-radius: 0;}"));
+	contributeButton->setStyleSheet(
+		QString::fromUtf8("QPushButton{ border-top-right-radius: 0; border-bottom-right-radius: 0;}"));
 	QPushButton::connect(contributeButton, &QPushButton::clicked,
 			     [] { QDesktopServices::openUrl(QUrl("https://aitum.tv/contribute")); });
 
@@ -1459,8 +1459,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	aitumButton->setMinimumHeight(30);
 	aitumButton->setIcon(QIcon(":/aitum/media/aitum.png"));
 	aitumButton->setToolTip(QString::fromUtf8("https://aitum.tv"));
-	aitumButton->setStyleSheet(QString::fromUtf8(
-		"QPushButton{border-top-left-radius: 0; border-bottom-left-radius: 0;}"));
+	aitumButton->setStyleSheet(QString::fromUtf8("QPushButton{border-top-left-radius: 0; border-bottom-left-radius: 0;}"));
 	connect(aitumButton, &QPushButton::clicked, [] { QDesktopServices::openUrl(QUrl("https://aitum.tv")); });
 	aitumButtonGroupLayout->addWidget(aitumButton);
 
@@ -1716,16 +1715,20 @@ static bool SceneItemHasVideo(obs_sceneitem_t *item)
 
 #if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(31, 0, 0)
 static config_t *(*get_user_config_func)(void) = nullptr;
+static config_t *user_config = nullptr;
 #endif
 
 config_t *get_user_config(void)
 {
 #if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(31, 0, 0)
+	if (user_config)
+		return user_config;
 	if (!get_user_config_func) {
 		if (obs_get_version() < MAKE_SEMANTIC_VERSION(31, 0, 0)) {
 			get_user_config_func = obs_frontend_get_global_config;
 			blog(LOG_INFO, "[Vertical Canvas] use global config");
 		} else {
+			//os_get_abs_path_ptr
 			auto handle = os_dlopen("obs-frontend-api");
 			if (handle) {
 				get_user_config_func = (config_t * (*)(void)) os_dlsym(handle, "obs_frontend_get_user_config");
@@ -1737,7 +1740,8 @@ config_t *get_user_config(void)
 	}
 	if (get_user_config_func)
 		return get_user_config_func();
-	return obs_frontend_get_global_config();
+	user_config = obs_frontend_get_global_config();
+	return user_config;
 #else
 	return obs_frontend_get_user_config();
 #endif
@@ -7809,7 +7813,7 @@ QString GetMonitorName(const QString &id);
 
 void CanvasDock::AddProjectorMenuMonitors(QMenu *parent, QObject *target, const char *slot)
 {
-	
+
 	QList<QScreen *> screens = QGuiApplication::screens();
 	for (int i = 0; i < screens.size(); i++) {
 		QScreen *screen = screens[i];
