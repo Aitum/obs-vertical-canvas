@@ -1728,8 +1728,11 @@ config_t *get_user_config(void)
 			get_user_config_func = obs_frontend_get_global_config;
 			blog(LOG_INFO, "[Vertical Canvas] use global config");
 		} else {
-			//os_get_abs_path_ptr
+#ifdef __APPLE__
+			auto handle = os_dlopen("obs-frontend-api.dylib");
+#else
 			auto handle = os_dlopen("obs-frontend-api");
+#endif
 			if (handle) {
 				get_user_config_func = (config_t * (*)(void)) os_dlsym(handle, "obs_frontend_get_user_config");
 				os_dlclose(handle);
