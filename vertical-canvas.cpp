@@ -39,6 +39,10 @@ extern "C" {
 #include "file-updater.h"
 }
 
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
+
 OBS_DECLARE_MODULE()
 OBS_MODULE_AUTHOR("Aitum");
 OBS_MODULE_USE_DEFAULT_LOCALE("vertical-canvas", "en-US")
@@ -6017,7 +6021,11 @@ void CanvasDock::StartStreamOutput(std::vector<StreamServer>::iterator it)
 			bool scale = obs_data_get_bool(it->settings, "scale");
 			void *handle = nullptr;
 			if (scale || divisor > 1)
+#ifdef _WIN32
 				handle = os_dlopen("obs");
+#else
+				handle = dlopen(nullptr, RTLD_LAZY);
+#endif
 			if (divisor > 1) {
 				auto func =
 					(bool (*)(obs_encoder_t *, uint32_t))os_dlsym(handle, "obs_encoder_set_frame_rate_divisor");
@@ -6092,7 +6100,11 @@ void CanvasDock::CreateStreamOutput(std::vector<StreamServer>::iterator it)
 	obs_service_update(it->service, s);
 	obs_data_release(s);
 	const char *type = nullptr;
+#ifdef _WIN32
 	auto handle = os_dlopen("obs");
+#else
+	auto handle = dlopen(nullptr, RTLD_LAZY);
+#endif
 	if (handle) {
 		auto type_func = (const char *(*)(obs_service_t *))os_dlsym(handle, "obs_service_get_output_type");
 		if (!type_func)
@@ -6302,7 +6314,11 @@ void CanvasDock::StartStream()
 				bool scale = obs_data_get_bool(it->settings, "scale");
 				void *handle = nullptr;
 				if (scale || divisor > 1)
+#ifdef _WIN32
 					handle = os_dlopen("obs");
+#else
+					handle = dlopen(nullptr, RTLD_LAZY);
+#endif
 				if (divisor > 1) {
 					auto func = (bool (*)(obs_encoder_t *,
 							      uint32_t))os_dlsym(handle, "obs_encoder_set_frame_rate_divisor");
