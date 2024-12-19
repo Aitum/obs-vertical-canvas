@@ -1,26 +1,28 @@
 #pragma once
 
-#include <mutex>
 #include <memory>
+#include <mutex>
 #include <obs-frontend-api.h>
 #include <QDockWidget>
-#include <qlistwidget.h>
-#include <qpushbutton.h>
-#include <QVBoxLayout>
 #include <QLabel>
+#include <qlistwidget.h>
 #include <QMovie>
+#include <QPixmap>
+#include <qpushbutton.h>
+#include <QResizeEvent>
 #include <QStackedWidget>
 #include <QTimer>
+#include <QVBoxLayout>
 
-#include <graphics/vec2.h>
 #include <graphics/matrix4.h>
+#include <graphics/vec2.h>
 
 #include "config-dialog.hpp"
-#include "scenes-dock.hpp"
 #include "obs.hpp"
-#include "qt-display.hpp"
-#include "sources-dock.hpp"
 #include "projector.hpp"
+#include "qt-display.hpp"
+#include "scenes-dock.hpp"
+#include "sources-dock.hpp"
 
 #define ITEM_LEFT (1 << 0)
 #define ITEM_RIGHT (1 << 1)
@@ -423,7 +425,7 @@ private slots:
 	void OpenSourceProjector();
 	void SwitchBackToSelectedTransition();
 
-	void NewerVersionAvailable(QString version);
+	void ApiInfo(QString data);
 	void updateStreamKey(const QString &newStreamKey, int index);
 	void updateStreamServer(const QString &newStreamServer, int index);
 
@@ -474,4 +476,19 @@ class VisibilityCheckBox : public QCheckBox {
 public:
 	VisibilityCheckBox();
 	explicit VisibilityCheckBox(QWidget *parent);
+};
+
+class AspectRatioPixmapLabel : public QLabel {
+	Q_OBJECT
+public:
+	explicit AspectRatioPixmapLabel(QWidget *parent = 0);
+	virtual int heightForWidth(int width) const;
+	virtual QSize sizeHint() const;
+	QPixmap scaledPixmap() const;
+public slots:
+	void setPixmap(const QPixmap &);
+	void resizeEvent(QResizeEvent *);
+
+private:
+	QPixmap pix;
 };

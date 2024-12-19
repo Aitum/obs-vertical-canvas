@@ -4,33 +4,33 @@
 
 #include "version.h"
 
-#include <obs-module.h>
 #include <obs-frontend-api.h>
+#include <obs-module.h>
 #include <QDesktopServices>
 
-#include <QMainWindow>
-#include <QPushButton>
-#include <QMouseEvent>
 #include <QGuiApplication>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMainWindow>
 #include <QMenu>
 #include <QMessageBox>
+#include <QMouseEvent>
 #include <QPainter>
+#include <QPushButton>
 #include <QTimer>
 #include <QToolBar>
 #include <QWidgetAction>
 
-#include "scenes-dock.hpp"
+#include "audio-wrapper-source.h"
 #include "config-dialog.hpp"
 #include "display-helpers.hpp"
+#include "media-io/video-frame.h"
+#include "multi-canvas-source.h"
 #include "name-dialog.hpp"
 #include "obs-websocket-api.h"
+#include "scenes-dock.hpp"
 #include "sources-dock.hpp"
 #include "transitions-dock.hpp"
-#include "audio-wrapper-source.h"
-#include "multi-canvas-source.h"
-#include "media-io/video-frame.h"
 #include "util/config-file.h"
 #include "util/dstr.h"
 #include "util/platform.h"
@@ -597,26 +597,9 @@ bool version_info_downloaded(void *param, struct file_download_data *file)
 	UNUSED_PARAMETER(param);
 	if (!file || !file->buffer.num)
 		return true;
-	auto d = obs_data_create_from_json((const char *)file->buffer.array);
-	if (!d)
-		return true;
-	auto data = obs_data_get_obj(d, "data");
-	obs_data_release(d);
-	if (!data)
-		return true;
-	auto version = obs_data_get_string(data, "version");
-	int major;
-	int minor;
-	int patch;
-	if (sscanf(version, "%d.%d.%d", &major, &minor, &patch) == 3) {
-		auto sv = MAKE_SEMANTIC_VERSION(major, minor, patch);
-		if (sv > MAKE_SEMANTIC_VERSION(PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR, PROJECT_VERSION_PATCH)) {
-			for (const auto &it : canvas_docks) {
-				QMetaObject::invokeMethod(it, "NewerVersionAvailable", Q_ARG(QString, QString::fromUtf8(version)));
-			}
-		}
+	for (const auto &it : canvas_docks) {
+		QMetaObject::invokeMethod(it, "ApiInfo", Q_ARG(QString, QString::fromUtf8((const char *)file->buffer.array)));
 	}
-	obs_data_release(data);
 	return true;
 }
 
@@ -719,7 +702,7 @@ void obs_module_post_load(void)
 	obs_websocket_vendor_register_request(vendor, "pause_recording", vendor_request_pause_recording, nullptr);
 	obs_websocket_vendor_register_request(vendor, "unpause_recording", vendor_request_unpause_recording, nullptr);
 
-	verison_update_info = update_info_create_single("[Vertical Canvas]", "OBS", "https://api.aitum.tv/vertical",
+	verison_update_info = update_info_create_single("[Vertical Canvas]", "OBS", "https://api.aitum.tv/plugin/vertical",
 							version_info_downloaded, nullptr);
 }
 
@@ -7756,10 +7739,61 @@ void CanvasDock::Nudge(int dist, MoveDir dir)
 	obs_scene_enum_items(scene, nudge_callback, &offset);
 }
 
-void CanvasDock::NewerVersionAvailable(QString version)
+void CanvasDock::ApiInfo(QString info)
 {
-	newer_version_available = version;
-	configButton->setStyleSheet(QString::fromUtf8("background: rgb(192,128,0);"));
+	auto d = obs_data_create_from_json(info.toUtf8().constData());
+	if (!d)
+		return;
+	auto data_obj = obs_data_get_obj(d, "data");
+	obs_data_release(d);
+	if (!data_obj)
+		return;
+	auto version = obs_data_get_string(data_obj, "version");
+	int major;
+	int minor;
+	int patch;
+	if (sscanf(version, "%d.%d.%d", &major, &minor, &patch) == 3) {
+		auto sv = MAKE_SEMANTIC_VERSION(major, minor, patch);
+		if (sv > MAKE_SEMANTIC_VERSION(PROJECT_VERSION_MAJOR, PROJECT_VERSION_MINOR, PROJECT_VERSION_PATCH)) {
+			newer_version_available = QString::fromUtf8(version);
+			configButton->setStyleSheet(QString::fromUtf8("background: rgb(192,128,0);"));
+		}
+	}
+	obs_data_array_t *blocks = obs_data_get_array(data_obj, "partnerBlocks");
+	size_t count = obs_data_array_count(blocks);
+	for (size_t i = count; i > 0; i--) {
+		obs_data_t *block = obs_data_array_item(blocks, i - 1);
+		auto block_type = obs_data_get_string(block, "type");
+		if (strcmp(block_type, "LINK") == 0) {
+			auto button = new QPushButton(QString::fromUtf8(obs_data_get_string(block, "label")));
+			button->setStyleSheet(QString::fromUtf8(obs_data_get_string(block, "qss")));
+			auto url = QString::fromUtf8(obs_data_get_string(block, "data"));
+			connect(button, &QPushButton::clicked, [url] { QDesktopServices::openUrl(QUrl(url)); });
+			auto buttonRow = new QHBoxLayout;
+			buttonRow->addWidget(button);
+			mainLayout->insertLayout(2, buttonRow, 0);
+		} else if (strcmp(block_type, "IMAGE") == 0) {
+			auto image_data = QString::fromUtf8(obs_data_get_string(block, "data"));
+			if (image_data.startsWith("data:image/")) {
+				auto pos = image_data.indexOf(";");
+				auto format = image_data.mid(11, pos - 11);
+				QImage image;
+				if (image.loadFromData(QByteArray::fromBase64(image_data.mid(pos + 7).toUtf8().constData()),
+						       format.toUtf8().constData())) {
+					auto label = new AspectRatioPixmapLabel;
+					label->setPixmap(QPixmap::fromImage(image));
+					label->setAlignment(Qt::AlignCenter);
+					label->setStyleSheet(QString::fromUtf8(obs_data_get_string(block, "qss")));
+					auto labelRow = new QHBoxLayout;
+					labelRow->addWidget(label, 1, Qt::AlignCenter);
+					mainLayout->insertLayout(2, labelRow, 0);
+				}
+			}
+		}
+		obs_data_release(block);
+	}
+	obs_data_array_release(blocks);
+	obs_data_release(data_obj);
 }
 
 void CanvasDock::ProfileChanged()
@@ -8149,3 +8183,38 @@ VisibilityCheckBox::VisibilityCheckBox()
 }
 
 VisibilityCheckBox::VisibilityCheckBox(QWidget *parent) : QCheckBox(parent) {}
+
+AspectRatioPixmapLabel::AspectRatioPixmapLabel(QWidget *parent) : QLabel(parent)
+{
+	setMinimumSize(1, 1);
+	setScaledContents(false);
+}
+
+void AspectRatioPixmapLabel::setPixmap(const QPixmap &p)
+{
+	pix = p;
+	QLabel::setPixmap(scaledPixmap());
+}
+
+int AspectRatioPixmapLabel::heightForWidth(int width) const
+{
+	return pix.isNull() ? height() : (pix.height() * width) / pix.width();
+}
+
+QSize AspectRatioPixmapLabel::sizeHint() const
+{
+	int w = width();
+	return QSize(w, heightForWidth(w));
+}
+
+QPixmap AspectRatioPixmapLabel::scaledPixmap() const
+{
+	return pix.scaled(size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+}
+
+void AspectRatioPixmapLabel::resizeEvent(QResizeEvent *e)
+{
+	UNUSED_PARAMETER(e);
+	if (!pix.isNull())
+		QLabel::setPixmap(scaledPixmap());
+}
