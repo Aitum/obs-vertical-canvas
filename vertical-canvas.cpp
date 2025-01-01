@@ -2184,7 +2184,7 @@ void CanvasDock::RenderSpacingHelper(int sourceIndex, vec3 &start, vec3 &end, ve
 	DrawLabel(s, labelPos, viewport);
 }
 
-static obs_source_t *CreateLabel(float pixelRatio)
+static obs_source_t *CreateLabel(float pixelRatio, int i)
 {
 	OBSDataAutoRelease settings = obs_data_create();
 	OBSDataAutoRelease font = obs_data_create();
@@ -2210,8 +2210,11 @@ static obs_source_t *CreateLabel(float pixelRatio)
 	const char *text_source_id = "text_ft2_source";
 #endif
 
-	OBSSource txtSource = obs_source_create_private(text_source_id, nullptr, settings);
-
+	struct dstr name;
+	dstr_init(&name);
+	dstr_printf(&name, "Aitum Vertical Preview spacing label %d", i);
+	OBSSource txtSource = obs_source_create_private(text_source_id, name.array, settings);
+	dstr_free(&name);
 	return txtSource;
 }
 
@@ -2367,9 +2370,14 @@ void CanvasDock::DrawSpacingHelpers(obs_scene_t *s, float x, float y, float cx, 
 	vec3 start, end;
 
 	float pixelRatio = 1.0f; //main->GetDevicePixelRatio();
-	for (int i = 0; i < 4; i++) {
-		if (!spacerLabel[i])
-			spacerLabel[i] = CreateLabel(pixelRatio);
+	if (!spacerLabel[3]) {
+		QMetaObject::invokeMethod(this, [this, pixelRatio]() {
+			for (int i = 0; i < 4; i++) {
+				if (!spacerLabel[i])
+					spacerLabel[i] = CreateLabel(pixelRatio, i);
+			}
+		});
+		return;
 	}
 
 	vec3_set(&start, top.x, 0.0f, 1.0f);
