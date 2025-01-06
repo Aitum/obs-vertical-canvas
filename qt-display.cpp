@@ -23,10 +23,9 @@
 
 class SurfaceEventFilter : public QObject {
 	OBSQTDisplay *display;
-	int mTimerId;
 
 public:
-	SurfaceEventFilter(OBSQTDisplay *src) : display(src), mTimerId(0) {}
+	SurfaceEventFilter(OBSQTDisplay *src) : QObject(src), display(src) {}
 
 protected:
 	bool eventFilter(QObject *obj, QEvent *event) override
@@ -40,10 +39,7 @@ protected:
 
 			switch (surfaceEvent->surfaceEventType()) {
 			case QPlatformSurfaceEvent::SurfaceCreated:
-				if (display->windowHandle()->isExposed())
-					createOBSDisplay();
-				else
-					mTimerId = startTimer(67); // Arbitrary
+				display->RestoreDisplay();
 				break;
 			case QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed:
 				display->DestroyDisplay();
@@ -54,7 +50,7 @@ protected:
 
 			break;
 		case QEvent::Expose:
-			createOBSDisplay();
+			display->RestoreDisplay();
 			break;
 		default:
 			break;
@@ -62,20 +58,7 @@ protected:
 
 		return result;
 	}
-
-	void timerEvent(QTimerEvent *) override { createOBSDisplay(display->isVisible()); }
-
-private:
-	void createOBSDisplay(bool force = false)
-	{
-		display->CreateDisplay(force);
-		if (mTimerId > 0) {
-			killTimer(mTimerId);
-			mTimerId = 0;
-		}
-	}
 };
-
 
 static inline long long color_to_int(const QColor &color)
 {
@@ -126,10 +109,7 @@ OBSQTDisplay::OBSQTDisplay(QWidget *parent, Qt::WindowFlags flags) : QWidget(par
 	connect(windowHandle(), &QWindow::visibleChanged, windowVisible);
 	connect(windowHandle(), &QWindow::screenChanged, screenChanged);
 
-#ifdef ENABLE_WAYLAND
-	if (obs_get_nix_platform() == OBS_NIX_PLATFORM_WAYLAND)
-		windowHandle()->installEventFilter(new SurfaceEventFilter(this));
-#endif
+	windowHandle()->installEventFilter(new SurfaceEventFilter(this));
 }
 
 QColor OBSQTDisplay::GetDisplayBackgroundColor() const
@@ -152,7 +132,7 @@ void OBSQTDisplay::UpdateDisplayBackgroundColor()
 	obs_display_set_background_color(display, backgroundColor);
 }
 
-bool QTToGSWindow(QWindow *window, gs_window &gswindow)
+static bool QTToGSWindow(QWindow *window, gs_window &gswindow)
 {
 	bool success = true;
 
@@ -161,27 +141,36 @@ bool QTToGSWindow(QWindow *window, gs_window &gswindow)
 #elif __APPLE__
 	gswindow.view = (id)window->winId();
 #else
-	if (obs_get_nix_platform() == OBS_NIX_PLATFORM_X11_EGL) {
+	switch (obs_get_nix_platform()) {
+	case OBS_NIX_PLATFORM_X11_EGL:
 		gswindow.id = (uint32_t)window->winId();
 		gswindow.display = obs_get_nix_platform_display();
-	}
+		break;
 #ifdef ENABLE_WAYLAND
-	if (obs_get_nix_platform() == OBS_NIX_PLATFORM_WAYLAND) {
+	case OBS_NIX_PLATFORM_WAYLAND: {
 		QPlatformNativeInterface *native = QGuiApplication::platformNativeInterface();
 		gswindow.display = native->nativeResourceForWindow("surface", window);
 		success = gswindow.display != nullptr;
+		break;
 	}
 #endif
+	default:
+		success = false;
+		break;
+	}
 #endif
 	return success;
 }
 
-void OBSQTDisplay::CreateDisplay(bool force)
+void OBSQTDisplay::CreateDisplay()
 {
 	if (display)
 		return;
 
-	if (!windowHandle()->isExposed() && !force)
+	if (destroying)
+		return;
+
+	if (!windowHandle()->isExposed())
 		return;
 
 	QSize size = GetPixelSize(this);
