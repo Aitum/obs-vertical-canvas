@@ -625,6 +625,10 @@ void SourceTreeModel::OBSFrontendEvent(enum obs_frontend_event event, void *ptr)
 		//stm->SceneChanged();
 		break;
 	case OBS_FRONTEND_EVENT_EXIT:
+	case OBS_FRONTEND_EVENT_SCRIPTING_SHUTDOWN:
+		if (!stm->items.isEmpty())
+			stm->items.clear();
+		break;
 	case OBS_FRONTEND_EVENT_SCENE_COLLECTION_CLEANUP:
 		stm->Clear();
 		break;
@@ -635,6 +639,8 @@ void SourceTreeModel::OBSFrontendEvent(enum obs_frontend_event event, void *ptr)
 
 void SourceTreeModel::Clear()
 {
+	if (items.isEmpty())
+		return;
 	beginResetModel();
 	items.clear();
 	endResetModel();
