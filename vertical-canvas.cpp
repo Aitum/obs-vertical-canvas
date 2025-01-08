@@ -4804,18 +4804,7 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 	bool foundDeprecated = false;
 	size_t idx = 0;
 
-	auto getActionAfter = [](QMenu *menu, const QString &name) {
-		QList<QAction *> actions = menu->actions();
-
-		for (QAction *menuAction : actions) {
-			if (menuAction->text().compare(name) >= 0)
-				return menuAction;
-		}
-
-		return (QAction *)nullptr;
-	};
-
-	auto addSource = [this, getActionAfter](QMenu *popup, const char *source_type, const char *name) {
+	auto addSource = [this](QMenu *popup, const char *source_type, const char *name) {
 		QString qname = QString::fromUtf8(name);
 		QAction *popupItem = new QAction(qname, this);
 		if (strcmp(source_type, "scene") == 0) {
@@ -4829,8 +4818,14 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 		QMenu *menu = new QMenu(this);
 		popupItem->setMenu(menu);
 		QObject::connect(menu, &QMenu::aboutToShow, [this, menu, source_type] { LoadSourceTypeMenu(menu, source_type); });
-
-		QAction *after = getActionAfter(popup, qname);
+		QList<QAction *> actions = menu->actions();
+		QAction *after = nullptr;
+		for (QAction *menuAction : actions) {
+			if (menuAction->text().compare(name) >= 0) {
+				after = menuAction;
+				break;
+			}
+		}
 		popup->insertAction(after, popupItem);
 	};
 
@@ -4839,6 +4834,8 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 
 	while (obs_enum_input_types2(idx++, &type, &unversioned_type)) {
 		const char *name = obs_source_get_display_name(type);
+		if (!name)
+			continue;
 		uint32_t caps = obs_get_source_output_flags(type);
 
 		if ((caps & OBS_SOURCE_CAP_DISABLED) != 0)
