@@ -102,6 +102,7 @@ private:
 	std::vector<OBSSource> transitions;
 	std::vector<OBSProjector *> projectors;
 	std::unique_ptr<OBSEventFilter> eventFilter;
+	time_t partnerBlockTime = 0;
 
 	std::vector<obs_sceneitem_t *> hoveredPreviewItems;
 	std::vector<obs_sceneitem_t *> selectedItems;

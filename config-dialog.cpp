@@ -1306,7 +1306,9 @@ void OBSBasicSettings::SaveSettings()
 				so.stream_key = sk;
 				std::string service_name = "vertical_canvas_stream_service_";
 				service_name += std::to_string(idx);
-				so.service = obs_service_create("rtmp_custom", service_name.c_str(), nullptr, nullptr);
+				bool whip = strstr(so.stream_server.c_str(), "whip") != nullptr;
+				so.service = obs_service_create(whip ? "whip_custom" : "rtmp_custom", service_name.c_str(), nullptr,
+								nullptr);
 				canvasDock->streamOutputs.push_back(so);
 			}
 			canvasDock->streamOutputs[idx].name = server_names[idx]->text().toUtf8().constData();
