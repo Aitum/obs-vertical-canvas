@@ -142,9 +142,8 @@ private:
 	matrix4 itemToScreen{};
 	matrix4 invGroupTransform{};
 	obs_scene_t *scene = nullptr;
-	obs_view_t *view = nullptr;
-	video_t *video = nullptr;
-	obs_view_t *multiCanvasView = nullptr;
+	obs_canvas_t *canvas = nullptr;
+	obs_canvas_t *multiCanvas = nullptr;
 	video_t *multiCanvasVideo = nullptr;
 	obs_source_t *multiCanvasSource = nullptr;
 	gs_texrender_t *texrender = nullptr;
@@ -194,7 +193,6 @@ private:
 	uint32_t canvas_width;
 	uint32_t canvas_height;
 	bool restart_video = false;
-	bool hideScenes;
 	uint32_t streamingVideoBitrate;
 	uint32_t recordVideoBitrate;
 	uint32_t audioBitrate;
@@ -322,9 +320,6 @@ private:
 	bool HasScene(QString scene) const;
 	void CheckReplayBuffer(bool start = false);
 	void SendVendorEvent(const char *e);
-	QListWidget *GetGlobalScenesList();
-	void ResizeScenes();
-	void ResizeScene(QString scene_name);
 	void DeleteProjector(OBSProjector *projector);
 	OBSProjector *OpenProjector(int monitor);
 	void AddProjectorMenuMonitors(QMenu *parent, QObject *target, const char *slot);
@@ -443,8 +438,7 @@ public:
 	CanvasScenesDock *GetScenesDock();
 	inline uint32_t GetCanvasWidth() const { return canvas_width; }
 	inline uint32_t GetCanvasHeight() const { return canvas_height; }
-	inline video_t *GetVideo() const { return video; }
-	inline obs_view_t *GetView() const { return view; }
+	inline video_t *GetVideo() const { return obs_canvas_get_video(canvas); }
 	bool LoadStreamOutputs(obs_data_array_t *outputs);
 	obs_data_array_t *SaveStreamOutputs();
 	void StartStreamOutput(std::string name);

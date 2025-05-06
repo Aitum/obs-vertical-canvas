@@ -148,7 +148,7 @@ void OBSProjector::OBSRender(void *data, uint32_t cx, uint32_t cy)
 	if (!window->ready)
 		return;
 
-	obs_view_t *view = window->canvas->view;
+	obs_canvas_t *canvas = window->canvas->canvas;
 
 	uint32_t targetCX;
 	uint32_t targetCY;
@@ -166,7 +166,7 @@ void OBSProjector::OBSRender(void *data, uint32_t cx, uint32_t cy)
 
 	startRegion(x, y, newCX, newCY, 0.0f, float(targetCX), 0.0f, float(targetCY));
 
-	obs_view_render(view);
+	obs_canvas_render(canvas);
 
 	endRegion();
 }

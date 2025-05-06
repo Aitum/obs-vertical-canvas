@@ -54,7 +54,7 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 			if (!NameDialog::AskForName(this, QString::fromUtf8(obs_module_text("SourceName")), name)) {
 				break;
 			}
-			s = obs_get_source_by_name(name.c_str());
+			s = obs_canvas_get_source_by_name(canvasDock->canvas, name.c_str());
 			if (s)
 				continue;
 			obs_source_set_name(source, name.c_str());

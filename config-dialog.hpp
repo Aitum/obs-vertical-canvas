@@ -32,7 +32,6 @@ private:
 	QLabel *newVersion;
 	QListWidget *listWidget;
 	QComboBox *resolution;
-	QCheckBox *showScenes;
 	QSpinBox *streamingVideoBitrate;
 	QCheckBox *streamingMatchMain;
 	QSpinBox *recordVideoBitrate;
@@ -46,6 +45,7 @@ private:
 	QSpinBox *maxSize;
 	QCheckBox *maxTimeEnable;
 	QSpinBox *maxTime;
+	QLabel *multitrackLabel;
 
 	QFormLayout *streamingLayout;
 	std::vector<QLineEdit *> server_names;

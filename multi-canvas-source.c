@@ -6,7 +6,7 @@ struct multi_canvas_info {
 	obs_source_t *source;
 	uint32_t width;
 	uint32_t height;
-	DARRAY(obs_view_t *) views;
+	DARRAY(obs_canvas_t *) canvas;
 	DARRAY(uint32_t) widths;
 	DARRAY(uint32_t) heights;
 	DARRAY(gs_texrender_t *) renders;
@@ -29,7 +29,7 @@ void *multi_canvas_create(obs_data_t *settings, obs_source_t *source)
 void multi_canvas_destroy(void *data)
 {
 	struct multi_canvas_info *mc = data;
-	da_free(mc->views);
+	da_free(mc->canvas);
 	da_free(mc->widths);
 	da_free(mc->heights);
 	for (size_t i = 0; i < mc->renders.num; i++) {
@@ -81,8 +81,8 @@ static void multi_canvas_video_render(void *data, gs_effect_t *effect)
 
 	effect = obs_get_base_effect(OBS_EFFECT_DEFAULT);
 
-	for (size_t i = 0; i < mc->views.num; i++) {
-		obs_view_t *view = mc->views.array[i];
+	for (size_t i = 0; i < mc->canvas.num; i++) {
+		obs_canvas_t *canvas = mc->canvas.array[i];
 		const enum gs_color_format format = gs_get_format_from_space(gs_get_color_space());
 		if (gs_texrender_get_format(mc->renders.array[i]) != format) {
 			gs_texrender_destroy(mc->renders.array[i]);
@@ -101,7 +101,7 @@ static void multi_canvas_video_render(void *data, gs_effect_t *effect)
 			gs_clear(GS_CLEAR_COLOR, &clear_color, 0.0f, 0);
 			gs_ortho(0.0f, (float)mc->widths.array[i], 0.0f, (float)mc->heights.array[i], -100.0f, 100.0f);
 
-			obs_view_render(view);
+			obs_canvas_render(canvas);
 
 			gs_texrender_end(mc->renders.array[i]);
 		}
@@ -153,29 +153,29 @@ void multi_canvas_update_size(struct multi_canvas_info *mc)
 	mc->height = height;
 }
 
-void multi_canvas_source_add_view(void *data, obs_view_t *view, uint32_t width, uint32_t height)
+void multi_canvas_source_add_canvas(void *data, obs_canvas_t *canvas, uint32_t width, uint32_t height)
 {
 	struct multi_canvas_info *mc = data;
-	for (size_t i = 0; i < mc->views.num; i++) {
-		if (mc->views.array[i] == view)
+	for (size_t i = 0; i < mc->canvas.num; i++) {
+		if (mc->canvas.array[i] == canvas)
 			return;
 	}
 	da_push_back(mc->widths, &width);
 	da_push_back(mc->heights, &height);
-	da_push_back(mc->views, &view);
+	da_push_back(mc->canvas, &canvas);
 	gs_texrender_t *render = gs_texrender_create(GS_RGBA, GS_ZS_NONE);
 	da_push_back(mc->renders, &render);
 
 	multi_canvas_update_size(mc);
 }
 
-void multi_canvas_source_remove_view(void *data, obs_view_t *view)
+void multi_canvas_source_remove_canvas(void *data, obs_canvas_t *canvas)
 {
 	struct multi_canvas_info *mc = data;
-	for (size_t i = 0; i < mc->views.num; i++) {
-		if (mc->views.array[i] == view) {
+	for (size_t i = 0; i < mc->canvas.num; i++) {
+		if (mc->canvas.array[i] == canvas) {
 			gs_texrender_destroy(mc->renders.array[i]);
-			da_erase(mc->views, i);
+			da_erase(mc->canvas, i);
 			da_erase(mc->widths, i);
 			da_erase(mc->heights, i);
 			da_erase(mc->renders, i);

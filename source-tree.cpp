@@ -1110,7 +1110,7 @@ void SourceTree::SelectItem(obs_sceneitem_t *sceneitem, bool select)
 		return;
 
 	QModelIndex index = stm->createIndex(i, 0);
-	if (index.isValid())
+	if (index.isValid() && selectionModel()->isSelected(index) != select)
 		selectionModel()->select(index, select ? QItemSelectionModel::Select : QItemSelectionModel::Deselect);
 }
 
@@ -1325,7 +1325,7 @@ void SourceTree::dropEvent(QDropEvent *event)
 	using insertCollapsed_t = decltype(insertCollapsed);
 
 	auto preInsertCollapsed = [](obs_scene_t *, obs_sceneitem_t *item, void *param) {
-		(*reinterpret_cast<insertCollapsed_t *>(param))(item);
+		(*static_cast<insertCollapsed_t *>(param))(item);
 		return true;
 	};
 
@@ -1385,7 +1385,7 @@ void SourceTree::dropEvent(QDropEvent *event)
 	using updateScene_t = decltype(updateScene);
 
 	auto preUpdateScene = [](void *d, obs_scene_t *) {
-		(*reinterpret_cast<updateScene_t *>(d))();
+		(*static_cast<updateScene_t *>(d))();
 	};
 
 	ignoreReorder = true;
@@ -1418,18 +1418,19 @@ void SourceTree::selectionChanged(const QItemSelection &selected, const QItemSel
 	{
 		const bool blocked = blockSignals(true);
 		SourceTreeModel *stm = GetStm();
-
-		QModelIndexList selectedIdxs = selected.indexes();
-		QModelIndexList deselectedIdxs = deselected.indexes();
-
-		for (int i = 0; i < selectedIdxs.count(); i++) {
-			int idx = selectedIdxs[i].row();
-			obs_sceneitem_select(stm->items[idx], true);
+		{
+			QModelIndexList selectedIdxs = selected.indexes();
+			for (int i = 0; i < selectedIdxs.count(); i++) {
+				int idx = selectedIdxs[i].row();
+				obs_sceneitem_select(stm->items[idx], true);
+			}
 		}
-
-		for (int i = 0; i < deselectedIdxs.count(); i++) {
-			int idx = deselectedIdxs[i].row();
-			obs_sceneitem_select(stm->items[idx], false);
+		{
+			QModelIndexList deselectedIdxs = deselected.indexes();
+			for (int i = 0; i < deselectedIdxs.count(); i++) {
+				int idx = deselectedIdxs[i].row();
+				obs_sceneitem_select(stm->items[idx], false);
+			}
 		}
 		blockSignals(blocked);
 	}
