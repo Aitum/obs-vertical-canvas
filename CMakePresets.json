@@ -73,9 +73,9 @@
       }
     },
     {
-      "name": "linux-x86_64",
-      "displayName": "Linux x86_64",
-      "description": "Build for Linux x86_64",
+      "name": "ubuntu-x86_64",
+      "displayName": "Ubuntu x86_64",
+      "description": "Build for Ubuntu x86_64",
       "inherits": ["template"],
       "binaryDir": "${sourceDir}/build_x86_64",
       "condition": {
@@ -91,10 +91,10 @@
       }
     },
     {
-      "name": "linux-ci-x86_64",
-      "inherits": ["linux-x86_64"],
-      "displayName": "Linux x86_64 CI build",
-      "description": "Build for Linux x86_64 on CI",
+      "name": "ubuntu-ci-x86_64",
+      "inherits": ["ubuntu-x86_64"],
+      "displayName": "Ubuntu x86_64 CI build",
+      "description": "Build for Ubuntu x86_64 on CI",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "CMAKE_COMPILE_WARNING_AS_ERROR": true
@@ -159,15 +159,15 @@
       "configuration": "RelWithDebInfo"
     },
     {
-      "name": "linux-x86_64",
-      "configurePreset": "linux-x86_64",
+      "name": "ubuntu-x86_64",
+      "configurePreset": "ubuntu-x86_64",
       "displayName": "Linux x86_64",
       "description": "Linux build for x86_64",
       "configuration": "RelWithDebInfo"
     },
     {
-      "name": "linux-ci-x86_64",
-      "configurePreset": "linux-ci-x86_64",
+      "name": "ubuntu-ci-x86_64",
+      "configurePreset": "ubuntu-ci-x86_64",
       "displayName": "Linux x86_64 CI",
       "description": "Linux CI build for x86_64",
       "configuration": "RelWithDebInfo"
