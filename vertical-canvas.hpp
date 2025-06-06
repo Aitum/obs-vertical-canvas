@@ -234,6 +234,7 @@ private:
 	bool first_time = false;
 	bool multi_rtmp = false;
 	bool disable_stream_settings = false;
+	bool enable_vertical = true;
 
 	QColor GetSelectionColor() const;
 	QColor GetCropColor() const;
@@ -330,6 +331,7 @@ private:
 	void AddProjectorMenuMonitors(QMenu *parent, QObject *target, const char *slot);
 
 	void TryRemux(QString path);
+	void PatchMainUrl();
 	void StartStreamOutput(std::vector<StreamServer>::iterator it);
 	void CreateStreamOutput(std::vector<StreamServer>::iterator it);
 
@@ -413,6 +415,7 @@ private slots:
 	void ReorderSources(OBSScene scene);
 	void DestroyVideo();
 	void MainSceneChanged();
+	void MainStreamStarting();
 	void MainStreamStart();
 	void MainStreamStop();
 	void MainRecordStart();
