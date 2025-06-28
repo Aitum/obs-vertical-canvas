@@ -121,7 +121,7 @@ SourceTreeItem::SourceTreeItem(SourceTree *tree_, OBSSceneItem sceneitem_) : tre
 	}
 
 	vis = new VisibilityCheckBox();
-	vis->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+	vis->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
 	vis->setChecked(sourceVisible);
 	vis->setStyleSheet("background: none");
 	vis->setAccessibleName(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.Sources.Visibility")));
@@ -129,7 +129,7 @@ SourceTreeItem::SourceTreeItem(SourceTree *tree_, OBSSceneItem sceneitem_) : tre
 		QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.Sources.VisibilityDescription")).arg(name));
 
 	lock = new LockedCheckBox();
-	lock->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
+	lock->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
 	lock->setChecked(obs_sceneitem_locked(sceneitem));
 	lock->setStyleSheet("background: none");
 	lock->setAccessibleName(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.Sources.Lock")));
@@ -1636,7 +1636,7 @@ QSize SourceTreeDelegate::sizeHint(const QStyleOptionViewItem &option, const QMo
 	QWidget *item = tree->indexWidget(index);
 
 	if (!item)
-		return (QSize(0, 0));
+		return QStyledItemDelegate::sizeHint(option, index);
 
-	return (QSize(option.widget->minimumWidth(), item->height()));
+	return (QSize(item->sizeHint()));
 }
