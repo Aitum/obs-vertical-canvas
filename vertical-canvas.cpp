@@ -6939,32 +6939,37 @@ void CanvasDock::source_remove(void *data, calldata_t *calldata)
 	if (!obs_source_is_scene(source))
 		return;
 	if (obs_weak_source_references_source(d->source, source) || source == obs_scene_get_source(d->scene)) {
-		d->SwitchScene("", false);
+		QMetaObject::invokeMethod(d, "SwitchScene", Q_ARG(QString, ""), Q_ARG(bool, false));
 	}
 	const auto name = QString::fromUtf8(obs_source_get_name(source));
 	if (name.isEmpty())
 		return;
-	if (d->scenesDock) {
-		for (int i = 0; i < d->scenesDock->sceneList->count(); i++) {
-			auto item = d->scenesDock->sceneList->item(i);
+	QMetaObject::invokeMethod(d, "SceneRemoved", Q_ARG(QString, name));
+}
+
+void CanvasDock::SceneRemoved(const QString name)
+{
+	if (scenesDock) {
+		for (int i = 0; i < scenesDock->sceneList->count(); i++) {
+			auto item = scenesDock->sceneList->item(i);
 			if (item->text() != name)
 				continue;
-			d->scenesDock->sceneList->takeItem(i);
+			scenesDock->sceneList->takeItem(i);
 		}
-		auto r = d->scenesDock->sceneList->currentRow();
-		auto c = d->scenesDock->sceneList->count();
+		auto r = scenesDock->sceneList->currentRow();
+		auto c = scenesDock->sceneList->count();
 		if ((r < 0 && c > 0) || r >= c) {
-			d->scenesDock->sceneList->setCurrentRow(0);
+			scenesDock->sceneList->setCurrentRow(0);
 		}
 	}
-	if (d->scenesCombo) {
-		for (int i = 0; i < d->scenesCombo->count(); i++) {
-			if (d->scenesCombo->itemText(i) != name)
+	if (scenesCombo) {
+		for (int i = 0; i < scenesCombo->count(); i++) {
+			if (scenesCombo->itemText(i) != name)
 				continue;
-			d->scenesCombo->removeItem(i);
+			scenesCombo->removeItem(i);
 		}
-		if (d->scenesCombo->currentIndex() < 0 && d->scenesCombo->count()) {
-			d->scenesCombo->setCurrentIndex(0);
+		if (scenesCombo->currentIndex() < 0 && scenesCombo->count()) {
+			scenesCombo->setCurrentIndex(0);
 		}
 	}
 }

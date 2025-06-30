@@ -425,6 +425,7 @@ private slots:
 	void OpenPreviewProjector();
 	void OpenSourceProjector();
 	void SwitchBackToSelectedTransition();
+	void SceneRemoved(const QString name);
 
 	void ApiInfo(QString data);
 	void updateStreamKey(const QString &newStreamKey, int index);
