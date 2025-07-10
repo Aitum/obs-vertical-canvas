@@ -35,7 +35,7 @@ else()
 endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt::Core Qt::Widgets)
 
-if(OS_LINUX OR OS_FREEBSD OR OS_OPENBSD)
+if((OS_LINUX OR OS_FREEBSD OR OS_OPENBSD) AND Qt_VERSION VERSION_LESS "6.9.0")
 	target_link_libraries(${PROJECT_NAME} PRIVATE Qt::GuiPrivate)
 endif()
 
