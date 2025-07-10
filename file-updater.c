@@ -119,7 +119,6 @@ static void *single_file_thread(void *data)
 	download_data.version = 0;
 	download_data.buffer.da = info->file_data.da;
 	info->callback(info->param, &download_data);
-	info->file_data.da = download_data.buffer.da;
 	return NULL;
 }
 
