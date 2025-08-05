@@ -887,7 +887,7 @@ QString SourceTreeModel::GetNewGroupName()
 	QString name = QString::fromUtf8(obs_frontend_get_locale_string("Group"));
 	int i = 2;
 	for (;;) {
-		OBSSourceAutoRelease group = obs_get_source_by_name(name.toUtf8().constData());
+		OBSSourceAutoRelease group = obs_canvas_get_source_by_name(st->canvasDock->canvas, name.toUtf8().constData());
 		if (!group)
 			break;
 		name = QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.Group")).arg(QString::number(i++));
