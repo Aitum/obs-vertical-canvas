@@ -3034,6 +3034,9 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 		obs_source_t *item_source = obs_source_get_ref(obs_sceneitem_get_source(sceneItem));
 		if (!item_source)
 			return;
+		obs_canvas_t *canvas = (obs_source_get_output_flags(item_source) & OBS_SOURCE_REQUIRES_CANVAS)
+					       ? obs_source_get_canvas(item_source)
+					       : nullptr;
 		std::string name = obs_source_get_name(item_source);
 		obs_source_t *s = nullptr;
 		do {
@@ -3041,11 +3044,12 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 			if (!NameDialog::AskForName(this, QString::fromUtf8(obs_module_text("SourceName")), name)) {
 				break;
 			}
-			s = obs_get_source_by_name(name.c_str());
+			s = canvas ? obs_canvas_get_source_by_name(canvas, name.c_str()) : obs_get_source_by_name(name.c_str());
 			if (s)
 				continue;
 			obs_source_set_name(item_source, name.c_str());
 		} while (s);
+		obs_canvas_release(canvas);
 		obs_source_release(item_source);
 	});
 	popup->addAction(
@@ -4682,8 +4686,9 @@ static void check_descendant(obs_source_t *parent, obs_source_t *child, void *pa
 bool CanvasDock::add_sources_of_type_to_menu(void *param, obs_source_t *source)
 {
 	QMenu *menu = static_cast<QMenu *>(param);
-	CanvasDock *cd = static_cast<CanvasDock *>(menu->parent());
-	auto a = menu->menuAction();
+	auto parent = qobject_cast<QMenu *>(menu->parent());
+	CanvasDock *cd = static_cast<CanvasDock *>(parent ? parent->parent() : menu->parent());
+	auto a = parent ? parent->menuAction() : menu->menuAction();
 	auto t = a->data().toString();
 	auto idUtf8 = t.toUtf8();
 	const char *id = idUtf8.constData();
@@ -4692,7 +4697,7 @@ bool CanvasDock::add_sources_of_type_to_menu(void *param, obs_source_t *source)
 		QList<QAction *> actions = menu->actions();
 		QAction *before = nullptr;
 		for (QAction *menuAction : actions) {
-			if (menuAction->text().compare(name) >= 0)
+			if (menuAction->text().compare(name, Qt::CaseInsensitive) >= 0)
 				before = menuAction;
 		}
 		auto na = new QAction(name, menu);
@@ -4708,7 +4713,17 @@ bool CanvasDock::add_sources_of_type_to_menu(void *param, obs_source_t *source)
 void CanvasDock::LoadSourceTypeMenu(QMenu *menu, const char *type)
 {
 	menu->clear();
-	if (strcmp(type, "scene") == 0) {
+	if (obs_get_source_output_flags(type) & OBS_SOURCE_REQUIRES_CANVAS) {
+		obs_enum_canvases(
+			[](void *param, obs_canvas_t *canvas) {
+				QMenu *m = (QMenu *)param;
+				auto canvas_name = QString::fromUtf8(obs_canvas_get_name(canvas));
+				auto cm = m->addMenu(canvas_name);
+				obs_canvas_enum_scenes(canvas, add_sources_of_type_to_menu, cm);
+				return true;
+			},
+			menu);
+	} else if (strcmp(type, "scene") == 0) {
 		obs_enum_scenes(add_sources_of_type_to_menu, menu);
 	} else {
 		obs_enum_sources(add_sources_of_type_to_menu, menu);
@@ -5887,7 +5902,6 @@ void CanvasDock::replay_output_stop(void *data, calldata_t *calldata)
 
 void CanvasDock::StreamButtonClicked()
 {
-
 	int active_count = 0;
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
 		if (obs_output_active(it->output))
@@ -6684,7 +6698,6 @@ void CanvasDock::LoadScenes()
 
 void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 {
-
 	auto fs = scene_name.isEmpty() ? nullptr : obs_canvas_get_scene_by_name(canvas, scene_name.toUtf8().constData());
 	if (fs == scene || (fs == nullptr && !scene_name.isEmpty())) {
 		obs_scene_release(fs);
@@ -7564,7 +7577,7 @@ void CanvasDock::SceneReordered(void *data, calldata_t *params)
 
 	obs_scene_t *scene = (obs_scene_t *)calldata_ptr(params, "scene");
 
-	QMetaObject::invokeMethod(window, "ReorderSources", Q_ARG(OBSScene, OBSScene(scene)));
+	QMetaObject::invokeMethod(window, "ReorderSources", Qt::QueuedConnection, Q_ARG(OBSScene, OBSScene(scene)));
 }
 
 void CanvasDock::ReorderSources(OBSScene order_scene)
@@ -7581,7 +7594,7 @@ void CanvasDock::SceneRefreshed(void *data, calldata_t *params)
 
 	obs_scene_t *scene = (obs_scene_t *)calldata_ptr(params, "scene");
 
-	QMetaObject::invokeMethod(window, "RefreshSources", Q_ARG(OBSScene, OBSScene(scene)));
+	QMetaObject::invokeMethod(window, "RefreshSources", Qt::QueuedConnection, Q_ARG(OBSScene, OBSScene(scene)));
 }
 
 void CanvasDock::RefreshSources(OBSScene refresh_scene)
@@ -7598,7 +7611,7 @@ void CanvasDock::SceneItemAdded(void *data, calldata_t *params)
 
 	obs_sceneitem_t *item = (obs_sceneitem_t *)calldata_ptr(params, "item");
 
-	QMetaObject::invokeMethod(window, "AddSceneItem", Q_ARG(OBSSceneItem, OBSSceneItem(item)));
+	QMetaObject::invokeMethod(window, "AddSceneItem", Qt::QueuedConnection, Q_ARG(OBSSceneItem, OBSSceneItem(item)));
 }
 
 void CanvasDock::AddSceneItem(OBSSceneItem item)
@@ -7859,7 +7872,6 @@ QString GetMonitorName(const QString &id);
 
 void CanvasDock::AddProjectorMenuMonitors(QMenu *parent, QObject *target, const char *slot)
 {
-
 	QList<QScreen *> screens = QGuiApplication::screens();
 	for (int i = 0; i < screens.size(); i++) {
 		QScreen *screen = screens[i];
