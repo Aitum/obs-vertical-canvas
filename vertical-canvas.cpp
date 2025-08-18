@@ -1567,7 +1567,7 @@ CanvasDock::~CanvasDock()
 
 	auto ph = obs_get_proc_handler();
 	calldata_t cd = {0};
-	calldata_set_string(&cd, "canvas_name", "Vertical");
+	calldata_set_string(&cd, "canvas_name", CANVAS_NAME);
 	proc_handler_call(ph, "downstream_keyer_remove_canvas", &cd);
 	calldata_free(&cd);
 
@@ -4854,7 +4854,7 @@ bool CanvasDock::StartVideo()
 	auto ph = obs_get_proc_handler();
 	calldata_t cd2 = {0};
 	calldata_set_ptr(&cd2, "canvas", canvas);
-	calldata_set_string(&cd2, "canvas_name", "Vertical");
+	calldata_set_string(&cd2, "canvas_name", CANVAS_NAME);
 	calldata_set_ptr(&cd2, "get_transitions", (void *)CanvasDock::get_transitions);
 	calldata_set_ptr(&cd2, "get_transitions_data", this);
 	proc_handler_call(ph, "downstream_keyer_add_canvas", &cd2);
