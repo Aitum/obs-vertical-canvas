@@ -910,14 +910,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	  preview(new OBSQTDisplay(this)),
 	  eventFilter(BuildEventFilter())
 {
-	/*auto ph = obs_get_proc_handler();
-	calldata_t cd2 = {0};
-	calldata_set_ptr(&cd2, "view", view);
-	calldata_set_string(&cd2, "view_name", "Vertical");
-	calldata_set_ptr(&cd2, "get_transitions", (void *)CanvasDock::get_transitions);
-	calldata_set_ptr(&cd2, "get_transitions_data", this);
-	proc_handler_call(ph, "downstream_keyer_add_view", &cd2);
-	calldata_free(&cd2);*/
 	if (!settings) {
 		settings = obs_data_create();
 		obs_data_set_bool(settings, "backtrack", true);
@@ -1575,8 +1567,8 @@ CanvasDock::~CanvasDock()
 
 	auto ph = obs_get_proc_handler();
 	calldata_t cd = {0};
-	calldata_set_string(&cd, "view_name", "Vertical");
-	proc_handler_call(ph, "downstream_keyer_remove_view", &cd);
+	calldata_set_string(&cd, "canvas_name", "Vertical");
+	proc_handler_call(ph, "downstream_keyer_remove_canvas", &cd);
 	calldata_free(&cd);
 
 	DestroyVideo();
@@ -4859,6 +4851,14 @@ bool CanvasDock::StartVideo()
 	if (canvas)
 		obs_canvas_release(canvas);
 	canvas = c ? c : obs_frontend_add_canvas(CANVAS_NAME, nullptr, PROGRAM);
+	auto ph = obs_get_proc_handler();
+	calldata_t cd2 = {0};
+	calldata_set_ptr(&cd2, "canvas", canvas);
+	calldata_set_string(&cd2, "canvas_name", "Vertical");
+	calldata_set_ptr(&cd2, "get_transitions", (void *)CanvasDock::get_transitions);
+	calldata_set_ptr(&cd2, "get_transitions_data", this);
+	proc_handler_call(ph, "downstream_keyer_add_canvas", &cd2);
+	calldata_free(&cd2);
 
 	//auto sh = obs_canvas_get_signal_handler(canvas);
 	//signal_handler_connect(sh, "source_rename", source_rename, this);
