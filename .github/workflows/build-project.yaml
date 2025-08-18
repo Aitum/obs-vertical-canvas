@@ -293,7 +293,7 @@ jobs:
       - name: Code Sign 64
         if: success() && github.event_name != 'pull_request'
         run: |
-          & 'C:/Program Files (x86)/Windows Kits/10/bin/10.0.20348.0/x64/signtool.exe' sign /f certificate\certificate.pfx /p '${{ secrets.WINDOWS_CSC_PASS }}' /t http://timestamp.comodoca.com/authenticode .\release\${{ needs.check-event.outputs.config }}\${{ steps.setup.outputs.pluginName }}\bin\64bit\${{ steps.setup.outputs.pluginName }}.dll
+          & 'C:/Program Files (x86)/Windows Kits/10/bin/10.0.26100.0/x64/signtool.exe' sign /fd SHA256 /f certificate\certificate.pfx /p '${{ secrets.WINDOWS_CSC_PASS }}' /t http://timestamp.comodoca.com/authenticode .\release\${{ needs.check-event.outputs.config }}\${{ steps.setup.outputs.pluginName }}\bin\64bit\${{ steps.setup.outputs.pluginName }}.dll
 
       - name: Package Plugin 📀
         uses: ./.github/actions/package-plugin
@@ -305,7 +305,7 @@ jobs:
       - name: Code Sign Installer
         if: success() && github.event_name != 'pull_request'
         run: |
-          & 'C:/Program Files (x86)/Windows Kits/10/bin/10.0.20348.0/x64/signtool.exe' sign /f certificate\certificate.pfx /p '${{ secrets.WINDOWS_CSC_PASS }}' /t http://timestamp.comodoca.com/authenticode ./release/${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-windows-x64-Installer.exe
+          & 'C:/Program Files (x86)/Windows Kits/10/bin/10.0.26100.0/x64/signtool.exe' sign /fd SHA256 /f certificate\certificate.pfx /p '${{ secrets.WINDOWS_CSC_PASS }}' /t http://timestamp.comodoca.com/authenticode ./release/${{ steps.setup.outputs.pluginName }}-${{ steps.setup.outputs.pluginVersion }}-windows-x64-Installer.exe
 
       - name: Upload Artifacts 📡
         uses: actions/upload-artifact@v4
