@@ -147,7 +147,7 @@ void CanvasScenesDock::ShowScenesContextMenu(QListWidgetItem *widget_item)
 		auto a2 = tom->addAction(QString::fromUtf8(name));
 		a2->setCheckable(true);
 		a2->setChecked(match);
-		connect(a, &QAction::triggered, [this, scene_name, a2] {
+		connect(a2, &QAction::triggered, [this, scene_name, a2] {
 			OBSSourceAutoRelease source = obs_canvas_get_source_by_name(canvasDock->canvas, scene_name.c_str());
 			OBSDataAutoRelease ps = obs_source_get_private_settings(source);
 			obs_data_set_string(ps, "transition", a2->text().toUtf8().constData());
