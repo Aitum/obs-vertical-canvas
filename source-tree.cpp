@@ -518,8 +518,12 @@ void SourceTreeItem::Renamed(const QString &name)
 	label->setText(name);
 }
 
+extern std::list<CanvasDock *> canvas_docks;
+
 void SourceTreeItem::Update(bool force)
 {
+	if (std::find(canvas_docks.begin(), canvas_docks.end(), tree->canvasDock) == canvas_docks.end())
+		return;
 	obs_scene_t *scene = tree->canvasDock->scene;
 	obs_scene_t *itemScene = obs_sceneitem_get_scene(sceneitem);
 
@@ -677,6 +681,8 @@ static bool enumItem(obs_scene_t *, obs_sceneitem_t *item, void *ptr)
 
 void SourceTreeModel::SceneChanged()
 {
+	if (std::find(canvas_docks.begin(), canvas_docks.end(), st->canvasDock) == canvas_docks.end())
+		return;
 	obs_scene_t *scene = st->canvasDock->scene;
 
 	beginResetModel();
