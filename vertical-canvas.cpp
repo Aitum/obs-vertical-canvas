@@ -572,11 +572,6 @@ bool version_info_downloaded(void *param, struct file_download_data *file)
 
 bool obs_module_load(void)
 {
-	if (obs_get_version() < MAKE_SEMANTIC_VERSION(30, 0, 0)) {
-		blog(LOG_ERROR, "[Vertical Canvas] loading version %s failed, OBS version %s is to low", PROJECT_VERSION,
-		     obs_get_version_string());
-		return false;
-	}
 	blog(LOG_INFO, "[Vertical Canvas] loaded version %s", PROJECT_VERSION);
 	obs_frontend_add_event_callback(frontend_event, nullptr);
 
@@ -1617,41 +1612,10 @@ static bool SceneItemHasVideo(obs_sceneitem_t *item)
 	return (flags & OBS_SOURCE_VIDEO) != 0;
 }
 
-#if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(31, 0, 0)
-static config_t *(*get_user_config_func)(void) = nullptr;
-static config_t *user_config = nullptr;
-#endif
 
 config_t *get_user_config(void)
 {
-#if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(31, 0, 0)
-	if (user_config)
-		return user_config;
-	if (!get_user_config_func) {
-		if (obs_get_version() < MAKE_SEMANTIC_VERSION(31, 0, 0)) {
-			get_user_config_func = obs_frontend_get_global_config;
-			blog(LOG_INFO, "[Vertical Canvas] use global config");
-		} else {
-#ifdef __APPLE__
-			auto handle = os_dlopen("obs-frontend-api.dylib");
-#else
-			auto handle = os_dlopen("obs-frontend-api");
-#endif
-			if (handle) {
-				get_user_config_func = (config_t * (*)(void)) os_dlsym(handle, "obs_frontend_get_user_config");
-				os_dlclose(handle);
-				if (get_user_config_func)
-					blog(LOG_INFO, "[Vertical Canvas] use user config");
-			}
-		}
-	}
-	if (get_user_config_func)
-		return get_user_config_func();
-	user_config = obs_frontend_get_global_config();
-	return user_config;
-#else
 	return obs_frontend_get_user_config();
-#endif
 }
 
 void CanvasDock::DrawOverflow(float scale)
@@ -2922,12 +2886,8 @@ static bool CenterAlignSelectedItems(obs_scene_t *scene, obs_sceneitem_t *item, 
 	vec2_set(&itemInfo.bounds, float(obs_source_get_base_width(scene_source)), float(obs_source_get_base_height(scene_source)));
 	itemInfo.bounds_type = boundsType;
 	itemInfo.bounds_alignment = OBS_ALIGN_CENTER;
-#if LIBOBS_API_VER < MAKE_SEMANTIC_VERSION(30, 1, 0)
-	obs_sceneitem_set_info(item, &itemInfo);
-#else
 	itemInfo.crop_to_bounds = obs_sceneitem_get_bounds_crop(item);
 	obs_sceneitem_set_info2(item, &itemInfo);
-#endif
 
 	UNUSED_PARAMETER(scene);
 	return true;
