@@ -4647,14 +4647,16 @@ bool CanvasDock::add_sources_of_type_to_menu(void *param, obs_source_t *source)
 	if (strcmp(obs_source_get_unversioned_id(source), id) == 0) {
 		auto name = QString::fromUtf8(obs_source_get_name(source));
 		QList<QAction *> actions = menu->actions();
-		QAction *before = nullptr;
+		QAction *after = nullptr;
 		for (QAction *menuAction : actions) {
-			if (menuAction->text().compare(name, Qt::CaseInsensitive) >= 0)
-				before = menuAction;
+			if (menuAction->text().compare(name) >= 0) {
+				after = menuAction;
+				break;
+			}
 		}
 		auto na = new QAction(name, menu);
 		connect(na, &QAction::triggered, cd, [cd, source] { cd->AddSourceToScene(source); }, Qt::QueuedConnection);
-		menu->insertAction(before, na);
+		menu->insertAction(after, na);
 		struct descendant_info info = {false, cd->source, obs_scene_get_source(cd->scene)};
 		obs_source_enum_full_tree(source, check_descendant, &info);
 		na->setEnabled(!info.exists);
