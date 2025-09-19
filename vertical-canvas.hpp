@@ -309,6 +309,7 @@ private:
 	void CenterSelectedItems(CenterType centerType);
 
 	void AddSourceToScene(obs_source_t *source);
+	void AddSourceTypeToMenu(QMenu *popup, const char *source_type, const char *name);
 
 	bool StartVideo();
 	void HandleRecordError(int code, QString last_error);

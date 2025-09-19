@@ -1469,11 +1469,13 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	transitionAudioWrapper =
 		obs_source_create_private("vertical_audio_wrapper_source", "vertical_audio_wrapper_source", nullptr);
 	auto aw = (struct audio_wrapper_info *)obs_obj_get_data(transitionAudioWrapper);
-	aw->param = this;
-	aw->target = [](void *param) {
-		CanvasDock *dock = reinterpret_cast<CanvasDock *>(param);
-		return obs_weak_source_get_source(dock->source);
-	};
+	if (aw) {
+		aw->param = this;
+		aw->target = [](void *param) {
+			CanvasDock *dock = reinterpret_cast<CanvasDock *>(param);
+			return obs_weak_source_get_source(dock->source);
+		};
+	}
 }
 
 CanvasDock::~CanvasDock()
@@ -1611,7 +1613,6 @@ static bool SceneItemHasVideo(obs_sceneitem_t *item)
 	const uint32_t flags = obs_source_get_output_flags(source);
 	return (flags & OBS_SOURCE_VIDEO) != 0;
 }
-
 
 config_t *get_user_config(void)
 {
@@ -4639,6 +4640,8 @@ bool CanvasDock::add_sources_of_type_to_menu(void *param, obs_source_t *source)
 {
 	QMenu *menu = static_cast<QMenu *>(param);
 	auto parent = qobject_cast<QMenu *>(menu->parent());
+	while (parent && qobject_cast<QMenu *>(parent->parent()))
+		parent = qobject_cast<QMenu *>(parent->parent());
 	CanvasDock *cd = static_cast<CanvasDock *>(parent ? parent->parent() : menu->parent());
 	auto a = parent ? parent->menuAction() : menu->menuAction();
 	auto t = a->data().toString();
@@ -4698,6 +4701,32 @@ void CanvasDock::AddSourceToScene(obs_source_t *s)
 	obs_scene_add(scene, s);
 }
 
+void CanvasDock::AddSourceTypeToMenu(QMenu *popup, const char *source_type, const char *name)
+{
+	QString qname = QString::fromUtf8(name);
+	QAction *popupItem = new QAction(qname, popup);
+	if (strcmp(source_type, "scene") == 0) {
+		popupItem->setIcon(GetSceneIcon());
+	} else if (strcmp(source_type, "group") == 0) {
+		popupItem->setIcon(GetGroupIcon());
+	} else {
+		popupItem->setIcon(GetIconFromType(obs_source_get_icon_type(source_type)));
+	}
+	popupItem->setData(QString::fromUtf8(source_type));
+	QMenu *menu = new QMenu(popup);
+	popupItem->setMenu(menu);
+	QObject::connect(menu, &QMenu::aboutToShow, [this, menu, source_type] { LoadSourceTypeMenu(menu, source_type); });
+	QList<QAction *> actions = popup->actions();
+	QAction *after = nullptr;
+	for (QAction *menuAction : actions) {
+		if (menuAction->text().compare(name) >= 0) {
+			after = menuAction;
+			break;
+		}
+	}
+	popup->insertAction(after, popupItem);
+}
+
 QMenu *CanvasDock::CreateAddSourcePopupMenu()
 {
 	const char *unversioned_type;
@@ -4705,31 +4734,6 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 	bool foundValues = false;
 	bool foundDeprecated = false;
 	size_t idx = 0;
-
-	auto addSource = [this](QMenu *popup, const char *source_type, const char *name) {
-		QString qname = QString::fromUtf8(name);
-		QAction *popupItem = new QAction(qname, this);
-		if (strcmp(source_type, "scene") == 0) {
-			popupItem->setIcon(GetSceneIcon());
-		} else if (strcmp(source_type, "group") == 0) {
-			popupItem->setIcon(GetGroupIcon());
-		} else {
-			popupItem->setIcon(GetIconFromType(obs_source_get_icon_type(source_type)));
-		}
-		popupItem->setData(QString::fromUtf8(source_type));
-		QMenu *menu = new QMenu(this);
-		popupItem->setMenu(menu);
-		QObject::connect(menu, &QMenu::aboutToShow, [this, menu, source_type] { LoadSourceTypeMenu(menu, source_type); });
-		QList<QAction *> actions = menu->actions();
-		QAction *after = nullptr;
-		for (QAction *menuAction : actions) {
-			if (menuAction->text().compare(name) >= 0) {
-				after = menuAction;
-				break;
-			}
-		}
-		popup->insertAction(after, popupItem);
-	};
 
 	QMenu *popup = new QMenu(QString::fromUtf8(obs_frontend_get_locale_string("Add")), this);
 	QMenu *deprecated = new QMenu(QString::fromUtf8(obs_frontend_get_locale_string("Deprecated")), popup);
@@ -4744,16 +4748,16 @@ QMenu *CanvasDock::CreateAddSourcePopupMenu()
 			continue;
 
 		if ((caps & OBS_SOURCE_DEPRECATED) == 0) {
-			addSource(popup, unversioned_type, name);
+			AddSourceTypeToMenu(popup, unversioned_type, name);
 		} else {
-			addSource(deprecated, unversioned_type, name);
+			AddSourceTypeToMenu(deprecated, unversioned_type, name);
 			foundDeprecated = true;
 		}
 		foundValues = true;
 	}
 
-	addSource(popup, "scene", obs_frontend_get_locale_string("Basic.Scene"));
-	addSource(popup, "group", obs_frontend_get_locale_string("Group"));
+	AddSourceTypeToMenu(popup, "scene", obs_frontend_get_locale_string("Basic.Scene"));
+	AddSourceTypeToMenu(popup, "group", obs_frontend_get_locale_string("Group"));
 
 	if (!foundDeprecated) {
 		delete deprecated;

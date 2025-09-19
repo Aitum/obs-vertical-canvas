@@ -1723,30 +1723,6 @@ void OBSBasicSettings::AddProperty(obs_property_t *property, obs_data_t *setting
 				widget->setCurrentIndex(idx);
 		}
 
-		if (obs_data_has_autoselect_value(settings, name)) {
-			switch (format) {
-			case OBS_COMBO_FORMAT_INT:
-				value = QVariant::fromValue(obs_data_get_autoselect_int(settings, name));
-				break;
-			case OBS_COMBO_FORMAT_FLOAT:
-				value = QVariant::fromValue(obs_data_get_autoselect_double(settings, name));
-				break;
-			case OBS_COMBO_FORMAT_STRING:
-				value = QByteArray(obs_data_get_autoselect_string(settings, name));
-				break;
-			default:;
-			}
-			int id = widget->findData(value);
-
-			auto idx = widget->currentIndex();
-			if (id != -1 && id != idx) {
-				QString actual = widget->itemText(id);
-				QString selected = widget->itemText(widget->currentIndex());
-				QString combined = QString::fromUtf8(
-					obs_frontend_get_locale_string("Basic.PropertiesWindow.AutoSelectFormat"));
-				widget->setItemText(idx, combined.arg(selected).arg(actual));
-			}
-		}
 		auto label = new QLabel(QString::fromUtf8(obs_property_description(property)));
 		layout->addRow(label, widget);
 		if (!obs_property_visible(property)) {
