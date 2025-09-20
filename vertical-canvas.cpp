@@ -5543,7 +5543,35 @@ void CanvasDock::StartReplayBuffer()
 
 	bool started_video = StartVideo();
 
-	obs_output_set_video_encoder(replayOutput, GetRecordVideoEncoder());
+	bool enc_set = false;
+	if (recordOutput) {
+		auto re = obs_output_get_video_encoder(recordOutput);
+		if (re && obs_encoder_active(re)) {
+			obs_output_set_video_encoder(replayOutput, re);
+			enc_set = true;
+		}
+	}
+	auto profile_config = obs_frontend_get_profile_config();
+	if (!enc_set && config_get_bool(profile_config, "Stream1", "EnableMultitrackVideo")) {
+		auto canvas_id = config_get_string(profile_config, "Stream1", "MultitrackExtraCanvas");
+		if (canvas_id && strcmp(canvas_id, obs_canvas_get_uuid(canvas)) == 0) {
+			auto streaming_output = obs_frontend_get_streaming_output();
+			if (streaming_output) {
+				for (size_t idx = 0; idx < MAX_OUTPUT_VIDEO_ENCODERS; idx++) {
+					auto enc = obs_output_get_video_encoder2(streaming_output, idx);
+					if (enc && obs_encoder_active(enc) && obs_encoder_video(enc) == obs_canvas_get_video(canvas)) {
+						obs_output_set_video_encoder(replayOutput, enc);
+						enc_set = true;
+						break;
+					}
+				}
+				obs_output_release(streaming_output);
+			}
+		}
+	}
+
+	if (!enc_set)
+		obs_output_set_video_encoder(replayOutput, GetRecordVideoEncoder());
 
 	signal_handler_t *signal = obs_output_get_signal_handler(replayOutput);
 	signal_handler_disconnect(signal, "start", replay_output_start, this);
@@ -5647,69 +5675,88 @@ obs_encoder_t *CanvasDock::GetStreamVideoEncoder()
 				useRecordEncoder = true;
 			}
 		}
-	} else if (strcmp(mode, "Advanced") == 0) {
-		video_settings = GetDataFromJsonFile("streamEncoder.json");
-		enc_id = config_get_string(config, "AdvOut", "Encoder");
-		const char *recordEncoder = config_get_string(config, "AdvOut", "RecEncoder");
-		useRecordEncoder = astrcmpi(recordEncoder, "none") == 0;
-		if (!streamingVideoBitrate) {
-			streamingVideoBitrate = (uint32_t)obs_data_get_int(video_settings, "bitrate");
-		} else {
-			obs_data_set_int(video_settings, "bitrate", streamingVideoBitrate);
-		}
 	} else {
-		video_settings = obs_data_create();
-		bool advanced = config_get_bool(config, "SimpleOutput", "UseAdvanced");
-		enc_id = get_simple_output_encoder(config_get_string(config, "SimpleOutput", "StreamEncoder"));
-		const char *presetType;
-		const char *preset;
-		if (strcmp(enc_id, SIMPLE_ENCODER_QSV) == 0) {
-			presetType = "QSVPreset";
-
-		} else if (strcmp(enc_id, SIMPLE_ENCODER_QSV_AV1) == 0) {
-			presetType = "QSVPreset";
-
-		} else if (strcmp(enc_id, SIMPLE_ENCODER_AMD) == 0) {
-			presetType = "AMDPreset";
-
-		} else if (strcmp(enc_id, SIMPLE_ENCODER_AMD_HEVC) == 0) {
-			presetType = "AMDPreset";
-
-		} else if (strcmp(enc_id, SIMPLE_ENCODER_NVENC) == 0) {
-			presetType = "NVENCPreset2";
-		} else if (strcmp(enc_id, SIMPLE_ENCODER_NVENC_HEVC) == 0) {
-			presetType = "NVENCPreset2";
-
-		} else if (strcmp(enc_id, SIMPLE_ENCODER_AMD_AV1) == 0) {
-			presetType = "AMDAV1Preset";
-
-		} else if (strcmp(enc_id, SIMPLE_ENCODER_NVENC_AV1) == 0) {
-			presetType = "NVENCPreset2";
-
+		if (config_get_bool(config, "Stream1", "EnableMultitrackVideo")) {
+			auto canvas_id = config_get_string(config, "Stream1", "MultitrackExtraCanvas");
+			if (canvas_id && strcmp(canvas_id, obs_canvas_get_uuid(canvas)) == 0) {
+				auto streaming_output = obs_frontend_get_streaming_output();
+				if (streaming_output) {
+					for (size_t idx = 0; idx < MAX_OUTPUT_VIDEO_ENCODERS; idx++) {
+						auto enc = obs_output_get_video_encoder2(streaming_output, idx);
+						if (enc && obs_encoder_active(enc) && obs_encoder_video(enc) == obs_canvas_get_video(canvas)) {
+							obs_output_release(streaming_output);
+							return enc;
+						}
+					}
+					obs_output_release(streaming_output);
+				}
+			}
+		}
+		if (strcmp(mode, "Advanced") == 0) {
+			video_settings = GetDataFromJsonFile("streamEncoder.json");
+			enc_id = config_get_string(config, "AdvOut", "Encoder");
+			const char *recordEncoder = config_get_string(config, "AdvOut", "RecEncoder");
+			useRecordEncoder = astrcmpi(recordEncoder, "none") == 0;
+			if (!streamingVideoBitrate) {
+				streamingVideoBitrate = (uint32_t)obs_data_get_int(video_settings, "bitrate");
+			} else {
+				obs_data_set_int(video_settings, "bitrate", streamingVideoBitrate);
+			}
 		} else {
-			presetType = "Preset";
-		}
+			video_settings = obs_data_create();
+			bool advanced = config_get_bool(config, "SimpleOutput", "UseAdvanced");
+			enc_id = get_simple_output_encoder(config_get_string(config, "SimpleOutput", "StreamEncoder"));
+			const char *presetType;
+			const char *preset;
+			if (strcmp(enc_id, SIMPLE_ENCODER_QSV) == 0) {
+				presetType = "QSVPreset";
 
-		preset = config_get_string(config, "SimpleOutput", presetType);
-		obs_data_set_string(video_settings, (strcmp(presetType, "NVENCPreset2") == 0) ? "preset2" : "preset", preset);
+			} else if (strcmp(enc_id, SIMPLE_ENCODER_QSV_AV1) == 0) {
+				presetType = "QSVPreset";
 
-		obs_data_set_string(video_settings, "rate_control", "CBR");
-		if (!streamingVideoBitrate) {
-			const int sVideoBitrate = (int)config_get_uint(config, "SimpleOutput", "VBitrate");
-			obs_data_set_int(video_settings, "bitrate", sVideoBitrate);
-			streamingVideoBitrate = sVideoBitrate;
-		} else {
-			obs_data_set_int(video_settings, "bitrate", streamingVideoBitrate);
-		}
+			} else if (strcmp(enc_id, SIMPLE_ENCODER_AMD) == 0) {
+				presetType = "AMDPreset";
 
-		if (advanced) {
-			const char *custom = config_get_string(config, "SimpleOutput", "x264Settings");
-			obs_data_set_string(video_settings, "x264opts", custom);
-		}
+			} else if (strcmp(enc_id, SIMPLE_ENCODER_AMD_HEVC) == 0) {
+				presetType = "AMDPreset";
 
-		const char *quality = config_get_string(config, "SimpleOutput", "RecQuality");
-		if (strcmp(quality, "Stream") == 0) {
-			useRecordEncoder = true;
+			} else if (strcmp(enc_id, SIMPLE_ENCODER_NVENC) == 0) {
+				presetType = "NVENCPreset2";
+			} else if (strcmp(enc_id, SIMPLE_ENCODER_NVENC_HEVC) == 0) {
+				presetType = "NVENCPreset2";
+
+			} else if (strcmp(enc_id, SIMPLE_ENCODER_AMD_AV1) == 0) {
+				presetType = "AMDAV1Preset";
+
+			} else if (strcmp(enc_id, SIMPLE_ENCODER_NVENC_AV1) == 0) {
+				presetType = "NVENCPreset2";
+
+			} else {
+				presetType = "Preset";
+			}
+
+			preset = config_get_string(config, "SimpleOutput", presetType);
+			obs_data_set_string(video_settings, (strcmp(presetType, "NVENCPreset2") == 0) ? "preset2" : "preset",
+					    preset);
+
+			obs_data_set_string(video_settings, "rate_control", "CBR");
+			if (!streamingVideoBitrate) {
+				const int sVideoBitrate = (int)config_get_uint(config, "SimpleOutput", "VBitrate");
+				obs_data_set_int(video_settings, "bitrate", sVideoBitrate);
+				streamingVideoBitrate = sVideoBitrate;
+			} else {
+				obs_data_set_int(video_settings, "bitrate", streamingVideoBitrate);
+			}
+
+			if (advanced) {
+				const char *custom = config_get_string(config, "SimpleOutput", "x264Settings");
+				obs_data_set_string(video_settings, "x264opts", custom);
+			}
+
+			const char *quality = config_get_string(config, "SimpleOutput", "RecQuality");
+			if (strcmp(quality, "Stream") == 0) {
+				useRecordEncoder = true;
+			}
 		}
 	}
 
