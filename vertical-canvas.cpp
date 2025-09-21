@@ -4640,10 +4640,10 @@ bool CanvasDock::add_sources_of_type_to_menu(void *param, obs_source_t *source)
 {
 	QMenu *menu = static_cast<QMenu *>(param);
 	auto parent = qobject_cast<QMenu *>(menu->parent());
+	auto a = parent && !parent->menuAction()->data().isNull() ? parent->menuAction() : menu->menuAction();
 	while (parent && qobject_cast<QMenu *>(parent->parent()))
 		parent = qobject_cast<QMenu *>(parent->parent());
 	CanvasDock *cd = static_cast<CanvasDock *>(parent ? parent->parent() : menu->parent());
-	auto a = parent ? parent->menuAction() : menu->menuAction();
 	auto t = a->data().toString();
 	auto idUtf8 = t.toUtf8();
 	const char *id = idUtf8.constData();

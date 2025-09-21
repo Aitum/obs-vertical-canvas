@@ -228,11 +228,16 @@ void SourceTreeItem::Clear()
 	sceneitem = nullptr;
 }
 
+extern std::list<CanvasDock *> canvas_docks;
+
 void SourceTreeItem::removeItem(void *data, calldata_t *cd)
 {
 	SourceTreeItem *this_ = reinterpret_cast<SourceTreeItem *>(data);
 	obs_sceneitem_t *curItem = (obs_sceneitem_t *)calldata_ptr(cd, "item");
 	obs_scene_t *curScene = (obs_scene_t *)calldata_ptr(cd, "scene");
+
+	if (std::find(canvas_docks.begin(), canvas_docks.end(), this_->tree->canvasDock) == canvas_docks.end())
+		return;
 
 	if (curItem == this_->sceneitem) {
 		QMetaObject::invokeMethod(this_->tree, "Remove", Qt::QueuedConnection, Q_ARG(OBSSceneItem, curItem),
@@ -517,8 +522,6 @@ void SourceTreeItem::Renamed(const QString &name)
 {
 	label->setText(name);
 }
-
-extern std::list<CanvasDock *> canvas_docks;
 
 void SourceTreeItem::Update(bool force)
 {
