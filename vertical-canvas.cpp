@@ -1473,6 +1473,8 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		aw->param = this;
 		aw->target = [](void *param) {
 			CanvasDock *dock = reinterpret_cast<CanvasDock *>(param);
+			if (std::find(canvas_docks.begin(), canvas_docks.end(), dock) == canvas_docks.end())
+				return (obs_source_t *)nullptr;
 			return obs_weak_source_get_source(dock->source);
 		};
 	}
@@ -5559,7 +5561,8 @@ void CanvasDock::StartReplayBuffer()
 			if (streaming_output) {
 				for (size_t idx = 0; idx < MAX_OUTPUT_VIDEO_ENCODERS; idx++) {
 					auto enc = obs_output_get_video_encoder2(streaming_output, idx);
-					if (enc && obs_encoder_active(enc) && obs_encoder_video(enc) == obs_canvas_get_video(canvas)) {
+					if (enc && obs_encoder_active(enc) &&
+					    obs_encoder_video(enc) == obs_canvas_get_video(canvas)) {
 						obs_output_set_video_encoder(replayOutput, enc);
 						enc_set = true;
 						break;
@@ -5683,7 +5686,8 @@ obs_encoder_t *CanvasDock::GetStreamVideoEncoder()
 				if (streaming_output) {
 					for (size_t idx = 0; idx < MAX_OUTPUT_VIDEO_ENCODERS; idx++) {
 						auto enc = obs_output_get_video_encoder2(streaming_output, idx);
-						if (enc && obs_encoder_active(enc) && obs_encoder_video(enc) == obs_canvas_get_video(canvas)) {
+						if (enc && obs_encoder_active(enc) &&
+						    obs_encoder_video(enc) == obs_canvas_get_video(canvas)) {
 							obs_output_release(streaming_output);
 							return enc;
 						}
