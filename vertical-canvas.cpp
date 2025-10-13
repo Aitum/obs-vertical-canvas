@@ -1097,11 +1097,12 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 		streamOutputs.push_back(ss);
 	}
 
-	stream_delay_enabled = obs_data_get_bool(settings, "stream_delay_enabled");
+	stream_delay_enabled = false; // obs_data_get_bool(settings, "stream_delay_enabled");
 	stream_delay_duration = (uint32_t)obs_data_get_int(settings, "stream_delay_duration");
 	stream_delay_preserve = obs_data_get_bool(settings, "stream_delay_preserve");
 
-	stream_advanced_settings = obs_data_get_bool(settings, "stream_advanced_settings");
+	// Always use OBS settings for stream
+	stream_advanced_settings = false; // obs_data_get_bool(settings, "stream_advanced_settings");
 	stream_audio_track = (int)obs_data_get_int(settings, "stream_audio_track");
 	stream_encoder = obs_data_get_string(settings, "stream_encoder");
 	stream_encoder_settings = obs_data_get_obj(settings, "stream_encoder_settings");
@@ -7102,6 +7103,19 @@ void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 			signal_handler_connect(sh, "reorder", SceneReordered, this);
 			signal_handler_connect(sh, "refresh", SceneRefreshed, this);
 		}
+
+		// // Disable audio mixers for all existing sources on vertical canvas scene
+		// // This prevents audio from vertical canvas sources from appearing in main stream
+		// obs_scene_enum_items(
+		// 	scene,
+		// 	[](obs_scene_t *, obs_sceneitem_t *item, void *) {
+		// 		obs_source_t *source = obs_sceneitem_get_source(item);
+		// 		if (source && obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO) {
+		// 			obs_source_set_audio_mixers(source, 0);
+		// 		}
+		// 		return true;
+		// 	},
+		// 	nullptr);
 	}
 	auto oldName = currentSceneName;
 	if (!scene_name.isEmpty())
@@ -7979,8 +7993,16 @@ void CanvasDock::AddSceneItem(OBSSceneItem item)
 {
 	obs_scene_t *add_scene = obs_sceneitem_get_scene(item);
 
-	if (sourcesDock && scene == add_scene)
+	if (sourcesDock && scene == add_scene) {
 		sourcesDock->sourceList->Add(item);
+
+		// // Disable audio mixers for all sources on vertical canvas
+		// // This prevents audio from vertical canvas sources from appearing in main stream
+		// obs_source_t *source = obs_sceneitem_get_source(item);
+		// if (source && obs_source_get_output_flags(source) & OBS_SOURCE_AUDIO) {
+		// 	obs_source_set_audio_mixers(source, 0);
+		// }
+	}
 
 	obs_scene_enum_items(add_scene, select_one, (obs_sceneitem_t *)item);
 }

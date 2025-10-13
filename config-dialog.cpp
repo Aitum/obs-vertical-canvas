@@ -458,7 +458,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 #else
 	connect(streamingUseMain, &QCheckBox::stateChanged, [this, streamingAdvancedLayout, streamingDelayGroup] {
 #endif
-		bool checked = streamingUseMain->isChecked();
+		bool checked = true; // streamingUseMain->isChecked();
 		streamingVideoBitrate->setEnabled(checked);
 		streamingDelayGroup->setEnabled(!checked);
 		for (int i = 1; i < streamingAdvancedLayout->rowCount(); i++) {
@@ -557,8 +557,8 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	}
 
 	vb->addWidget(streamingGroup);
-	vb->addWidget(streamingAdvancedGroup);
-	vb->addWidget(streamingDelayGroup);
+	// vb->addWidget(streamingAdvancedGroup);
+	// vb->addWidget(streamingDelayGroup);  // Hidden - uses main OBS delay settings
 	vb->addStretch();
 	streamingPage->setLayout(vb);
 
@@ -1213,7 +1213,7 @@ void OBSBasicSettings::LoadSettings()
 		}
 	}
 
-	streamingUseMain->setChecked(!canvasDock->stream_advanced_settings);
+	streamingUseMain->setChecked(true); // Always use main OBS settings (Advanced section is hidden)
 	if (canvasDock->stream_audio_track > 0)
 		streamingAudioTracks[canvasDock->stream_audio_track - 1]->setChecked(true);
 
@@ -1396,7 +1396,7 @@ void OBSBasicSettings::SaveSettings()
 		}
 	}
 
-	auto sa = !streamingUseMain->isChecked();
+	auto sa = false; // !streamingUseMain->isChecked();
 	auto se = streamingEncoder->currentData().toString().toUtf8();
 	if (canvasDock->stream_advanced_settings != sa || canvasDock->stream_encoder != se.constData()) {
 		canvasDock->stream_advanced_settings = sa;
