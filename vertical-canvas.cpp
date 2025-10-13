@@ -4654,7 +4654,7 @@ bool CanvasDock::add_sources_of_type_to_menu(void *param, obs_source_t *source)
 		QList<QAction *> actions = menu->actions();
 		QAction *after = nullptr;
 		for (QAction *menuAction : actions) {
-			if (menuAction->text().compare(name) >= 0) {
+			if (menuAction->text().compare(name, Qt::CaseInsensitive) >= 0) {
 				after = menuAction;
 				break;
 			}
@@ -4721,7 +4721,7 @@ void CanvasDock::AddSourceTypeToMenu(QMenu *popup, const char *source_type, cons
 	QList<QAction *> actions = popup->actions();
 	QAction *after = nullptr;
 	for (QAction *menuAction : actions) {
-		if (menuAction->text().compare(name) >= 0) {
+		if (menuAction->text().compare(name, Qt::CaseInsensitive) >= 0) {
 			after = menuAction;
 			break;
 		}
@@ -4793,10 +4793,18 @@ void CanvasDock::AddSourceFromAction()
 		QString text = placeHolderText;
 		int i = 2;
 		OBSSourceAutoRelease s = nullptr;
-		while ((s = obs_get_source_by_name(text.toUtf8().constData()))) {
-			text = QString("%1 %2").arg(placeHolderText).arg(i++);
+		obs_source_t *created_source = nullptr;
+		if (obs_get_source_output_flags(id) & OBS_SOURCE_REQUIRES_CANVAS) {
+			while ((s = obs_canvas_get_source_by_name(canvas, text.toUtf8().constData()))) {
+				text = QString("%1 %2").arg(placeHolderText).arg(i++);
+			}
+			created_source = obs_scene_get_source(obs_canvas_scene_create(canvas, text.toUtf8().constData()));
+		} else {
+			while ((s = obs_get_source_by_name(text.toUtf8().constData()))) {
+				text = QString("%1 %2").arg(placeHolderText).arg(i++);
+			}
+			created_source = obs_source_create(id, text.toUtf8().constData(), nullptr, nullptr);
 		}
-		obs_source_t *created_source = obs_source_create(id, text.toUtf8().constData(), nullptr, nullptr);
 		obs_scene_add(scene, created_source);
 		if (obs_source_configurable(created_source)) {
 			obs_frontend_open_source_properties(created_source);
@@ -7859,6 +7867,7 @@ void CanvasDock::DeleteProjector(OBSProjector *projector)
 		}
 	}
 }
+
 OBSProjector *CanvasDock::OpenProjector(int monitor)
 {
 	/* seriously?  10 monitors? */

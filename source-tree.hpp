@@ -77,6 +77,8 @@ private:
 
 	SourceTree *tree;
 	OBSSceneItem sceneitem;
+	std::vector<OBSSignal> sigs;
+	static void removeScene(void *data, calldata_t *cd);
 	static void removeItem(void *data, calldata_t *cd);
 	static void itemVisible(void *data, calldata_t *cd);
 	static void itemLocked(void *data, calldata_t *cd);

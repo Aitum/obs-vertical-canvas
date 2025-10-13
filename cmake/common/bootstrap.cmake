@@ -30,16 +30,6 @@ set(
 )
 # gersemi: on
 
-# Prohibit in-source builds
-if("${CMAKE_CURRENT_BINARY_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
-  message(
-    FATAL_ERROR
-    "In-source builds are not supported. "
-    "Specify a build directory via 'cmake -S <SOURCE DIRECTORY> -B <BUILD_DIRECTORY>' instead."
-  )
-  file(REMOVE_RECURSE "${CMAKE_CURRENT_SOURCE_DIR}/CMakeCache.txt" "${CMAKE_CURRENT_SOURCE_DIR}/CMakeFiles")
-endif()
-
 # Add common module directories to default search path
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/common")
 
@@ -51,12 +41,14 @@ string(JSON _author GET ${buildspec} author)
 string(JSON _email GET ${buildspec} email)
 string(JSON _version GET ${buildspec} version)
 string(JSON _bundleId GET ${buildspec} platformConfig macos bundleId)
+string(JSON _uuidApp GET ${buildspec} uuids windowsApp)
 
 set(PLUGIN_AUTHOR ${_author})
 set(PLUGIN_WEBSITE ${_website})
 set(PLUGIN_EMAIL ${_email})
 set(PLUGIN_VERSION ${_version})
 set(MACOS_BUNDLEID ${_bundleId})
+set(UUID_APP ${_uuidApp})
 
 string(REPLACE "." ";" _version_canonical "${_version}")
 list(GET _version_canonical 0 PLUGIN_VERSION_MAJOR)
