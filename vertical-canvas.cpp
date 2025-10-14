@@ -4819,8 +4819,10 @@ bool CanvasDock::StartVideo()
 	obs_frontend_canvas_list cl = {};
 	obs_frontend_get_canvases(&cl);
 	for (size_t i = 0; i < cl.canvases.num; i++) {
-		if (strcmp(obs_canvas_get_name(cl.canvases.array[i]), CANVAS_NAME) == 0) {
+		if (strcmp(obs_canvas_get_name(cl.canvases.array[i]), CANVAS_NAME) == 0 &&
+		    !obs_canvas_removed(cl.canvases.array[i])) {
 			c = obs_canvas_get_ref(cl.canvases.array[i]);
+			break;
 		}
 	}
 	obs_frontend_canvas_list_free(&cl);
@@ -6683,14 +6685,34 @@ void CanvasDock::LoadScenes()
 	struct obs_frontend_source_list scenes = {};
 	obs_frontend_get_scenes(&scenes);
 	for (size_t i = 0; i < scenes.sources.num; i++) {
-		const obs_source_t *src = scenes.sources.array[i];
+		obs_source_t *src = scenes.sources.array[i];
 		obs_data_t *settings = obs_source_get_settings(src);
 		if (obs_data_get_bool(settings, "custom_size") && obs_data_get_int(settings, "cx") == canvas_width &&
 		    obs_data_get_int(settings, "cy") == canvas_height) {
 			obs_data_set_bool(settings, "custom_size", false);
 			auto sh = obs_source_get_signal_handler(src);
 			signal_handler_connect(sh, "rename", source_rename, this);
+			std::list<obs_sceneitem_t *> group_items;
+			obs_scene_enum_items(
+				obs_scene_from_source(src), [](obs_scene_t *, obs_sceneitem_t *item, void *param) {
+					if (!obs_sceneitem_is_group(item))
+						return true;
+					auto groups = (std::list<obs_sceneitem_t *> *)param;
+					obs_sceneitem_addref(item);
+					groups->push_back(item);
+					return true;
+				},
+				&group_items);
+			foreach(auto &item, group_items)
+			{
+				obs_sceneitem_remove(item);
+			}
 			obs_canvas_move_scene(obs_scene_from_source(src), canvas);
+			obs_source_load(src);
+			foreach(auto &item, group_items)
+			{
+				obs_sceneitem_release(item);
+			}
 			QString name = QString::fromUtf8(obs_source_get_name(src));
 			if (scenesCombo)
 				scenesCombo->addItem(name);
