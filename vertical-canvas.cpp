@@ -4944,8 +4944,18 @@ void CanvasDock::StartVirtualCam()
 		started_canvas = canvas;
 		virtual_video = obs_canvas_get_video(canvas);
 	} else if (virtual_cam_mode == VIRTUAL_CAMERA_BOTH) {
+		if (multiCanvas && obs_canvas_removed(multiCanvas)) {
+			obs_canvas_release(multiCanvas);
+			multiCanvas = nullptr;
+		}
 		if (!multiCanvas) {
-			multiCanvas = obs_canvas_create("multiCanvas", nullptr, DEVICE);
+			multiCanvas = obs_get_canvas_by_name("multiCanvas");
+			if (multiCanvas && obs_canvas_removed(multiCanvas)) {
+				obs_canvas_release(multiCanvas);
+				multiCanvas = nullptr;
+			}
+			if (!multiCanvas)
+				multiCanvas = obs_canvas_create("multiCanvas", nullptr, DEVICE);
 		}
 		started_canvas = multiCanvas;
 		if (!multiCanvasSource) {
@@ -4955,13 +4965,18 @@ void CanvasDock::StartVirtualCam()
 			multi_canvas_source_add_canvas(view_data, canvas, canvas_width, canvas_height);
 		}
 		if (!multiCanvasVideo) {
+			auto w = obs_source_get_width(multiCanvasSource);
+			auto h = obs_source_get_height(multiCanvasSource);
 			obs_video_info ovi;
-			obs_get_video_info(&ovi);
-			ovi.base_width = obs_source_get_width(multiCanvasSource);
-			ovi.base_height = obs_source_get_height(multiCanvasSource);
-			ovi.output_width = ovi.base_width;
-			ovi.output_height = ovi.base_height;
-			obs_canvas_reset_video(multiCanvas, &ovi);
+			if (!obs_canvas_get_video_info(multiCanvas, &ovi) || ovi.base_width != w || ovi.base_height != h ||
+			    ovi.output_width != w || ovi.output_height != h) {
+				obs_get_video_info(&ovi);
+				ovi.base_width = w;
+				ovi.base_height = h;
+				ovi.output_width = w;
+				ovi.output_height = h;
+				obs_canvas_reset_video(multiCanvas, &ovi);
+			}
 			multiCanvasVideo = obs_canvas_get_video(multiCanvas);
 			started_video = true;
 		}
@@ -6694,7 +6709,8 @@ void CanvasDock::LoadScenes()
 			signal_handler_connect(sh, "rename", source_rename, this);
 			std::list<obs_sceneitem_t *> group_items;
 			obs_scene_enum_items(
-				obs_scene_from_source(src), [](obs_scene_t *, obs_sceneitem_t *item, void *param) {
+				obs_scene_from_source(src),
+				[](obs_scene_t *, obs_sceneitem_t *item, void *param) {
 					if (!obs_sceneitem_is_group(item))
 						return true;
 					auto groups = (std::list<obs_sceneitem_t *> *)param;
