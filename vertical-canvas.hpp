@@ -440,6 +440,7 @@ public:
 	inline uint32_t GetCanvasWidth() const { return canvas_width; }
 	inline uint32_t GetCanvasHeight() const { return canvas_height; }
 	inline video_t *GetVideo() const { return obs_canvas_get_video(canvas); }
+	inline QString GetScene() const { return currentSceneName; }
 	bool LoadStreamOutputs(obs_data_array_t *outputs);
 	obs_data_array_t *SaveStreamOutputs();
 	void StartStreamOutput(std::string name);

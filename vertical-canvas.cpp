@@ -320,6 +320,32 @@ static void add_chapter(void *data, calldata_t *cd)
 	}
 }
 
+static void get_scene(void *data, calldata_t *cd)
+{
+	UNUSED_PARAMETER(data);
+	const auto width = calldata_int(cd, "width");
+	const auto height = calldata_int(cd, "height");
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
+			continue;
+		calldata_set_string(cd, "scene", it->GetScene().toUtf8().constData());
+		return;
+	}
+}
+
+static void switch_scene(void *data, calldata_t *cd)
+{
+	UNUSED_PARAMETER(data);
+	const auto width = calldata_int(cd, "width");
+	const auto height = calldata_int(cd, "height");
+	QString scene = QString::fromUtf8(calldata_string(cd, "scene"));
+	for (const auto &it : canvas_docks) {
+		if ((width && it->GetCanvasWidth() != width) || (height && it->GetCanvasHeight() != height))
+			continue;
+		QMetaObject::invokeMethod(it, "SwitchScene", Q_ARG(QString, scene));
+	}
+}
+
 obs_websocket_vendor vendor = nullptr;
 
 void vendor_request_version(obs_data_t *request_data, obs_data_t *response_data, void *)
@@ -591,6 +617,9 @@ bool obs_module_load(void)
 	proc_handler_add(ph, "void aitum_vertical_stop_stream_output(in int width, in int height, in string name)",
 			 stop_stream_output, nullptr);
 	proc_handler_add(ph, "void aitum_vertical_add_chapter(in int width, in int height, in string chapter_name)", add_chapter,
+			 nullptr);
+	proc_handler_add(ph, "void aitum_vertical_get_scene(in int width, in int height, out string scene)", get_scene, nullptr);
+	proc_handler_add(ph, "void aitum_vertical_switch_scene(in int width, in int height, in string scene)", switch_scene,
 			 nullptr);
 
 	return true;
