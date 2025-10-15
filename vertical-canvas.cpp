@@ -6929,7 +6929,10 @@ bool CanvasDock::SwapTransition(obs_source_t *newTransition)
 
 	obs_source_t *oldTransition = obs_weak_source_get_source(source);
 	if (!oldTransition || obs_source_get_type(oldTransition) != OBS_SOURCE_TYPE_TRANSITION) {
-		obs_source_release(oldTransition);
+		if (oldTransition) {
+			obs_transition_set(newTransition, oldTransition);
+			obs_source_release(oldTransition);
+		}
 		obs_weak_source_release(source);
 		source = obs_source_get_weak_source(newTransition);
 		if (canvas)
