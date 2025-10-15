@@ -118,30 +118,33 @@ SourceTreeItem::SourceTreeItem(SourceTree *tree_, OBSSceneItem sceneitem_) : tre
 		QPixmap pixmap = icon.pixmap(QSize(16, 16));
 
 		iconLabel = new QLabel();
+		iconLabel->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
 		iconLabel->setPixmap(pixmap);
 		iconLabel->setEnabled(sourceVisible);
 		iconLabel->setStyleSheet("background: none");
+		iconLabel->setProperty("class", "source-icon");
 	}
 
 	vis = new VisibilityCheckBox();
-	vis->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+	vis->setProperty("class", "checkbox-icon indicator-visibility");
 	vis->setChecked(sourceVisible);
 	vis->setStyleSheet("background: none");
 	vis->setAccessibleName(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.Sources.Visibility")));
 	vis->setAccessibleDescription(
 		QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.Sources.VisibilityDescription")).arg(name));
+	vis->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
 
 	lock = new LockedCheckBox();
-	lock->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+	lock->setProperty("class", "checkbox-icon indicator-lock");
 	lock->setChecked(obs_sceneitem_locked(sceneitem));
 	lock->setStyleSheet("background: none");
 	lock->setAccessibleName(QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.Sources.Lock")));
 	lock->setAccessibleDescription(
 		QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.Sources.LockDescription")).arg(name));
+	lock->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
 
 	label = new QLabel(QString::fromUtf8(name));
-	label->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-	label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+	label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
 	label->setAttribute(Qt::WA_TranslucentBackground);
 	label->setEnabled(sourceVisible);
 
@@ -529,8 +532,6 @@ void SourceTreeItem::Renamed(const QString &name)
 
 void SourceTreeItem::Update(bool force)
 {
-	if (std::find(canvas_docks.begin(), canvas_docks.end(), tree->canvasDock) == canvas_docks.end())
-		return;
 	obs_scene_t *scene = tree->canvasDock->scene;
 	obs_scene_t *itemScene = obs_sceneitem_get_scene(sceneitem);
 
@@ -586,8 +587,6 @@ void SourceTreeItem::Update(bool force)
 	} else if (type == Type::Group) {
 		expand = new SourceTreeSubItemCheckBox();
 		expand->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
-		expand->setMaximumSize(10, 16);
-		expand->setMinimumSize(10, 0);
 #ifdef __APPLE__
 		expand->setAttribute(Qt::WA_LayoutUsesWidgetRect);
 #endif
