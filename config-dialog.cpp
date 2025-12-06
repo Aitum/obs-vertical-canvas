@@ -575,7 +575,7 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	connect(button, &QPushButton::clicked, [this] {
 		const QString dir = QFileDialog::getExistingDirectory(
 			this, QString::fromUtf8(obs_frontend_get_locale_string("Basic.Settings.Output.Simple.SavePath")),
-			backtrackPath->text(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+			recordPath->text(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 		if (dir.isEmpty())
 			return;
 		recordPath->setText(dir);
