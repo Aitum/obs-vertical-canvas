@@ -1508,10 +1508,14 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 			return obs_weak_source_get_source(dock->source);
 		};
 	}
+
+
+	obs_frontend_add_save_callback(save_load, this);
 }
 
 CanvasDock::~CanvasDock()
 {
+	obs_frontend_remove_save_callback(save_load, this);
 	for (auto projector : projectors) {
 		delete projector;
 	}
@@ -6485,14 +6489,14 @@ void CanvasDock::DestroyVideo()
 	    (obs_output_active(virtualCamOutput) && multiCanvasVideo == nullptr))
 		return;
 
-	if (replayOutput)
+	if (replayOutput && obs_output_get_video_encoder(replayOutput))
 		obs_encoder_set_video(obs_output_get_video_encoder(replayOutput), nullptr);
-	if (recordOutput)
+	if (recordOutput && obs_output_get_video_encoder(recordOutput))
 		obs_encoder_set_video(obs_output_get_video_encoder(recordOutput), nullptr);
 	if (virtualCamOutput)
 		obs_output_set_media(virtualCamOutput, nullptr, obs_get_audio());
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
-		if (it->output)
+		if (it->output && obs_output_get_video_encoder(it->output))
 			obs_encoder_set_video(obs_output_get_video_encoder(it->output), nullptr);
 	}
 }
@@ -6760,10 +6764,12 @@ void CanvasDock::LoadScenes()
 				obs_sceneitem_release(item);
 			}
 			QString name = QString::fromUtf8(obs_source_get_name(src));
+			const int order = (int)obs_data_get_int(settings, "order");
 			if (scenesCombo)
-				scenesCombo->addItem(name);
-			if (scenesDock)
-				scenesDock->sceneList->addItem(name);
+				scenesCombo->insertItem(order, name);
+			if (scenesDock)	
+				scenesDock->sceneList->insertItem(order, name);
+			
 			if ((currentSceneName.isEmpty() && obs_data_get_bool(settings, "canvas_active")) ||
 			    name == currentSceneName) {
 				if (scenesCombo)
@@ -6781,6 +6787,25 @@ void CanvasDock::LoadScenes()
 		obs_data_release(settings);
 	}
 	obs_frontend_source_list_free(&scenes);
+	if (scenesDock && scenesDock->sceneList->count() > 0) {
+		QListWidgetItem *selectedItem = nullptr;
+		scenesDock->sceneList->blockSignals(true);
+		for (int idx = 0; idx < scenesDock->sceneList->count(); idx++) {
+			auto item = scenesDock->sceneList->takeItem(idx);
+			auto scene = obs_canvas_get_source_by_name(canvas, item->text().toUtf8().constData());
+			auto settings = obs_source_get_settings(scene);
+			const int order = (int)obs_data_get_int(settings, "order");
+			scenesDock->sceneList->insertItem(order, item);
+			if (obs_data_get_bool(settings, "canvas_active")) {
+				selectedItem = item;
+			}
+			obs_data_release(settings);
+			obs_source_release(scene);
+		}
+		scenesDock->sceneList->blockSignals(false);
+		if (selectedItem)
+			scenesDock->sceneList->setCurrentItem(selectedItem);
+	}
 	if ((scenesDock && scenesDock->sceneList->count() == 0) || (scenesCombo && scenesCombo->count() == 0)) {
 		AddScene("", false);
 	}
@@ -8269,6 +8294,42 @@ void CanvasDock::UpdateMulti()
 void CanvasDock::DisableStreamSettings()
 {
 	disable_stream_settings = true;
+}
+
+void CanvasDock::save_load(obs_data_t *save_data, bool saving, void *param)
+{
+	UNUSED_PARAMETER(save_data);
+	CanvasDock *window = static_cast<CanvasDock *>(param);
+	if (saving) {
+		if (window->scenesDock) {
+			auto c = window->scenesDock->sceneList->count();
+			for (int row = 0; row < c; row++) {
+				auto scene_name = window->scenesDock->sceneList->item(row)->text();
+				auto scene = obs_canvas_get_source_by_name(window->canvas, scene_name.toUtf8().constData());
+				if (scene) {
+					auto settings = obs_source_get_settings(scene);
+					obs_data_set_int(settings, "order", row);
+					obs_data_set_bool(settings, "canvas_active", scene_name == window->currentSceneName);
+					obs_data_release(settings);
+					obs_source_release(scene);
+				}
+			}
+		}
+		if (window->scenesCombo) {
+			auto c = window->scenesCombo->count();
+			for (int row = 0; row < c; row++) {
+				auto scene_name = window->scenesCombo->itemText(row);
+				auto scene = obs_canvas_get_source_by_name(window->canvas, scene_name.toUtf8().constData());
+				if (scene) {
+					auto settings = obs_source_get_settings(scene);
+					obs_data_set_int(settings, "order", row);
+					obs_data_set_bool(settings, "canvas_active", scene_name == window->currentSceneName);
+					obs_data_release(settings);
+					obs_source_release(scene);
+				}
+			}
+		}
+	}
 }
 
 LockedCheckBox::LockedCheckBox()

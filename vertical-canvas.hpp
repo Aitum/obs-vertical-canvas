@@ -371,6 +371,7 @@ private:
 	static void transition_override_stop(void *data, calldata_t *);
 
 	static void get_transitions(void *data, struct obs_frontend_source_list *sources);
+	static void save_load(obs_data_t *save_data, bool saving, void *param);
 
 private slots:
 	void AddSourceFromAction();
