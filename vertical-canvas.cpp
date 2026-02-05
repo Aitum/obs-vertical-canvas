@@ -946,10 +946,10 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	}
 	partnerBlockTime = (time_t)obs_data_get_int(settings, "partner_block");
 	canvas_width = (uint32_t)obs_data_get_int(settings, "width");
-	if (canvas_width & 1)
+	if ((canvas_width & 1) == 1)
 		canvas_width++;
 	canvas_height = (uint32_t)obs_data_get_int(settings, "height");
-	if (canvas_height & 1)
+	if ((canvas_height & 1) == 1)
 		canvas_height++;
 	if (!canvas_width || !canvas_height) {
 		canvas_width = 1080;
