@@ -373,6 +373,9 @@ private:
 	static void get_transitions(void *data, struct obs_frontend_source_list *sources);
 	static void save_load(obs_data_t *save_data, bool saving, void *param);
 
+	static bool LogSceneItem(obs_scene_t *, obs_sceneitem_t *item, void *v_val);
+	static void LogFilter(obs_source_t *, obs_source_t *filter, void *v_val);
+
 private slots:
 	void AddSourceFromAction();
 	void VirtualCamButtonClicked();
@@ -435,6 +438,7 @@ public:
 	void ClearScenes();
 	void StopOutputs();
 	void LoadScenes();
+	void LogScenes();
 	void FinishLoading();
 	void setAction(QAction *action);
 	CanvasScenesDock *GetScenesDock();
