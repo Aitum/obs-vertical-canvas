@@ -697,8 +697,14 @@ void obs_module_post_load(void)
 	obs_websocket_vendor_register_request(vendor, "pause_recording", vendor_request_pause_recording, nullptr);
 	obs_websocket_vendor_register_request(vendor, "unpause_recording", vendor_request_unpause_recording, nullptr);
 
-	version_update_info = update_info_create_single("[Vertical Canvas]", "OBS", "https://api.aitum.tv/plugin/vertical",
-							version_info_downloaded, nullptr);
+	std::string url = "https://api.aitum.tv/plugin/vertical";
+	const char *pguid = config_get_string(obs_frontend_get_app_config(), "General", "InstallGUID");
+	if (pguid) {
+		url += "?uuid=";
+		url += pguid;
+	}
+
+	version_update_info = update_info_create_single("[Vertical Canvas]", "OBS", url.c_str(), version_info_downloaded, nullptr);
 }
 
 void obs_module_unload(void)
@@ -1517,7 +1523,6 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 			return obs_weak_source_get_source(dock->source);
 		};
 	}
-
 
 	obs_frontend_add_save_callback(save_load, this);
 }
@@ -4846,7 +4851,7 @@ void CanvasDock::AddSourceFromAction()
 			while ((s = obs_get_source_by_name(text.toUtf8().constData()))) {
 				text = QString("%1 %2").arg(placeHolderText).arg(i++);
 			}
-			created_source = obs_source_create(id, text.toUtf8().constData(), nullptr, nullptr);
+			created_source = obs_source_create(v_id, text.toUtf8().constData(), nullptr, nullptr);
 		}
 		obs_scene_add(scene, created_source);
 		if (obs_source_configurable(created_source)) {
@@ -6776,9 +6781,9 @@ void CanvasDock::LoadScenes()
 			const int order = (int)obs_data_get_int(settings, "order");
 			if (scenesCombo)
 				scenesCombo->insertItem(order, name);
-			if (scenesDock)	
+			if (scenesDock)
 				scenesDock->sceneList->insertItem(order, name);
-			
+
 			if ((currentSceneName.isEmpty() && obs_data_get_bool(settings, "canvas_active")) ||
 			    name == currentSceneName) {
 				if (scenesCombo)
@@ -8120,7 +8125,7 @@ QMenu *CanvasDock::CreateVisibilityTransitionMenu(bool visible, obs_sceneitem_t 
 	auto setDuration = [visible, si](int dur) {
 		obs_sceneitem_set_transition_duration(si, visible, dur);
 	};
-	connect(duration, (void(QSpinBox::*)(int)) & QSpinBox::valueChanged, setDuration);
+	connect(duration, (void (QSpinBox::*)(int))&QSpinBox::valueChanged, setDuration);
 
 	QAction *a = menu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("None")));
 	a->setProperty("transition_id", QString::fromUtf8(""));
