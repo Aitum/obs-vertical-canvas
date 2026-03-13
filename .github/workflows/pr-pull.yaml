@@ -6,8 +6,7 @@ on:
     paths-ignore:
       - '**.md'
     branches: 
-      - 'master**'
-      - main
+      - master
     types: [ opened, synchronize, reopened ]
 permissions:
   contents: read

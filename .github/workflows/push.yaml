@@ -4,10 +4,7 @@ on:
   push:
     branches:
       - master
-      - main
-      - 'release/**'
-      - master-build
-      - master-restream
+      - upstream-build
     tags:
       - '*'
 permissions:
@@ -34,7 +31,7 @@ jobs:
   upload-to-s3:
     name: Upload to S3 ☁️
     needs: build-project
-    if: github.ref == 'refs/heads/master-restream'
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-22.04
     env:
       S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
