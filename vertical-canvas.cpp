@@ -3109,8 +3109,10 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 					 }
 					 if (!transformDialog)
 						 return;
-					 QMetaObject::invokeMethod(transformDialog, "SetItemQt",
-								   Q_ARG(OBSSceneItem, OBSSceneItem(sceneItem)));
+					 QMetaObject::invokeMethod(
+						 transformDialog,
+						 obs_get_version() >= MAKE_SEMANTIC_VERSION(32, 1, 0) ? "setItemQt" : "SetItemQt",
+						 Q_ARG(OBSSceneItem, OBSSceneItem(sceneItem)));
 				 });
 	transformMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Basic.MainMenu.Edit.Transform.ResetTransform")),
 				 this, [sceneItem] {
