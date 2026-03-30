@@ -786,6 +786,24 @@ void CanvasDock::AddScene(QString duplicate, bool ask_name)
 		if (!new_scene) {
 			obs_scene_t *canvas_scene = obs_canvas_scene_create(canvas, name.c_str());
 			new_scene = obs_scene_get_source(canvas_scene);
+
+			std::string ssn = obs_canvas_get_name(canvas);
+			ssn += " ";
+			ssn += obs_frontend_get_locale_string("Basic.Hotkeys.SelectScene");
+			obs_hotkey_register_source(
+				new_scene, "OBSBasic.SelectScene", ssn.c_str(),
+				[](void *data, obs_hotkey_id, obs_hotkey_t *key, bool pressed) {
+					if (!pressed)
+						return;
+					auto p = (CanvasDock *)data;
+					auto potential_source = (obs_weak_source_t *)obs_hotkey_get_registerer(key);
+					OBSSourceAutoRelease source = obs_weak_source_get_source(potential_source);
+					if (source) {
+						auto sn = QString::fromUtf8(obs_source_get_name(source));
+						QMetaObject::invokeMethod(p, "SwitchScene", Q_ARG(QString, sn), Q_ARG(bool, true));
+					}
+				},
+				this);
 		}
 		auto sh = obs_source_get_signal_handler(new_scene);
 		signal_handler_connect(sh, "rename", source_rename, this);
