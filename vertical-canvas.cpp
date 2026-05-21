@@ -97,7 +97,11 @@ static void save_canvas()
 	if (!path)
 		return;
 	ensure_directory(path);
-	obs_data_t *config = obs_data_create();
+	obs_data_t *config = obs_data_create_from_json_file_safe(path, "bak");
+	if (!config) {
+		config = obs_data_create();
+		blog(LOG_INFO, "[Vertical Canvas] New configuration file");
+	}
 	const auto canvas = obs_data_array_create();
 	for (const auto &it : canvas_docks) {
 		obs_data_t *s = it->SaveSettings();
