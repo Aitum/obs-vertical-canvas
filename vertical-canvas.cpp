@@ -157,6 +157,10 @@ void frontend_event(obs_frontend_event event, void *private_data)
 			it->LogScenes();
 			it->FinishLoading();
 		}
+		if (!canvas_docks.empty()) {
+			auto cd = canvas_docks.front();
+			cd->AskUpdate();
+		}
 	} else if (event == OBS_FRONTEND_EVENT_SCENE_CHANGED) {
 		for (const auto &it : canvas_docks) {
 			QMetaObject::invokeMethod(it, "MainSceneChanged", Qt::QueuedConnection);
@@ -8532,6 +8536,59 @@ void CanvasDock::LogFilter(obs_source_t *, obs_source_t *filter, void *v_val)
 		indent += "    ";
 
 	blog(LOG_INFO, "%s- filter: '%s' (%s)", indent.c_str(), name, id);
+}
+
+void CanvasDock::AskUpdate()
+{
+	if (newer_version_available.isEmpty())
+		return;
+	auto parts = newer_version_available.split(".");
+	if (parts.count() < 3)
+		return;
+	int major = parts.value(0).toInt();
+	int minor = parts.value(1).toInt();
+	int patch = parts.value(2).toInt();
+	auto sv = MAKE_SEMANTIC_VERSION(major, minor, patch);
+
+	char *path = obs_module_config_path("config.json");
+	if (!path)
+		return;
+
+	obs_data_t *config = obs_data_create_from_json_file_safe(path, "bak");
+
+	auto skip_version = config ? obs_data_get_int(config, "skip_version") : 0;
+	if (sv == skip_version) {
+		obs_data_release(config);
+		bfree(path);
+		return;
+	}
+
+	auto main_window = static_cast<QMainWindow *>(obs_frontend_get_main_window());
+
+	QMessageBox mb(QMessageBox::Question, QString::fromUtf8(obs_frontend_get_locale_string("Updater.Title")),
+		       QString::fromUtf8(obs_frontend_get_locale_string("Updater.Text")) + " " +
+			       QString::fromUtf8(obs_module_text("VerticalCanvas")) + " " + newer_version_available,
+		       QMessageBox::StandardButtons(), main_window);
+	auto update = mb.addButton(QString::fromUtf8(obs_frontend_get_locale_string("Updater.UpdateNow")), QMessageBox::YesRole);
+	auto remind =
+		mb.addButton(QString::fromUtf8(obs_frontend_get_locale_string("Updater.RemindMeLater")), QMessageBox::RejectRole);
+	auto skip = mb.addButton(QString::fromUtf8(obs_frontend_get_locale_string("Updater.Skip")), QMessageBox::NoRole);
+	mb.setDefaultButton(remind);
+	mb.exec();
+	if (mb.clickedButton() == update) {
+		QDesktopServices::openUrl(QUrl(QString::fromUtf8("https://aitum.tv/download/stream-suite")));
+	} else if (mb.clickedButton() == skip) {
+		if (!config)
+			config = obs_data_create();
+		obs_data_set_int(config, "skip_version", sv);
+		if (obs_data_save_json_safe(config, path, "tmp", "bak")) {
+			blog(LOG_INFO, "[Vertical Canvas] Saved settings");
+		} else {
+			blog(LOG_ERROR, "[Vertical Canvas] Failed saving settings");
+		}
+	}
+	obs_data_release(config);
+	bfree(path);
 }
 
 LockedCheckBox::LockedCheckBox()

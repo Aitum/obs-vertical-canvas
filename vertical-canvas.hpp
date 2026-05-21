@@ -466,6 +466,7 @@ public:
 	bool RecordingActive();
 	bool BacktrackActive();
 	bool VirtualCameraActive();
+	void AskUpdate();
 };
 
 class LockedCheckBox : public QCheckBox {
