@@ -6780,6 +6780,7 @@ void CanvasDock::LoadScenes()
 
 			obs_enum_hotkeys(
 				[](void *param, obs_hotkey_id id, obs_hotkey_t *key) {
+					UNUSED_PARAMETER(id);
 					auto f = (find_hotkey *)param;
 					if (obs_hotkey_get_registerer_type(key) != OBS_HOTKEY_REGISTERER_SOURCE)
 						return true;
