@@ -183,6 +183,7 @@ private:
 	obs_hotkey_pair_id virtual_cam_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
 	obs_hotkey_pair_id backtrack_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
 	obs_hotkey_pair_id pause_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
+	obs_hotkey_pair_id preview_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
 	obs_hotkey_id chapter_hotkey = OBS_INVALID_HOTKEY_ID;
 	obs_hotkey_id split_hotkey = OBS_INVALID_HOTKEY_ID;
 
@@ -361,6 +362,8 @@ private:
 	static bool stop_streaming_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed);
 	static bool pause_recording_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed);
 	static bool unpause_recording_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed);
+	static bool show_preview_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed);
+	static bool hide_preview_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed);
 	static void recording_chapter_hotkey(void *data, obs_hotkey_id id, obs_hotkey_t *hotkey, bool pressed);
 	static void recording_split_hotkey(void *data, obs_hotkey_id id, obs_hotkey_t *hotkey, bool pressed);
 

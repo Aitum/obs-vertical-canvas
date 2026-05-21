@@ -1505,6 +1505,21 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	obs_data_array_release(start_hotkey);
 	obs_data_array_release(stop_hotkey);
 
+	preview_hotkey = obs_hotkey_pair_register_frontend(
+		"VerticalCanvasDockShowPreview",
+		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.PreviewConextMenu.Enable")))
+			.toUtf8()
+			.constData(),
+		"VerticalCanvasDockHidePreview",
+		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.Preview.Disable"))).toUtf8().constData(),
+		show_preview_hotkey, hide_preview_hotkey, this, this);
+
+	start_hotkey = obs_data_get_array(settings, "show_preview_hotkey");
+	stop_hotkey = obs_data_get_array(settings, "hide_preview_hotkey");
+	obs_hotkey_pair_load(preview_hotkey, start_hotkey, stop_hotkey);
+	obs_data_array_release(start_hotkey);
+	obs_data_array_release(stop_hotkey);
+
 	chapter_hotkey = obs_hotkey_register_frontend(
 		"VerticalCanvasDockChapter",
 		(title + " " + QString::fromUtf8(obs_frontend_get_locale_string("Basic.Main.AddChapterMarker")))
@@ -1559,6 +1574,7 @@ CanvasDock::~CanvasDock()
 	obs_hotkey_pair_unregister(record_hotkey);
 	obs_hotkey_pair_unregister(stream_hotkey);
 	obs_hotkey_pair_unregister(pause_hotkey);
+	obs_hotkey_pair_unregister(preview_hotkey);
 	obs_hotkey_unregister(chapter_hotkey);
 	obs_hotkey_unregister(split_hotkey);
 	obs_display_remove_draw_callback(preview->GetDisplay(), DrawPreview, this);
@@ -6670,6 +6686,13 @@ obs_data_t *CanvasDock::SaveSettings()
 	obs_data_set_array(save_data, "unpause_hotkey", stop_hotkey);
 	obs_data_array_release(start_hotkey);
 	obs_data_array_release(stop_hotkey);
+	start_hotkey = nullptr;
+	stop_hotkey = nullptr;
+	obs_hotkey_pair_save(preview_hotkey, &start_hotkey, &stop_hotkey);
+	obs_data_set_array(save_data, "show_preview_hotkey", start_hotkey);
+	obs_data_set_array(save_data, "hide_preview_hotkey", stop_hotkey);
+	obs_data_array_release(start_hotkey);
+	obs_data_array_release(stop_hotkey);
 	start_hotkey = obs_hotkey_save(chapter_hotkey);
 	obs_data_set_array(save_data, "chapter_hotkey", start_hotkey);
 	obs_data_array_release(start_hotkey);
@@ -7611,6 +7634,39 @@ bool CanvasDock::unpause_recording_hotkey(void *data, obs_hotkey_pair_id id, obs
 	if (!obs_output_active(d->recordOutput) || !obs_output_paused(d->recordOutput))
 		return false;
 	obs_output_pause(d->recordOutput, false);
+	return true;
+}
+
+bool CanvasDock::show_preview_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed)
+{
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(hotkey);
+	if (!pressed)
+		return false;
+	const auto d = static_cast<CanvasDock *>(data);
+	if (!d->preview_disabled)
+		return false;
+	d->preview_disabled = false;
+	obs_display_set_enabled(d->preview->GetDisplay(), true);
+	d->preview->setVisible(true);
+	d->previewDisabledWidget->setVisible(false);
+
+	return true;
+}
+
+bool CanvasDock::hide_preview_hotkey(void *data, obs_hotkey_pair_id id, obs_hotkey_t *hotkey, bool pressed)
+{
+	UNUSED_PARAMETER(id);
+	UNUSED_PARAMETER(hotkey);
+	if (!pressed)
+		return false;
+	const auto d = static_cast<CanvasDock *>(data);
+	if (d->preview_disabled)
+		return false;
+	d->preview_disabled = true;
+	obs_display_set_enabled(d->preview->GetDisplay(), false);
+	d->preview->setVisible(false);
+	d->previewDisabledWidget->setVisible(true);
 	return true;
 }
 
