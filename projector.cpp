@@ -122,8 +122,13 @@ OBSProjector::~OBSProjector()
 void OBSProjector::SetMonitor(int monitor)
 {
 	savedMonitor = monitor;
-	screen = QGuiApplication::screens()[monitor];
-	setGeometry(screen->geometry());
+	auto screens = QGuiApplication::screens();
+	if (monitor < 0 || monitor >= screens.size())
+		screen = nullptr;
+	else
+		screen = screens[monitor];
+	if (screen)
+		setGeometry(screen->geometry());
 	showFullScreen();
 	SetHideCursor();
 }
