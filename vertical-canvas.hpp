@@ -141,6 +141,7 @@ private:
 	matrix4 screenToItem{};
 	matrix4 itemToScreen{};
 	matrix4 invGroupTransform{};
+	bool clearing = false;
 	obs_scene_t *scene = nullptr;
 	obs_canvas_t *canvas = nullptr;
 	obs_canvas_t *multiCanvas = nullptr;

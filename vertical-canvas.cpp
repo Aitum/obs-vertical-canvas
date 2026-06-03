@@ -6729,6 +6729,7 @@ obs_data_t *CanvasDock::SaveSettings()
 
 void CanvasDock::ClearScenes()
 {
+	clearing = true;
 	if (scenesCombo)
 		scenesCombo->clear();
 	if (scenesDock && scenesDock->sceneList->count())
@@ -6752,6 +6753,7 @@ void CanvasDock::StopOutputs()
 
 void CanvasDock::LoadScenes()
 {
+	clearing = false;
 	for (uint32_t i = MAX_CHANNELS - 1; i > 0; i--) {
 		auto s = obs_get_output_source(i);
 		if (s == nullptr) {
@@ -6925,6 +6927,8 @@ void CanvasDock::LoadScenes()
 
 void CanvasDock::SwitchScene(const QString &scene_name, bool transition)
 {
+	if (clearing && !scene_name.isEmpty())
+		return;
 	auto fs = scene_name.isEmpty() ? nullptr : obs_canvas_get_scene_by_name(canvas, scene_name.toUtf8().constData());
 	if (fs == scene || (fs == nullptr && !scene_name.isEmpty())) {
 		obs_scene_release(fs);
