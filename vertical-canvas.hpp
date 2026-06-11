@@ -142,6 +142,7 @@ private:
 	matrix4 itemToScreen{};
 	matrix4 invGroupTransform{};
 	bool clearing = false;
+	bool switching = false;
 	obs_scene_t *scene = nullptr;
 	obs_canvas_t *canvas = nullptr;
 	obs_canvas_t *multiCanvas = nullptr;
@@ -440,6 +441,7 @@ public:
 	~CanvasDock();
 
 	void ClearScenes();
+	void StartChangingSceneCollection() { switching = true; }
 	void StopOutputs();
 	void LoadScenes();
 	void LogScenes();
