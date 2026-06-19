@@ -1,4 +1,4 @@
-name: Push
+name:frantzso31 Push
 run-name: ${{ github.ref_name }} push run 🚀
 on:
   push:
