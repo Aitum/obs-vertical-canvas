@@ -4,7 +4,7 @@ on:
   workflow_call:
     outputs:
       pluginName:
-        description: 'Project name detected by parsing build spec file'
+        description: "Project name detected by parsing build spec file"
         value: ${{ jobs.check-event.outputs.pluginName }}
 jobs:
   check-event:
@@ -171,7 +171,7 @@ jobs:
     name: Build for Ubuntu 🐧
     runs-on: ubuntu-24.04
     needs: check-event
-    if: false  # Disabled: Ubuntu build is slow and not distributed to users
+    if: false # Disabled: Ubuntu build is slow and not distributed to users
     defaults:
       run:
         shell: bash
@@ -279,25 +279,36 @@ jobs:
       #   run: |
       #     & 'C:/Program Files (x86)/Windows Kits/10/bin/10.0.20348.0/x64/signtool.exe' sign /f certificate\certificate.pfx /p '${{ secrets.WINDOWS_CSC_PASS }}' /t http://timestamp.comodoca.com/authenticode .\release\${{ needs.check-event.outputs.config }}\obs-plugins\64bit\${{ steps.setup.outputs.pluginName }}.dll
 
-      - name: Install DigiCert Client tools
-        if: success() && github.ref == 'refs/heads/master'
-        uses: digicert/ssm-code-signing@v1.0.1
-
-      - name: Set up DigiCert certificate
-        if: success() && github.ref == 'refs/heads/master'
-        run: |
-          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
-        shell: bash
-
-      - name: Set DigiCert variables
+      - name: Set DigiCert variables and certificate
         if: success() && github.ref == 'refs/heads/master'
         id: variables
         run: |
-          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$env:GITHUB_ENV" 
-          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$env:GITHUB_ENV" 
-          echo "SM_CLIENT_CERT_FILE=D:\Certificate_pkcs12.p12" >> "$env:GITHUB_ENV" 
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$env:GITHUB_ENV"
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$env:GITHUB_ENV"
+          echo "SM_CLIENT_CERT_FILE=D:\Certificate_pkcs12.p12" >> "$env:GITHUB_ENV"
           echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$env:GITHUB_ENV"
         shell: pwsh
+
+      - name: Add signtool to PATH
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Where-Object { $_.FullName -match "\\x64\\signtool.exe$" } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+
+          if (-not $signtool) {
+            throw "signtool.exe was not found in Windows SDK path"
+          }
+
+          Write-Host "Found signtool: $($signtool.FullName)"
+          $signtoolDir = Split-Path $signtool.FullName -Parent
+          $signtoolDir | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Setup Software Trust Manager
+        id: stm-setup
+        uses: digicert/code-signing-software-trust-action@v1.2.1
 
       - name: Sign Plugin DLL using DigiCert
         if: success() && github.ref == 'refs/heads/master'
