@@ -3414,6 +3414,18 @@ void CanvasDock::AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem)
 	a->setCheckable(true);
 	a->setChecked(blendingMode == OBS_BLEND_DARKEN);
 
+	auto blendingMethod = obs_sceneitem_get_blending_method(sceneItem);
+	blendingMenu = popup->addMenu(QString::fromUtf8(obs_frontend_get_locale_string("BlendingMethod")));
+	a = blendingMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("BlendingMethod.Default")), this,
+				    [sceneItem] { obs_sceneitem_set_blending_method(sceneItem, OBS_BLEND_METHOD_DEFAULT); });
+	a->setCheckable(true);
+	a->setChecked(blendingMethod == OBS_BLEND_METHOD_DEFAULT);
+
+	a = blendingMenu->addAction(QString::fromUtf8(obs_frontend_get_locale_string("BlendingMethod.SrgbOff")), this,
+				    [sceneItem] { obs_sceneitem_set_blending_method(sceneItem, OBS_BLEND_METHOD_SRGB_OFF); });
+	a->setCheckable(true);
+	a->setChecked(blendingMethod == OBS_BLEND_METHOD_SRGB_OFF);
+
 	popup->addSeparator();
 	popup->addMenu(CreateVisibilityTransitionMenu(true, sceneItem));
 	popup->addMenu(CreateVisibilityTransitionMenu(false, sceneItem));
