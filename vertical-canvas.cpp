@@ -620,6 +620,39 @@ void vendor_request_unpause_recording(obs_data_t *request_data, obs_data_t *resp
 	obs_data_set_bool(response_data, "success", false);
 }
 
+static bool vendor_request_canvas_match(CanvasDock *dock, obs_data_t *request_data)
+{
+	const auto width = obs_data_get_int(request_data, "width");
+	const auto height = obs_data_get_int(request_data, "height");
+	return !((width && dock->GetCanvasWidth() != width) || (height && dock->GetCanvasHeight() != height));
+}
+
+void vendor_request_record_status(obs_data_t *request_data, obs_data_t *response_data, void *)
+{
+	for (const auto &it : canvas_docks) {
+		if (!vendor_request_canvas_match(it, request_data)) {
+			continue;
+		}
+		it->FillRecordStatus(response_data);
+		obs_data_set_bool(response_data, "success", true);
+		return;
+	}
+	obs_data_set_bool(response_data, "success", false);
+}
+
+void vendor_request_stream_status(obs_data_t *request_data, obs_data_t *response_data, void *)
+{
+	for (const auto &it : canvas_docks) {
+		if (!vendor_request_canvas_match(it, request_data)) {
+			continue;
+		}
+		it->FillStreamStatus(response_data);
+		obs_data_set_bool(response_data, "success", true);
+		return;
+	}
+	obs_data_set_bool(response_data, "success", false);
+}
+
 update_info_t *version_update_info = nullptr;
 
 bool version_info_downloaded(void *param, struct file_download_data *file)
@@ -748,6 +781,8 @@ void obs_module_post_load(void)
 	obs_websocket_vendor_register_request(vendor, "add_chapter", vendor_request_add_chapter, nullptr);
 	obs_websocket_vendor_register_request(vendor, "pause_recording", vendor_request_pause_recording, nullptr);
 	obs_websocket_vendor_register_request(vendor, "unpause_recording", vendor_request_unpause_recording, nullptr);
+	obs_websocket_vendor_register_request(vendor, "record_status", vendor_request_record_status, nullptr);
+	obs_websocket_vendor_register_request(vendor, "stream_status", vendor_request_stream_status, nullptr);
 }
 
 void obs_module_unload(void)
@@ -774,6 +809,8 @@ void obs_module_unload(void)
 		obs_websocket_vendor_unregister_request(vendor, "add_chapter");
 		obs_websocket_vendor_unregister_request(vendor, "pause_recording");
 		obs_websocket_vendor_unregister_request(vendor, "unpause_recording");
+		obs_websocket_vendor_unregister_request(vendor, "record_status");
+		obs_websocket_vendor_unregister_request(vendor, "stream_status");
 	}
 	obs_frontend_remove_event_callback(frontend_event, nullptr);
 	if (version_update_info) {
@@ -5561,9 +5598,11 @@ void CanvasDock::StartRecord()
 	signal_handler_disconnect(signal, "start", record_output_start, this);
 	signal_handler_disconnect(signal, "stop", record_output_stop, this);
 	signal_handler_disconnect(signal, "stopping", record_output_stopping, this);
+	signal_handler_disconnect(signal, "file_changed", record_output_file_changed, this);
 	signal_handler_connect(signal, "start", record_output_start, this);
 	signal_handler_connect(signal, "stop", record_output_stop, this);
 	signal_handler_connect(signal, "stopping", record_output_stopping, this);
+	signal_handler_connect(signal, "file_changed", record_output_file_changed, this);
 
 	std::string filenameFormat;
 	if (record_advanced_settings) {
@@ -5617,6 +5656,7 @@ void CanvasDock::StartRecord()
 	obs_data_set_int(ps, "max_time_sec", max_time_sec);
 	obs_output_update(recordOutput, ps);
 	obs_data_release(ps);
+	SetLastRecordFile(path);
 
 	SendVendorEvent("recording_starting");
 	const bool success = obs_output_start(recordOutput);
@@ -5642,7 +5682,11 @@ void CanvasDock::record_output_start(void *data, calldata_t *calldata)
 {
 	UNUSED_PARAMETER(calldata);
 	auto d = static_cast<CanvasDock *>(data);
-	d->SendVendorEvent("recording_started");
+	const auto e = obs_data_create();
+	d->recordBytesAtStart = obs_output_get_total_bytes(d->recordOutput);
+	obs_data_set_string(e, "path", d->LastRecordFile().c_str());
+	d->SendVendorEvent("recording_started", e);
+	obs_data_release(e);
 	d->CheckReplayBuffer(true);
 	QMetaObject::invokeMethod(d, "OnRecordStart");
 }
@@ -5654,11 +5698,26 @@ void CanvasDock::record_output_stop(void *data, calldata_t *calldata)
 	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
 	const auto e = obs_data_create();
+	obs_data_set_string(e, "path", d->LastRecordFile().c_str());
 	obs_data_set_int(e, "code", code);
 	obs_data_set_string(e, "last_error", last_error ? last_error : "");
 	d->SendVendorEvent("recording_stopped", e);
 	obs_data_release(e);
 	QMetaObject::invokeMethod(d, "OnRecordStop", Q_ARG(int, code), Q_ARG(QString, arg_last_error));
+}
+
+void CanvasDock::record_output_file_changed(void *data, calldata_t *calldata)
+{
+	const char *next_file = calldata_string(calldata, "next_file");
+	if (!next_file) {
+		return;
+	}
+	auto d = static_cast<CanvasDock *>(data);
+	d->SetLastRecordFile(next_file);
+	const auto e = obs_data_create();
+	obs_data_set_string(e, "path", next_file);
+	d->SendVendorEvent("recording_file_changed", e);
+	obs_data_release(e);
 }
 
 void CanvasDock::record_output_stopping(void *data, calldata_t *calldata)
@@ -6808,9 +6867,11 @@ void CanvasDock::StopStream()
 
 void CanvasDock::stream_output_start(void *data, calldata_t *calldata)
 {
-	UNUSED_PARAMETER(calldata);
 	auto d = static_cast<CanvasDock *>(data);
-	d->SendVendorEvent("streaming_started");
+	const auto e = obs_data_create();
+	obs_data_set_string(e, "name", d->StreamOutputName((obs_output_t *)calldata_ptr(calldata, "output")).c_str());
+	d->SendVendorEvent("streaming_started", e);
+	obs_data_release(e);
 	d->CheckReplayBuffer(true);
 	QMetaObject::invokeMethod(d, "OnStreamStart");
 }
@@ -6822,6 +6883,7 @@ void CanvasDock::stream_output_stop(void *data, calldata_t *calldata)
 	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
 	const auto e = obs_data_create();
+	obs_data_set_string(e, "name", d->StreamOutputName((obs_output_t *)calldata_ptr(calldata, "output")).c_str());
 	obs_data_set_int(e, "code", code);
 	obs_data_set_string(e, "last_error", last_error ? last_error : "");
 	d->SendVendorEvent("streaming_stopped", e);
@@ -8319,6 +8381,75 @@ void CanvasDock::SendVendorEvent(const char *event_name, obs_data_t *data)
 	obs_data_set_int(d, "height", canvas_height);
 	obs_websocket_vendor_emit_event(vendor, event_name, d);
 	obs_data_release(d);
+}
+
+void CanvasDock::SetLastRecordFile(const char *path)
+{
+	std::lock_guard<std::mutex> lock(lastRecordFileMutex);
+	lastRecordFile = path ? path : "";
+}
+
+std::string CanvasDock::LastRecordFile()
+{
+	std::lock_guard<std::mutex> lock(lastRecordFileMutex);
+	return lastRecordFile;
+}
+
+std::string CanvasDock::StreamOutputName(obs_output_t *output)
+{
+	if (!output) {
+		return "";
+	}
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		if (it->output == output) {
+			return it->name;
+		}
+	}
+	return "";
+}
+
+static uint64_t output_duration_ms(obs_output_t *output)
+{
+	video_t *video = obs_output_video(output);
+	if (!video) {
+		return 0;
+	}
+	return util_mul_div64(obs_output_get_total_frames(output), video_output_get_frame_time(video), 1000000ULL);
+}
+
+void CanvasDock::FillRecordStatus(obs_data_t *response_data)
+{
+	const bool active = obs_output_active(recordOutput);
+	obs_data_set_bool(response_data, "active", active);
+	obs_data_set_bool(response_data, "paused", active && obs_output_paused(recordOutput));
+	obs_data_set_string(response_data, "path", LastRecordFile().c_str());
+	obs_data_set_int(response_data, "duration_ms", active ? (long long)output_duration_ms(recordOutput) : 0);
+	const uint64_t bytes = active ? obs_output_get_total_bytes(recordOutput) : 0;
+	obs_data_set_int(response_data, "bytes", bytes > recordBytesAtStart ? (long long)(bytes - recordBytesAtStart) : 0);
+}
+
+void CanvasDock::FillStreamStatus(obs_data_t *response_data)
+{
+	auto outputs = obs_data_array_create();
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		auto o = obs_data_create();
+		const bool active = it->output && obs_output_active(it->output);
+		obs_data_set_string(o, "name", it->name.c_str());
+		obs_data_set_bool(o, "enabled", it->enabled);
+		obs_data_set_bool(o, "active", active);
+		if (active) {
+			obs_data_set_bool(o, "reconnecting", obs_output_reconnecting(it->output));
+			obs_data_set_int(o, "duration_ms", (long long)output_duration_ms(it->output));
+			obs_data_set_int(o, "bytes", (long long)obs_output_get_total_bytes(it->output));
+			obs_data_set_int(o, "total_frames", obs_output_get_total_frames(it->output));
+			obs_data_set_int(o, "dropped_frames", obs_output_get_frames_dropped(it->output));
+			obs_data_set_double(o, "congestion", obs_output_get_congestion(it->output));
+		}
+		obs_data_array_push_back(outputs, o);
+		obs_data_release(o);
+	}
+	obs_data_set_array(response_data, "outputs", outputs);
+	obs_data_array_release(outputs);
 }
 
 static bool nudge_callback(obs_scene_t *, obs_sceneitem_t *item, void *param)
