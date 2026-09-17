@@ -481,6 +481,7 @@ public:
 	std::string LastRecordFile();
 	void FillRecordStatus(obs_data_t *response_data);
 	void FillStreamStatus(obs_data_t *response_data);
+	void FillSettings(obs_data_t *response_data);
 	void AskUpdate();
 };
 

@@ -640,6 +640,19 @@ void vendor_request_record_status(obs_data_t *request_data, obs_data_t *response
 	obs_data_set_bool(response_data, "success", false);
 }
 
+void vendor_request_get_settings(obs_data_t *request_data, obs_data_t *response_data, void *)
+{
+	for (const auto &it : canvas_docks) {
+		if (!vendor_request_canvas_match(it, request_data)) {
+			continue;
+		}
+		it->FillSettings(response_data);
+		obs_data_set_bool(response_data, "success", true);
+		return;
+	}
+	obs_data_set_bool(response_data, "success", false);
+}
+
 void vendor_request_stream_status(obs_data_t *request_data, obs_data_t *response_data, void *)
 {
 	for (const auto &it : canvas_docks) {
@@ -783,6 +796,7 @@ void obs_module_post_load(void)
 	obs_websocket_vendor_register_request(vendor, "unpause_recording", vendor_request_unpause_recording, nullptr);
 	obs_websocket_vendor_register_request(vendor, "record_status", vendor_request_record_status, nullptr);
 	obs_websocket_vendor_register_request(vendor, "stream_status", vendor_request_stream_status, nullptr);
+	obs_websocket_vendor_register_request(vendor, "get_settings", vendor_request_get_settings, nullptr);
 }
 
 void obs_module_unload(void)
@@ -811,6 +825,7 @@ void obs_module_unload(void)
 		obs_websocket_vendor_unregister_request(vendor, "unpause_recording");
 		obs_websocket_vendor_unregister_request(vendor, "record_status");
 		obs_websocket_vendor_unregister_request(vendor, "stream_status");
+		obs_websocket_vendor_unregister_request(vendor, "get_settings");
 	}
 	obs_frontend_remove_event_callback(frontend_event, nullptr);
 	if (version_update_info) {
@@ -8450,6 +8465,112 @@ void CanvasDock::FillStreamStatus(obs_data_t *response_data)
 	}
 	obs_data_set_array(response_data, "outputs", outputs);
 	obs_data_array_release(outputs);
+}
+
+// Mirrors what StartRecord resolves from the profile, without its side effects.
+void CanvasDock::FillSettings(obs_data_t *response_data)
+{
+	config_t *config = obs_frontend_get_profile_config();
+	const char *mode = config_get_string(config, "Output", "Mode");
+	const bool advanced_output = mode && strcmp(mode, "Advanced") == 0;
+
+	std::string dir;
+	std::string format;
+	std::string filenameFormat;
+	bool ffmpegOutput = false;
+	auto str = [](const char *s) { return std::string(s ? s : ""); };
+
+	if (record_advanced_settings) {
+		dir = recordPath;
+		format = file_format.empty() ? "mkv" : file_format;
+		filenameFormat = filename_formatting;
+		if (filenameFormat.empty()) {
+			filenameFormat = str(config_get_string(config, "Output", "FilenameFormatting")) + "-vertical";
+		}
+	} else {
+		const char *section = advanced_output ? "AdvOut" : "SimpleOutput";
+		if (advanced_output) {
+			ffmpegOutput = strcmp(str(config_get_string(config, "AdvOut", "RecType")).c_str(), "FFmpeg") == 0;
+			dir = str(config_get_string(config, "AdvOut", ffmpegOutput ? "FFFilePath" : "RecFilePath"));
+		} else {
+			dir = str(config_get_string(config, "SimpleOutput", "FilePath"));
+			ffmpegOutput = str(config_get_string(config, "SimpleOutput", "RecQuality")) == "Lossless";
+		}
+		if (advanced_output && ffmpegOutput && config_get_bool(config, "AdvOut", "FFOutputToFile")) {
+			format = str(config_get_string(config, "AdvOut", "FFExtension"));
+		} else if (!config_has_user_value(config, section, "RecFormat2") &&
+			   config_has_user_value(config, section, "RecFormat")) {
+			format = str(config_get_string(config, section, "RecFormat"));
+		} else {
+			format = str(config_get_string(config, section, "RecFormat2"));
+		}
+		filenameFormat = str(config_get_string(config, "Output", "FilenameFormatting")) + "-vertical";
+	}
+	// StartRecord keeps the first folder it records to, whatever the profile says afterwards.
+	if (!recordPath.empty()) {
+		dir = recordPath;
+	}
+	if (format.empty()) {
+		format = "mkv";
+	}
+	std::string ext = format;
+	if (ffmpegOutput) {
+		ext = "avi";
+	} else if (ext == "hybrid_mp4" || ext == "fragmented_mp4") {
+		ext = "mp4";
+	} else if (ext == "fragmented_mov") {
+		ext = "mov";
+	} else if (ext == "hls") {
+		ext = "m3u8";
+	} else if (ext == "mpegts") {
+		ext = "ts";
+	}
+
+	obs_data_set_int(response_data, "width", canvas_width);
+	obs_data_set_int(response_data, "height", canvas_height);
+	obs_data_set_string(response_data, "current_scene", currentSceneName.toUtf8().constData());
+
+	auto record = obs_data_create();
+	obs_data_set_bool(record, "advanced_settings", record_advanced_settings);
+	obs_data_set_string(record, "path", dir.c_str());
+	obs_data_set_string(record, "filename_formatting", filenameFormat.c_str());
+	obs_data_set_string(record, "format", format.c_str());
+	obs_data_set_string(record, "extension", ext.c_str());
+	obs_data_set_int(record, "max_size_mb", max_size_mb);
+	obs_data_set_int(record, "max_time_sec", max_time_sec);
+	obs_data_set_bool(record, "match_main", recordingMatchMain);
+	obs_data_set_int(record, "video_bitrate", recordVideoBitrate);
+	obs_data_set_int(record, "audio_bitrate", audioBitrate);
+	obs_data_set_obj(response_data, "record", record);
+	obs_data_release(record);
+
+	auto backtrack = obs_data_create();
+	obs_data_set_bool(backtrack, "enabled", startReplay);
+	obs_data_set_int(backtrack, "seconds", replayDuration);
+	obs_data_set_string(backtrack, "path", replayPath.c_str());
+	obs_data_set_obj(response_data, "backtrack", backtrack);
+	obs_data_release(backtrack);
+
+	auto stream = obs_data_create();
+	obs_data_set_bool(stream, "advanced_settings", stream_advanced_settings);
+	obs_data_set_bool(stream, "match_main", streamingMatchMain);
+	obs_data_set_int(stream, "video_bitrate", streamingVideoBitrate);
+	obs_data_set_bool(stream, "delay_enabled", stream_delay_enabled);
+	obs_data_set_int(stream, "delay_seconds", stream_delay_duration);
+	auto outputs = obs_data_array_create();
+	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
+		auto o = obs_data_create();
+		obs_data_set_string(o, "name", it->name.c_str());
+		obs_data_set_string(o, "server", it->stream_server.c_str());
+		obs_data_set_bool(o, "has_key", !it->stream_key.empty());
+		obs_data_set_bool(o, "enabled", it->enabled);
+		obs_data_array_push_back(outputs, o);
+		obs_data_release(o);
+	}
+	obs_data_set_array(stream, "outputs", outputs);
+	obs_data_array_release(outputs);
+	obs_data_set_obj(response_data, "stream", stream);
+	obs_data_release(stream);
 }
 
 static bool nudge_callback(obs_scene_t *, obs_sceneitem_t *item, void *param)
