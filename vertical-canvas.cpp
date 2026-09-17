@@ -17,6 +17,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPushButton>
+#include <QThread>
 #include <QTimer>
 #include <QToolBar>
 #include <QWidgetAction>
@@ -653,6 +654,33 @@ void vendor_request_get_settings(obs_data_t *request_data, obs_data_t *response_
 	obs_data_set_bool(response_data, "success", false);
 }
 
+void vendor_request_set_settings(obs_data_t *request_data, obs_data_t *response_data, void *)
+{
+	for (const auto &it : canvas_docks) {
+		if (!vendor_request_canvas_match(it, request_data)) {
+			continue;
+		}
+		std::string error;
+		bool applied = false;
+		// The dock's members belong to the UI thread; requests arrive on obs-websocket's.
+		auto apply = [&]() {
+			applied = it->ApplySettings(request_data, error);
+			it->FillSettings(response_data);
+		};
+		if (QThread::currentThread() == it->thread()) {
+			apply();
+		} else {
+			QMetaObject::invokeMethod(it, apply, Qt::BlockingQueuedConnection);
+		}
+		if (!applied) {
+			obs_data_set_string(response_data, "error", error.c_str());
+		}
+		obs_data_set_bool(response_data, "success", applied);
+		return;
+	}
+	obs_data_set_bool(response_data, "success", false);
+}
+
 void vendor_request_stream_status(obs_data_t *request_data, obs_data_t *response_data, void *)
 {
 	for (const auto &it : canvas_docks) {
@@ -797,6 +825,7 @@ void obs_module_post_load(void)
 	obs_websocket_vendor_register_request(vendor, "record_status", vendor_request_record_status, nullptr);
 	obs_websocket_vendor_register_request(vendor, "stream_status", vendor_request_stream_status, nullptr);
 	obs_websocket_vendor_register_request(vendor, "get_settings", vendor_request_get_settings, nullptr);
+	obs_websocket_vendor_register_request(vendor, "set_settings", vendor_request_set_settings, nullptr);
 }
 
 void obs_module_unload(void)
@@ -826,6 +855,7 @@ void obs_module_unload(void)
 		obs_websocket_vendor_unregister_request(vendor, "record_status");
 		obs_websocket_vendor_unregister_request(vendor, "stream_status");
 		obs_websocket_vendor_unregister_request(vendor, "get_settings");
+		obs_websocket_vendor_unregister_request(vendor, "set_settings");
 	}
 	obs_frontend_remove_event_callback(frontend_event, nullptr);
 	if (version_update_info) {
@@ -8571,6 +8601,93 @@ void CanvasDock::FillSettings(obs_data_t *response_data)
 	obs_data_array_release(outputs);
 	obs_data_set_obj(response_data, "stream", stream);
 	obs_data_release(stream);
+}
+
+// All or nothing: every field is checked before anything is written. Outputs read
+// their settings when they start, so a change made while running applies to the next.
+bool CanvasDock::ApplySettings(obs_data_t *request_data, std::string &error)
+{
+	OBSDataAutoRelease record = obs_data_get_obj(request_data, "record");
+	OBSDataAutoRelease stream = obs_data_get_obj(request_data, "stream");
+	OBSDataArrayAutoRelease outputs = stream ? obs_data_get_array(stream, "outputs") : nullptr;
+
+	auto has = [](obs_data_t *d, const char *name) {
+		return d && obs_data_has_user_value(d, name);
+	};
+	auto in_range = [&](obs_data_t *d, const char *name, long long min, long long max) {
+		if (!has(d, name)) {
+			return true;
+		}
+		const long long value = obs_data_get_int(d, name);
+		if (value < min || value > max) {
+			error = std::string("'") + name + "' out of range";
+			return false;
+		}
+		return true;
+	};
+
+	if (has(record, "path") && !strlen(obs_data_get_string(record, "path"))) {
+		error = "'record.path' is empty";
+		return false;
+	}
+	if (!in_range(record, "max_time_sec", 0, UINT32_MAX) || !in_range(record, "max_size_mb", 0, UINT32_MAX) ||
+	    !in_range(stream, "video_bitrate", 1, UINT32_MAX) || !in_range(stream, "delay_seconds", 0, UINT32_MAX)) {
+		return false;
+	}
+	if (has(stream, "video_bitrate")) {
+		if (stream_advanced_settings) {
+			error = "'stream.video_bitrate' is not used with the plugin's advanced stream settings";
+			return false;
+		}
+		if (StreamingActive()) {
+			error = "'stream.video_bitrate' cannot change while streaming";
+			return false;
+		}
+	}
+	const size_t outputCount = outputs ? obs_data_array_count(outputs) : 0;
+	for (size_t i = 0; i < outputCount; i++) {
+		OBSDataAutoRelease o = obs_data_array_item(outputs, i);
+		const long long index = obs_data_get_int(o, "index");
+		if (!has(o, "index") || index < 0 || index >= (long long)streamOutputs.size()) {
+			error = "'stream.outputs[" + std::to_string(i) + "].index' does not match an output";
+			return false;
+		}
+	}
+
+	if (has(record, "path")) {
+		recordPath = obs_data_get_string(record, "path");
+	}
+	if (has(record, "max_time_sec")) {
+		max_time_sec = (uint32_t)obs_data_get_int(record, "max_time_sec");
+	}
+	if (has(record, "max_size_mb")) {
+		max_size_mb = (uint32_t)obs_data_get_int(record, "max_size_mb");
+	}
+	if (has(stream, "video_bitrate")) {
+		streamingVideoBitrate = (uint32_t)obs_data_get_int(stream, "video_bitrate");
+	}
+	if (has(stream, "delay_enabled")) {
+		stream_delay_enabled = obs_data_get_bool(stream, "delay_enabled");
+	}
+	if (has(stream, "delay_seconds")) {
+		stream_delay_duration = (uint32_t)obs_data_get_int(stream, "delay_seconds");
+	}
+	for (size_t i = 0; i < outputCount; i++) {
+		OBSDataAutoRelease o = obs_data_array_item(outputs, i);
+		auto &output = streamOutputs[(size_t)obs_data_get_int(o, "index")];
+		if (has(o, "server")) {
+			output.stream_server = obs_data_get_string(o, "server");
+		}
+		if (has(o, "key")) {
+			output.stream_key = obs_data_get_string(o, "key");
+		}
+		if (has(o, "enabled")) {
+			output.enabled = obs_data_get_bool(o, "enabled");
+		}
+	}
+
+	save_canvas();
+	return true;
 }
 
 static bool nudge_callback(obs_scene_t *, obs_sceneitem_t *item, void *param)

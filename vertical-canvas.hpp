@@ -482,6 +482,7 @@ public:
 	void FillRecordStatus(obs_data_t *response_data);
 	void FillStreamStatus(obs_data_t *response_data);
 	void FillSettings(obs_data_t *response_data);
+	bool ApplySettings(obs_data_t *request_data, std::string &error);
 	void AskUpdate();
 };
 
