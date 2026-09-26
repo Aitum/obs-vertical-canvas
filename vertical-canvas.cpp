@@ -698,18 +698,17 @@ void obs_module_post_load(void)
 		const auto name = "VerticalCanvasDock";
 		obs_frontend_add_dock_by_id(name, title.toUtf8().constData(), canvasDock);
 		canvas_docks.push_back(canvasDock);
-		obs_data_array_release(canvas);
 		blog(LOG_INFO, "[Vertical Canvas] New Canvas created");
-		return;
-	}
-	for (size_t i = 0; i < count; i++) {
-		const auto item = obs_data_array_item(canvas, i);
-		const auto canvasDock = new CanvasDock(item, main_window);
-		const QString title = QString::fromUtf8(obs_module_text("Vertical"));
-		const auto name = "VerticalCanvasDock";
-		obs_frontend_add_dock_by_id(name, title.toUtf8().constData(), canvasDock);
-		obs_data_release(item);
-		canvas_docks.push_back(canvasDock);
+	} else {
+		for (size_t i = 0; i < count; i++) {
+			const auto item = obs_data_array_item(canvas, i);
+			const auto canvasDock = new CanvasDock(item, main_window);
+			const QString title = QString::fromUtf8(obs_module_text("Vertical"));
+			const auto name = "VerticalCanvasDock";
+			obs_frontend_add_dock_by_id(name, title.toUtf8().constData(), canvasDock);
+			obs_data_release(item);
+			canvas_docks.push_back(canvasDock);
+		}
 	}
 	obs_data_array_release(canvas);
 
@@ -8623,7 +8622,7 @@ void CanvasDock::OpenSourceProjector()
 
 void CanvasDock::updateStreamKey(const QString &newStreamKey, int index)
 {
-	if ((int)streamOutputs.size() < index) {
+	if (index < 0 || (int)streamOutputs.size() <= index) {
 		return;
 	}
 	streamOutputs[index].stream_key = newStreamKey.toStdString();
@@ -8631,7 +8630,7 @@ void CanvasDock::updateStreamKey(const QString &newStreamKey, int index)
 
 void CanvasDock::updateStreamServer(const QString &newStreamServer, int index)
 {
-	if ((int)streamOutputs.size() < index) {
+	if (index < 0 || (int)streamOutputs.size() <= index) {
 		return;
 	}
 	streamOutputs[index].stream_server = newStreamServer.toStdString();
