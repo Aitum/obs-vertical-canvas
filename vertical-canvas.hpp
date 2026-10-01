@@ -1,6 +1,5 @@
 #pragma once
 
-#include <atomic>
 #include <memory>
 #include <mutex>
 #include <obs-frontend-api.h>
@@ -223,8 +222,6 @@ private:
 	// Last file written by recordOutput: set at start, moved on each split.
 	std::string lastRecordFile;
 	std::mutex lastRecordFileMutex;
-	// recordOutput is reused across recordings and its byte counter is never reset.
-	std::atomic<uint64_t> recordBytesAtStart = 0;
 
 	bool record_advanced_settings;
 	std::string filename_formatting;
@@ -479,8 +476,6 @@ public:
 	bool BacktrackActive();
 	bool VirtualCameraActive();
 	std::string LastRecordFile();
-	void FillRecordStatus(obs_data_t *response_data);
-	void FillStreamStatus(obs_data_t *response_data);
 	void FillSettings(obs_data_t *response_data);
 	bool ApplySettings(obs_data_t *request_data, std::string &error);
 	void AskUpdate();
