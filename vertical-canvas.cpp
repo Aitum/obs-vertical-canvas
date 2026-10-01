@@ -8971,12 +8971,19 @@ bool CanvasDock::LogSceneItem(obs_scene_t *, obs_sceneitem_t *item, void *v_val)
 			}
 			blog(LOG_INFO, "    %s- audio tracks:%s", indent.c_str(), tracks.c_str());
 		}
-
+#if LIBOBS_API_VER >= MAKE_SEMANTIC_VERSION(33, 0, 0)
 		bool monitoring = obs_source_get_monitoring_enabled(source);
-
 		if (monitoring) {
 			blog(LOG_INFO, "    %s- monitoring: enabled", indent.c_str());
 		}
+#else
+		obs_monitoring_type monitoring_type = obs_source_get_monitoring_type(source);
+		if (monitoring_type != OBS_MONITORING_TYPE_NONE) {
+			const char *type = (monitoring_type == OBS_MONITORING_TYPE_MONITOR_ONLY) ? "monitor only"
+												 : "monitor and output";
+			blog(LOG_INFO, "    %s- monitoring: %s", indent.c_str(), type);
+		}
+#endif
 	}
 	int child_indent = 1 + indent_count;
 	obs_source_enum_filters(source, LogFilter, (void *)(intptr_t)child_indent);
