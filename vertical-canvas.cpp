@@ -5653,7 +5653,11 @@ void CanvasDock::record_output_stop(void *data, calldata_t *calldata)
 	QString arg_last_error = QString::fromUtf8(last_error);
 	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
-	d->SendVendorEvent("recording_stopped");
+	const auto e = obs_data_create();
+	obs_data_set_int(e, "code", code);
+	obs_data_set_string(e, "last_error", last_error ? last_error : "");
+	d->SendVendorEvent("recording_stopped", e);
+	obs_data_release(e);
 	QMetaObject::invokeMethod(d, "OnRecordStop", Q_ARG(int, code), Q_ARG(QString, arg_last_error));
 }
 
@@ -6817,7 +6821,11 @@ void CanvasDock::stream_output_stop(void *data, calldata_t *calldata)
 	QString arg_last_error = QString::fromUtf8(last_error);
 	const int code = (int)calldata_int(calldata, "code");
 	auto d = static_cast<CanvasDock *>(data);
-	d->SendVendorEvent("streaming_stopped");
+	const auto e = obs_data_create();
+	obs_data_set_int(e, "code", code);
+	obs_data_set_string(e, "last_error", last_error ? last_error : "");
+	d->SendVendorEvent("streaming_stopped", e);
+	obs_data_release(e);
 	QString stream_server;
 	QString stream_key;
 	obs_output_t *t = (obs_output_t *)calldata_ptr(calldata, "output");
@@ -8298,12 +8306,15 @@ void CanvasDock::AddSceneItem(OBSSceneItem item)
 	obs_scene_enum_items(add_scene, select_one, (obs_sceneitem_t *)item);
 }
 
-void CanvasDock::SendVendorEvent(const char *event_name)
+void CanvasDock::SendVendorEvent(const char *event_name, obs_data_t *data)
 {
 	if (!vendor) {
 		return;
 	}
 	const auto d = obs_data_create();
+	if (data) {
+		obs_data_apply(d, data);
+	}
 	obs_data_set_int(d, "width", canvas_width);
 	obs_data_set_int(d, "height", canvas_height);
 	obs_websocket_vendor_emit_event(vendor, event_name, d);

@@ -323,7 +323,7 @@ private:
 	void SetLinkedScene(obs_source_t *scene, const QString &linkedScene);
 	bool HasScene(QString scene) const;
 	void CheckReplayBuffer(bool start = false);
-	void SendVendorEvent(const char *e);
+	void SendVendorEvent(const char *e, obs_data_t* data = nullptr);
 	void DeleteProjector(OBSProjector *projector);
 	OBSProjector *OpenProjector(int monitor);
 	void AddProjectorMenuMonitors(QMenu *parent, QObject *target, const char *slot);
