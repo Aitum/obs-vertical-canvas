@@ -712,6 +712,15 @@ void obs_module_post_load(void)
 	}
 	obs_data_array_release(canvas);
 
+	std::string url = "https://api.aitum.tv/plugin/vertical";
+	const char *pguid = config_get_string(obs_frontend_get_app_config(), "General", "InstallGUID");
+	if (pguid) {
+		url += "?uuid=";
+		url += pguid;
+	}
+
+	version_update_info = update_info_create_single("[Vertical Canvas]", "OBS", url.c_str(), version_info_downloaded, nullptr);
+
 	if (!vendor) {
 		vendor = obs_websocket_register_vendor("aitum-vertical-canvas");
 	}
@@ -739,15 +748,6 @@ void obs_module_post_load(void)
 	obs_websocket_vendor_register_request(vendor, "add_chapter", vendor_request_add_chapter, nullptr);
 	obs_websocket_vendor_register_request(vendor, "pause_recording", vendor_request_pause_recording, nullptr);
 	obs_websocket_vendor_register_request(vendor, "unpause_recording", vendor_request_unpause_recording, nullptr);
-
-	std::string url = "https://api.aitum.tv/plugin/vertical";
-	const char *pguid = config_get_string(obs_frontend_get_app_config(), "General", "InstallGUID");
-	if (pguid) {
-		url += "?uuid=";
-		url += pguid;
-	}
-
-	version_update_info = update_info_create_single("[Vertical Canvas]", "OBS", url.c_str(), version_info_downloaded, nullptr);
 }
 
 void obs_module_unload(void)
@@ -8972,13 +8972,10 @@ bool CanvasDock::LogSceneItem(obs_scene_t *, obs_sceneitem_t *item, void *v_val)
 			blog(LOG_INFO, "    %s- audio tracks:%s", indent.c_str(), tracks.c_str());
 		}
 
-		obs_monitoring_type monitoring_type = obs_source_get_monitoring_type(source);
+		bool monitoring = obs_source_get_monitoring_enabled(source);
 
-		if (monitoring_type != OBS_MONITORING_TYPE_NONE) {
-			const char *type = (monitoring_type == OBS_MONITORING_TYPE_MONITOR_ONLY) ? "monitor only"
-												 : "monitor and output";
-
-			blog(LOG_INFO, "    %s- monitoring: %s", indent.c_str(), type);
+		if (monitoring) {
+			blog(LOG_INFO, "    %s- monitoring: enabled", indent.c_str());
 		}
 	}
 	int child_indent = 1 + indent_count;
