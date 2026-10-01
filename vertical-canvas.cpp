@@ -771,6 +771,9 @@ void obs_module_unload(void)
 		obs_websocket_vendor_unregister_request(vendor, "stop_virtual_camera");
 		obs_websocket_vendor_unregister_request(vendor, "update_stream_key");
 		obs_websocket_vendor_unregister_request(vendor, "update_stream_server");
+		obs_websocket_vendor_unregister_request(vendor, "add_chapter");
+		obs_websocket_vendor_unregister_request(vendor, "pause_recording");
+		obs_websocket_vendor_unregister_request(vendor, "unpause_recording");
 	}
 	obs_frontend_remove_event_callback(frontend_event, nullptr);
 	if (version_update_info) {
