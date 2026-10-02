@@ -1719,10 +1719,12 @@ CanvasDock::~CanvasDock()
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
 		if (obs_output_active(it->output)) {
 			obs_output_stop(it->output);
+			obs_service_release(it->service);
+			it->service = nullptr;
 			outputsToStop.push_back(it->output);
 		} else {
 			auto old_enc = obs_output_get_video_encoder(it->output);
-			obs_service_release(obs_output_get_service(it->output));
+			obs_service_release(it->service);
 			for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
 				auto old_audio_enc = obs_output_get_audio_encoder(it->output, i);
 				if (old_audio_enc) {
@@ -1768,7 +1770,6 @@ CanvasDock::~CanvasDock()
 				continue;
 			}
 			auto old_enc = obs_output_get_video_encoder(output);
-			auto old_service = obs_output_get_service(output);
 			for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
 				auto old_audio_enc = obs_output_get_audio_encoder(output, i);
 				if (old_audio_enc) {
@@ -1777,7 +1778,6 @@ CanvasDock::~CanvasDock()
 			}
 			obs_output_release(output);
 			obs_encoder_release(old_enc);
-			obs_service_release(old_service);
 			outputsToStop.remove(output);
 			break;
 		}
@@ -8948,11 +8948,10 @@ bool CanvasDock::LoadStreamOutputs(obs_data_array_t *outputs)
 			if (obs_output_active(it->output)) {
 				obs_output_stop(it->output);
 			}
-			auto old_service = obs_output_get_service(it->output);
 			auto old_enc = obs_output_get_video_encoder(it->output);
 			auto old_audio_enc = obs_output_get_audio_encoder(it->output, 0);
 			obs_output_release(it->output);
-			obs_service_release(old_service);
+			obs_service_release(it->service);
 			obs_encoder_release(old_enc);
 			obs_encoder_release(old_audio_enc);
 			obs_data_release(it->settings);
