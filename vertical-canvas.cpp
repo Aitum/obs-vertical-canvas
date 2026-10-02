@@ -3555,6 +3555,7 @@ bool CanvasDock::HandleMouseReleaseEvent(QMouseEvent *event)
 		popup.addSeparator();
 
 		OBSSceneItem sceneItem = GetSelectedItem();
+		AddCopyPasteMenuItems(&popup, sceneItem);
 		if (sceneItem) {
 			AddSceneItemMenuItems(&popup, sceneItem);
 		}
@@ -9269,6 +9270,47 @@ void CanvasDock::AskUpdate()
 	}
 	obs_data_release(config);
 	bfree(path);
+}
+
+static bool copy_save_functions = false;
+static void (*obs_frontend_copy_sceneitem_func)(obs_sceneitem_t *item) = nullptr;
+static bool (*obs_frontend_can_paste_sceneitem_func)(bool duplicate) = nullptr;
+static void (*obs_frontend_paste_sceneitem_func)(obs_scene_t *scene, bool duplicate) = nullptr;
+
+void CanvasDock::AddCopyPasteMenuItems(QMenu *popup, OBSSceneItem sceneItem)
+{
+	if (!copy_save_functions) {
+		copy_save_functions = true;
+		if (obs_get_version() < MAKE_SEMANTIC_VERSION(32, 2, 0)) {
+			return;
+		}
+
+#ifdef __APPLE__
+		auto handle = os_dlopen("obs-frontend-api.dylib");
+#else
+		auto handle = os_dlopen("obs-frontend-api");
+#endif
+		obs_frontend_copy_sceneitem_func = (void (*)(obs_sceneitem_t *))os_dlsym(handle, "obs_frontend_copy_sceneitem");
+		obs_frontend_can_paste_sceneitem_func =
+			(bool (*)(bool duplicate))os_dlsym(handle, "obs_frontend_can_paste_sceneitem");
+		obs_frontend_paste_sceneitem_func =
+			(void (*)(obs_scene_t *scene, bool duplicate))os_dlsym(handle, "obs_frontend_paste_sceneitem");
+		os_dlclose(handle);
+	}
+	if (obs_frontend_copy_sceneitem_func) {
+		auto copyAction = popup->addAction(QString::fromUtf8(obs_frontend_get_locale_string("Copy")),
+						   [sceneItem] { obs_frontend_copy_sceneitem_func(sceneItem); });
+		copyAction->setEnabled(sceneItem != nullptr);
+	}
+	if (obs_frontend_can_paste_sceneitem_func && obs_frontend_paste_sceneitem_func) {
+		auto pasteAction = popup->addAction(QString::fromUtf8(obs_frontend_get_locale_string("PasteReference")),
+						    [this] { obs_frontend_paste_sceneitem_func(scene, false); });
+		pasteAction->setEnabled(obs_frontend_can_paste_sceneitem_func(false));
+
+		pasteAction = popup->addAction(QString::fromUtf8(obs_frontend_get_locale_string("PasteDuplicate")),
+					       [this] { obs_frontend_paste_sceneitem_func(scene, true); });
+		pasteAction->setEnabled(obs_frontend_can_paste_sceneitem_func(true));
+	}
 }
 
 LockedCheckBox::LockedCheckBox()

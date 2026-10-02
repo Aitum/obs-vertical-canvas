@@ -42,11 +42,13 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 	renameAction->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 	connect(renameAction, &QAction::triggered, [this]() {
 		obs_sceneitem_t *sceneItem = GetCurrentSceneItem();
-		if (!sceneItem)
+		if (!sceneItem) {
 			return;
+		}
 		obs_source_t *source = obs_source_get_ref(obs_sceneitem_get_source(sceneItem));
-		if (!source)
+		if (!source) {
 			return;
+		}
 		std::string name = obs_source_get_name(source);
 		obs_source_t *s = nullptr;
 		do {
@@ -55,8 +57,9 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 				break;
 			}
 			s = obs_canvas_get_source_by_name(canvasDock->canvas, name.c_str());
-			if (s)
+			if (s) {
 				continue;
+			}
 			obs_source_set_name(source, name.c_str());
 		} while (s);
 		obs_source_release(source);
@@ -81,8 +84,9 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 		QIcon(":/res/images/minus.svg"), QString::fromUtf8(obs_frontend_get_locale_string("RemoveSource")), [this] {
 			std::vector<OBSSceneItem> items;
 			obs_scene_enum_items(canvasDock->scene, selected_items, &items);
-			if (!items.size())
+			if (!items.size()) {
 				return;
+			}
 			/* ------------------------------------- */
 			/* confirm action with user              */
 
@@ -128,14 +132,16 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 					confirmed = Yes == remove_source.clickedButton();
 				}
 			}
-			if (!confirmed)
+			if (!confirmed) {
 				return;
+			}
 
 			/* ----------------------------------------------- */
 			/* remove items                                    */
 
-			for (auto &item : items)
+			for (auto &item : items) {
 				obs_sceneitem_remove(item);
+			}
 		});
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("removeIconSmall")));
 	toolbar->widgetForAction(a)->setProperty("class", "icon-minus");
@@ -151,8 +157,9 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 			       [this] {
 				       auto item = GetCurrentSceneItem();
 				       auto source = obs_sceneitem_get_source(item);
-				       if (source)
+				       if (source) {
 					       obs_frontend_open_source_filters(source);
+				       }
 			       });
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("filtersIcon")));
 	toolbar->widgetForAction(a)->setProperty("class", "icon-filter");
@@ -161,8 +168,9 @@ CanvasSourcesDock::CanvasSourcesDock(CanvasDock *canvas_dock, QWidget *parent) :
 			       QString::fromUtf8(obs_frontend_get_locale_string("SourceProperties")), [this] {
 				       auto item = GetCurrentSceneItem();
 				       auto source = obs_sceneitem_get_source(item);
-				       if (source)
+				       if (source) {
 					       obs_frontend_open_source_properties(source);
+				       }
 			       });
 	toolbar->widgetForAction(a)->setProperty("themeID", QVariant(QString::fromUtf8("propertiesIconSmall")));
 	toolbar->widgetForAction(a)->setProperty("class", "icon-gear");
@@ -197,6 +205,7 @@ void CanvasSourcesDock::ShowSourcesContextMenu(obs_sceneitem_t *item)
 {
 	auto menu = QMenu(this);
 	menu.addMenu(canvasDock->CreateAddSourcePopupMenu());
+	canvasDock->AddCopyPasteMenuItems(&menu, item);
 	if (item) {
 		canvasDock->AddSceneItemMenuItems(&menu, item);
 	}

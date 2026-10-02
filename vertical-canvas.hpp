@@ -268,6 +268,7 @@ private:
 	OBSSceneItem GetItemAtPos(const vec2 &pos, bool selectBelow);
 
 	QMenu *CreateAddSourcePopupMenu();
+	void AddCopyPasteMenuItems(QMenu *popup, OBSSceneItem sceneItem);
 	void AddSceneItemMenuItems(QMenu *popup, OBSSceneItem sceneItem);
 	void LoadSourceTypeMenu(QMenu *menu, const char *type);
 	QMenu *CreateVisibilityTransitionMenu(bool visible, obs_sceneitem_t *sceneItem);
