@@ -35,14 +35,33 @@ if (( ! (${skips[(Ie)all]} + ${skips[(Ie)deps]}) )) {
     sudo apt-get install ${apt_args} gcc-${${target##*-}//_/-}-linux-gnu g++-${${target##*-}//_/-}-linux-gnu
   }
 
-  sudo add-apt-repository --yes ppa:obsproject/obs-studio
-  sudo apt update
+  if [[ -r /etc/os-release ]]; then
+    source /etc/os-release
+  else
+    print -u2 "Cannot determine operating system"
+    exit 1
+  fi
 
-  sudo apt-get install ${apt_args} \
-    build-essential \
-    libgles2-mesa-dev \
-    libsimde-dev \
-    obs-studio
+  ubuntu_version="${VERSION_ID:-unknown}"
+
+  if [[ "$ubuntu_version" == 24.* ]]; then
+    sudo add-apt-repository --yes ppa:obsproject/obs-studio
+    sudo apt update
+
+    sudo apt-get install ${apt_args} \
+      build-essential \
+      libgles2-mesa-dev \
+      libsimde-dev \
+      obs-studio
+  else
+    sudo apt update
+
+    sudo apt-get install ${apt_args} \
+      build-essential \
+      libgles2-mesa-dev \
+      libsimde-dev \
+      libobs-dev
+  fi
 
   local -a _qt_packages=()
 
