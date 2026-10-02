@@ -214,8 +214,9 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		const QString dir = QFileDialog::getExistingDirectory(this, QString::fromUtf8(obs_module_text("BacktrackPath")),
 								      backtrackPath->text(),
 								      QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-		if (dir.isEmpty())
+		if (dir.isEmpty()) {
 			return;
+		}
 		backtrackPath->setText(dir);
 	});
 
@@ -274,21 +275,25 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	auto maxWidth = 180;
 	for (int row = 0; row < generalLayout->rowCount(); row++) {
 		auto item = generalLayout->itemAt(row, QFormLayout::LabelRole);
-		if (!item)
+		if (!item) {
 			continue;
+		}
 		auto label = dynamic_cast<QLabel *>(item->widget());
-		if (!label)
+		if (!label) {
 			continue;
+		}
 		label->setFixedWidth(maxWidth);
 		label->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 	}
 	for (int row = 0; row < backtrackLayout->rowCount(); row++) {
 		auto item = backtrackLayout->itemAt(row, QFormLayout::LabelRole);
-		if (!item)
+		if (!item) {
 			continue;
+		}
 		auto label = dynamic_cast<QLabel *>(item->widget());
-		if (!label)
+		if (!label) {
 			continue;
+		}
 		label->setFixedWidth(maxWidth);
 		label->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 	}
@@ -333,8 +338,9 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		removeButton->setProperty("themeID", QVariant(QString::fromUtf8("removeIconSmall")));
 		removeButton->setProperty("class", "icon-minus");
 		connect(removeButton, &QPushButton::clicked, [this] {
-			if (servers.size() <= 1)
+			if (servers.size() <= 1) {
 				return;
+			}
 			auto idx = (int)servers.size();
 			streamingLayout->removeRow(idx);
 			server_names.pop_back();
@@ -443,14 +449,16 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 			auto field = streamingAdvancedLayout->itemAt(i, QFormLayout::FieldRole);
 			if (field) {
 				auto w = field->widget();
-				if (w)
+				if (w) {
 					w->setEnabled(!checked);
+				}
 			}
 			auto label = streamingAdvancedLayout->itemAt(i, QFormLayout::LabelRole);
 			if (label) {
 				auto w = label->widget();
-				if (w)
+				if (w) {
 					w->setEnabled(!checked);
+				}
 			}
 		}
 	});
@@ -474,14 +482,17 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	const char *type;
 	size_t idx = 0;
 	while (obs_enum_encoder_types(idx++, &type)) {
-		if (obs_get_encoder_type(type) != OBS_ENCODER_VIDEO)
+		if (obs_get_encoder_type(type) != OBS_ENCODER_VIDEO) {
 			continue;
+		}
 		uint32_t caps = obs_get_encoder_caps(type);
-		if ((caps & (OBS_ENCODER_CAP_DEPRECATED | OBS_ENCODER_CAP_INTERNAL)) != 0)
+		if ((caps & (OBS_ENCODER_CAP_DEPRECATED | OBS_ENCODER_CAP_INTERNAL)) != 0) {
 			continue;
+		}
 		const char *codec = obs_get_encoder_codec(type);
-		if (astrcmpi(codec, "h264") != 0 && astrcmpi(codec, "hevc") != 0 && astrcmpi(codec, "av1") != 0)
+		if (astrcmpi(codec, "h264") != 0 && astrcmpi(codec, "hevc") != 0 && astrcmpi(codec, "av1") != 0) {
 			continue;
+		}
 		streamingEncoder->addItem(QString::fromUtf8(obs_encoder_get_display_name(type)), QVariant(QString::fromUtf8(type)));
 	}
 
@@ -491,15 +502,17 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		for (int i = streamingAdvancedLayout->rowCount() - 1; i > row; i--) {
 			streamingAdvancedLayout->removeRow(i);
 		}
-		if (streamingEncoder->currentIndex() < 0)
+		if (streamingEncoder->currentIndex() < 0) {
 			return;
+		}
 		auto encoder_string = streamingEncoder->currentData().toString().toUtf8();
 		auto encoder = encoder_string.constData();
 		obs_data_release(stream_encoder_settings);
 		stream_encoder_settings = obs_encoder_defaults(encoder);
 		obs_data_apply(stream_encoder_settings, canvasDock->stream_encoder_settings);
-		if (stream_encoder_properties)
+		if (stream_encoder_properties) {
 			obs_properties_destroy(stream_encoder_properties);
+		}
 		stream_encoder_property_widgets.clear();
 		stream_encoder_properties = obs_get_encoder_properties(encoder);
 
@@ -541,7 +554,6 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 	multitrackLayout->addWidget(multitrackLabel);
 	vb->addWidget(multitrackGroup);
 
-
 	vb->addWidget(streamingGroup);
 	vb->addWidget(streamingAdvancedGroup);
 	vb->addWidget(streamingDelayGroup);
@@ -576,8 +588,9 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		const QString dir = QFileDialog::getExistingDirectory(
 			this, QString::fromUtf8(obs_frontend_get_locale_string("Basic.Settings.Output.Simple.SavePath")),
 			recordPath->text(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
-		if (dir.isEmpty())
+		if (dir.isEmpty()) {
 			return;
+		}
 		recordPath->setText(dir);
 	});
 
@@ -745,14 +758,16 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 			auto field = recordingAdvancedLayout->itemAt(i, QFormLayout::FieldRole);
 			if (field) {
 				auto w = field->widget();
-				if (w)
+				if (w) {
 					w->setEnabled(!checked);
+				}
 			}
 			auto label = recordingAdvancedLayout->itemAt(i, QFormLayout::LabelRole);
 			if (label) {
 				auto w = label->widget();
-				if (w)
+				if (w) {
 					w->setEnabled(!checked);
+				}
 			}
 		}
 	});
@@ -819,11 +834,13 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		QVariant(QString::fromUtf8("")));
 	idx = 0;
 	while (obs_enum_encoder_types(idx++, &type)) {
-		if (obs_get_encoder_type(type) != OBS_ENCODER_VIDEO)
+		if (obs_get_encoder_type(type) != OBS_ENCODER_VIDEO) {
 			continue;
+		}
 		uint32_t caps = obs_get_encoder_caps(type);
-		if ((caps & (OBS_ENCODER_CAP_DEPRECATED | OBS_ENCODER_CAP_INTERNAL)) != 0)
+		if ((caps & (OBS_ENCODER_CAP_DEPRECATED | OBS_ENCODER_CAP_INTERNAL)) != 0) {
 			continue;
+		}
 		recordingEncoder->addItem(QString::fromUtf8(obs_encoder_get_display_name(type)), QVariant(QString::fromUtf8(type)));
 	}
 
@@ -833,12 +850,14 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 		for (int i = recordingAdvancedLayout->rowCount() - 1; i > row; i--) {
 			recordingAdvancedLayout->removeRow(i);
 		}
-		if (record_encoder_properties)
+		if (record_encoder_properties) {
 			obs_properties_destroy(record_encoder_properties);
+		}
 		record_encoder_properties = nullptr;
 		record_encoder_property_widgets.clear();
-		if (recordingEncoder->currentIndex() < 1)
+		if (recordingEncoder->currentIndex() < 1) {
 			return;
+		}
 		auto encoder_string = recordingEncoder->currentData().toString().toUtf8();
 		auto encoder = encoder_string.constData();
 		obs_data_release(record_encoder_settings);
@@ -1128,8 +1147,9 @@ void OBSBasicSettings::LoadSettings()
 	resolution->setCurrentText(QString::number(canvasDock->canvas_width) + "x" + QString::number(canvasDock->canvas_height));
 	bool enable = !obs_output_active(canvasDock->recordOutput) && !obs_output_active(canvasDock->virtualCamOutput);
 	for (auto it = canvasDock->streamOutputs.begin(); it != canvasDock->streamOutputs.end(); ++it) {
-		if (obs_output_active(it->output))
+		if (obs_output_active(it->output)) {
 			enable = false;
+		}
 	}
 
 	resolution->setEnabled(enable);
@@ -1185,16 +1205,18 @@ void OBSBasicSettings::LoadSettings()
 	}
 
 	streamingUseMain->setChecked(!canvasDock->stream_advanced_settings);
-	if (canvasDock->stream_audio_track > 0)
+	if (canvasDock->stream_audio_track > 0) {
 		streamingAudioTracks[canvasDock->stream_audio_track - 1]->setChecked(true);
+	}
 
 	streamDelayEnable->setChecked(canvasDock->stream_delay_enabled);
 	streamDelayDuration->setValue(canvasDock->stream_delay_duration);
 	streamDelayPreserve->setChecked(canvasDock->stream_delay_preserve);
 
 	auto idx = streamingEncoder->findData(QVariant(QString::fromUtf8(canvasDock->stream_encoder.c_str())));
-	if (idx != -1)
+	if (idx != -1) {
 		streamingEncoder->setCurrentIndex(idx);
+	}
 
 	for (const auto &kv : stream_encoder_property_widgets) {
 		LoadProperty(kv.first, canvasDock->stream_encoder_settings, kv.second);
@@ -1203,22 +1225,25 @@ void OBSBasicSettings::LoadSettings()
 	recordPath->setText(QString::fromUtf8(canvasDock->recordPath));
 
 	recordingUseMain->setChecked(!canvasDock->record_advanced_settings);
-	if (!canvasDock->filename_formatting.empty())
+	if (!canvasDock->filename_formatting.empty()) {
 		filenameFormat->setText(canvasDock->filename_formatting.c_str());
+	}
 	idx = fileFormat->findData(QVariant(QString::fromUtf8(canvasDock->file_format.c_str())));
 	if (idx == -1) {
 		idx = fileFormat->findText(QString::fromUtf8(canvasDock->file_format.c_str()));
 	}
-	if (idx != -1 && idx != fileFormat->currentIndex())
+	if (idx != -1 && idx != fileFormat->currentIndex()) {
 		fileFormat->setCurrentIndex(idx);
+	}
 
 	for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
 		recordingAudioTracks[i]->setChecked((canvasDock->record_audio_tracks & (1ll << i)) != 0);
 	}
 
 	idx = recordingEncoder->findData(QVariant(QString::fromUtf8(canvasDock->record_encoder.c_str())));
-	if (idx != -1)
+	if (idx != -1) {
 		recordingEncoder->setCurrentIndex(idx);
+	}
 
 	for (const auto &kv : record_encoder_property_widgets) {
 		LoadProperty(kv.first, canvasDock->record_encoder_settings, kv.second);
@@ -1235,8 +1260,9 @@ void OBSBasicSettings::SaveSettings()
 	uint32_t width, height;
 	if (sscanf(res.toUtf8().constData(), "%dx%d", &width, &height) == 2 && width > 0 && height > 0 &&
 	    (width != canvasDock->canvas_width || height != canvasDock->canvas_height)) {
-		if (obs_output_active(canvasDock->replayOutput))
+		if (obs_output_active(canvasDock->replayOutput)) {
 			obs_output_stop(canvasDock->replayOutput);
+		}
 
 		blog(LOG_INFO, "[Vertical Canvas] resolution changed from %dx%d to %dx%d", canvasDock->canvas_width,
 		     canvasDock->canvas_height, width, height);
@@ -1260,8 +1286,9 @@ void OBSBasicSettings::SaveSettings()
 		canvasDock->LoadScenes();
 		canvasDock->ProfileChanged();
 	}
-	if (virtualCameraMode->currentIndex() >= 0)
+	if (virtualCameraMode->currentIndex() >= 0) {
 		canvasDock->virtual_cam_mode = virtualCameraMode->currentIndex();
+	}
 
 	uint32_t bitrate = (uint32_t)recordVideoBitrate->value();
 	if (bitrate != canvasDock->recordVideoBitrate) {
@@ -1275,8 +1302,9 @@ void OBSBasicSettings::SaveSettings()
 	bitrate = (uint32_t)streamingVideoBitrate->value();
 	if (bitrate != canvasDock->streamingVideoBitrate) {
 		canvasDock->streamingVideoBitrate = bitrate;
-		for (auto it = canvasDock->streamOutputs.begin(); it != canvasDock->streamOutputs.end(); ++it)
+		for (auto it = canvasDock->streamOutputs.begin(); it != canvasDock->streamOutputs.end(); ++it) {
 			SetEncoderBitrate(obs_output_get_video_encoder(it->output), false);
+		}
 	}
 	canvasDock->streamingMatchMain = streamingMatchMain->isChecked();
 	bitrate = (uint32_t)audioBitrate->currentData().toUInt();
@@ -1285,8 +1313,9 @@ void OBSBasicSettings::SaveSettings()
 		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
 			SetEncoderBitrate(obs_output_get_audio_encoder(canvasDock->replayOutput, i), true);
 			SetEncoderBitrate(obs_output_get_audio_encoder(canvasDock->recordOutput, i), true);
-			for (auto it = canvasDock->streamOutputs.begin(); it != canvasDock->streamOutputs.end(); ++it)
+			for (auto it = canvasDock->streamOutputs.begin(); it != canvasDock->streamOutputs.end(); ++it) {
 				SetEncoderBitrate(obs_output_get_audio_encoder(it->output, i), false);
+			}
 		}
 	}
 
@@ -1339,10 +1368,19 @@ void OBSBasicSettings::SaveSettings()
 
 		if (canvasDock->streamOutputs.size() > servers.size()) {
 			for (auto idx = canvasDock->streamOutputs.size() - 1; idx >= servers.size(); idx--) {
-				if (obs_output_active(canvasDock->streamOutputs[idx].output))
+				if (obs_output_active(canvasDock->streamOutputs[idx].output)) {
 					obs_output_stop(canvasDock->streamOutputs[idx].output);
+				}
+				auto old_enc = obs_output_get_video_encoder(canvasDock->streamOutputs[idx].output);
+				for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
+					auto old_audio_enc = obs_output_get_audio_encoder(canvasDock->streamOutputs[idx].output, i);
+					if (old_audio_enc) {
+						obs_encoder_release(old_audio_enc);
+					}
+				}
 				obs_output_release(canvasDock->streamOutputs[idx].output);
 				obs_service_release(canvasDock->streamOutputs[idx].service);
+				obs_encoder_release(old_enc);
 				canvasDock->streamOutputs.pop_back();
 			}
 		}
@@ -1356,8 +1394,9 @@ void OBSBasicSettings::SaveSettings()
 		canvasDock->stream_delay_duration = (uint32_t)streamDelayDuration->value();
 		canvasDock->stream_delay_preserve = streamDelayPreserve->isChecked();
 		for (auto it = canvasDock->streamOutputs.begin(); it != canvasDock->streamOutputs.end(); ++it) {
-			if (!it->output)
+			if (!it->output) {
 				continue;
+			}
 			obs_output_set_delay(it->output, canvasDock->stream_delay_enabled ? canvasDock->stream_delay_duration : 0,
 					     canvasDock->stream_delay_preserve ? OBS_OUTPUT_DELAY_PRESERVE : 0);
 		}
@@ -1368,16 +1407,12 @@ void OBSBasicSettings::SaveSettings()
 	if (canvasDock->stream_advanced_settings != sa || canvasDock->stream_encoder != se.constData()) {
 		canvasDock->stream_advanced_settings = sa;
 		canvasDock->stream_encoder = se.constData();
-		obs_encoder_t *enc = nullptr;
 		for (auto it = canvasDock->streamOutputs.begin(); it != canvasDock->streamOutputs.end(); ++it) {
 			if (it->output && !obs_output_active(it->output)) {
-				if (!enc)
-					enc = obs_output_get_video_encoder(it->output);
+				auto old_enc = obs_output_get_video_encoder(it->output);
 				obs_output_set_video_encoder(it->output, nullptr);
+				obs_encoder_release(old_enc);
 			}
-		}
-		if (enc && strcmp(obs_encoder_get_name(enc), "vertical_canvas_video_encoder") == 0) {
-			obs_encoder_release(enc);
 		}
 	}
 
@@ -1385,8 +1420,13 @@ void OBSBasicSettings::SaveSettings()
 		if (streamingAudioTracks[i - 1]->isChecked()) {
 			if (canvasDock->stream_audio_track != i) {
 				for (auto it = canvasDock->streamOutputs.begin(); it != canvasDock->streamOutputs.end(); ++it) {
-					if (it->output && !obs_output_active(it->output))
-						obs_output_set_audio_encoder(it->output, nullptr, 0);
+					if (it->output && !obs_output_active(it->output)) {
+						auto old_enc = obs_output_get_audio_encoder(it->output, 0);
+						if (old_enc) {
+							obs_output_set_audio_encoder(it->output, nullptr, 0);
+							obs_encoder_release(old_enc);
+						}
+					}
 				}
 				canvasDock->stream_audio_track = i;
 			}
@@ -1408,16 +1448,15 @@ void OBSBasicSettings::SaveSettings()
 
 		if ((canvasDock->recordOutput && !obs_output_active(canvasDock->recordOutput)) ||
 		    (canvasDock->replayOutput && !obs_output_active(canvasDock->replayOutput))) {
-			auto enc = canvasDock->recordOutput ? obs_output_get_video_encoder(canvasDock->recordOutput) : nullptr;
-			if (!enc && canvasDock->replayOutput) {
-				enc = obs_output_get_video_encoder(canvasDock->replayOutput);
-			}
-			if (canvasDock->recordOutput)
+			if (canvasDock->recordOutput) {
+				auto old_enc = obs_output_get_video_encoder(canvasDock->recordOutput);
 				obs_output_set_video_encoder(canvasDock->recordOutput, nullptr);
-			if (canvasDock->replayOutput)
+				obs_encoder_release(old_enc);
+			}
+			if (canvasDock->replayOutput) {
+				auto old_enc = obs_output_get_video_encoder(canvasDock->replayOutput);
 				obs_output_set_video_encoder(canvasDock->replayOutput, nullptr);
-			if (enc && strcmp(obs_encoder_get_name(enc), "vertical_canvas_record_video_encoder") == 0) {
-				obs_encoder_release(enc);
+				obs_encoder_release(old_enc);
 			}
 		}
 	}
@@ -1426,26 +1465,32 @@ void OBSBasicSettings::SaveSettings()
 
 	long long tracks = 0;
 	for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
-		if (recordingAudioTracks[i]->isChecked())
+		if (recordingAudioTracks[i]->isChecked()) {
 			tracks += (1ll << i);
+		}
 	}
-	if (!tracks)
+	if (!tracks) {
 		tracks = 1;
+	}
 	if (canvasDock->record_audio_tracks != tracks) {
 		canvasDock->record_audio_tracks = tracks;
 		if ((canvasDock->recordOutput && !obs_output_active(canvasDock->recordOutput)) ||
 		    (canvasDock->replayOutput && !obs_output_active(canvasDock->replayOutput))) {
 			for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
-				auto enc = canvasDock->recordOutput ? obs_output_get_audio_encoder(canvasDock->recordOutput, i)
-								    : nullptr;
-				if (!enc && canvasDock->replayOutput) {
-					enc = obs_output_get_audio_encoder(canvasDock->replayOutput, i);
+				if (canvasDock->recordOutput) {
+					auto old_enc = obs_output_get_audio_encoder(canvasDock->recordOutput, i);
+					if (old_enc) {
+						obs_output_set_audio_encoder(canvasDock->recordOutput, nullptr, i);
+						obs_encoder_release(old_enc);
+					}
 				}
-				if (canvasDock->recordOutput)
-					obs_output_set_audio_encoder(canvasDock->recordOutput, nullptr, i);
-				if (canvasDock->replayOutput)
-					obs_output_set_audio_encoder(canvasDock->replayOutput, nullptr, i);
-				obs_encoder_release(enc);
+				if (canvasDock->replayOutput) {
+					auto old_enc = obs_output_get_audio_encoder(canvasDock->replayOutput, i);
+					if (old_enc) {
+						obs_output_set_audio_encoder(canvasDock->replayOutput, nullptr, i);
+						obs_encoder_release(old_enc);
+					}
+				}
 			}
 		}
 	}
@@ -1455,11 +1500,13 @@ void OBSBasicSettings::SaveSettings()
 
 void OBSBasicSettings::SetEncoderBitrate(obs_encoder_t *encoder, bool record)
 {
-	if (!encoder)
+	if (!encoder) {
 		return;
+	}
 	auto settings = obs_encoder_get_settings(encoder);
-	if (!settings)
+	if (!settings) {
 		return;
+	}
 	auto bitrate = obs_encoder_get_type(encoder) == OBS_ENCODER_AUDIO
 			       ? canvasDock->audioBitrate
 			       : (record ? canvasDock->recordVideoBitrate : canvasDock->streamingVideoBitrate);
@@ -1482,8 +1529,9 @@ std::vector<obs_hotkey_t *> OBSBasicSettings::GetHotKeysFromOutput(obs_output_t 
 	t.output = obs_output_get_weak_output(output);
 	obs_enum_hotkeys(
 		[](void *param, obs_hotkey_id, obs_hotkey_t *key) {
-			if (obs_hotkey_get_registerer_type(key) != OBS_HOTKEY_REGISTERER_OUTPUT)
+			if (obs_hotkey_get_registerer_type(key) != OBS_HOTKEY_REGISTERER_OUTPUT) {
 				return true;
+			}
 			auto hp = (struct find_hotkey *)param;
 			auto o = obs_hotkey_get_registerer(key);
 			if (o == hp->output || obs_weak_output_references_output(hp->output, (obs_output_t *)o)) {
@@ -1550,8 +1598,9 @@ obs_hotkey_t *OBSBasicSettings::GetHotkeyByName(QString name)
 			UNUSED_PARAMETER(id);
 			const auto hp = (struct find_hotkey *)param;
 			const auto hn = obs_hotkey_get_name(key);
-			if (strcmp(hp->name, hn) == 0)
+			if (strcmp(hp->name, hn) == 0) {
 				hp->hotkey = key;
+			}
 			return true;
 		},
 		&t);
@@ -1573,8 +1622,9 @@ void OBSBasicSettings::AddProperty(obs_property_t *property, obs_data_t *setting
 			auto item = layout->itemAt(row, QFormLayout::LabelRole);
 			if (item) {
 				auto w = item->widget();
-				if (w)
+				if (w) {
 					w->setVisible(false);
+				}
 			}
 		}
 		widgets->emplace(property, widget);
@@ -1655,8 +1705,9 @@ void OBSBasicSettings::AddProperty(obs_property_t *property, obs_data_t *setting
 		} else {
 			auto widget = new QLineEdit();
 			widget->setText(QString::fromUtf8(obs_data_get_string(settings, obs_property_name(property))));
-			if (text_type == OBS_TEXT_PASSWORD)
+			if (text_type == OBS_TEXT_PASSWORD) {
 				widget->setEchoMode(QLineEdit::Password);
+			}
 			auto label = new QLabel(QString::fromUtf8(obs_property_description(property)));
 			layout->addRow(label, widget);
 			if (!obs_property_visible(property)) {
@@ -1697,8 +1748,9 @@ void OBSBasicSettings::AddProperty(obs_property_t *property, obs_data_t *setting
 			widget->addItem(QString::fromUtf8(obs_property_list_item_name(property, i)), var);
 		}
 
-		if (list_type == OBS_COMBO_TYPE_EDITABLE)
+		if (list_type == OBS_COMBO_TYPE_EDITABLE) {
 			widget->setEditable(true);
+		}
 
 		auto name = obs_property_name(property);
 		QVariant value;
@@ -1719,8 +1771,9 @@ void OBSBasicSettings::AddProperty(obs_property_t *property, obs_data_t *setting
 			widget->lineEdit()->setText(value.toString());
 		} else {
 			auto idx = widget->findData(value);
-			if (idx != -1)
+			if (idx != -1) {
 				widget->setCurrentIndex(idx);
+			}
 		}
 
 		auto label = new QLabel(QString::fromUtf8(obs_property_description(property)));
@@ -1821,8 +1874,9 @@ void OBSBasicSettings::LoadProperty(obs_property_t *prop, obs_data_t *settings, 
 			((QComboBox *)widget)->lineEdit()->setText(value.toString());
 		} else {
 			auto idx = ((QComboBox *)widget)->findData(value);
-			if (idx != -1)
+			if (idx != -1) {
 				((QComboBox *)widget)->setCurrentIndex(idx);
+			}
 		}
 	} else {
 		// OBS_PROPERTY_PATH
@@ -1850,8 +1904,9 @@ void OBSBasicSettings::RefreshProperties(std::map<obs_property_t *, QWidget *> *
 				auto item = layout->itemAt(row, QFormLayout::LabelRole);
 				if (item) {
 					widget = item->widget();
-					if (widget)
+					if (widget) {
 						widget->setVisible(visible);
+					}
 				}
 			}
 			obs_property_next(&property);
@@ -1868,8 +1923,9 @@ void OBSBasicSettings::RefreshProperties(std::map<obs_property_t *, QWidget *> *
 				auto item = layout->itemAt(row, QFormLayout::LabelRole);
 				if (item) {
 					widget = item->widget();
-					if (widget)
+					if (widget) {
 						widget->setVisible(visible);
+					}
 				}
 			}
 			obs_property_next(&property);
