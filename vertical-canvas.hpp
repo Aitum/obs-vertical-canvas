@@ -148,6 +148,7 @@ private:
 	obs_canvas_t *multiCanvas = nullptr;
 	video_t *multiCanvasVideo = nullptr;
 	obs_source_t *multiCanvasSource = nullptr;
+	bool starting_virtual_cam = false;
 	gs_texrender_t *texrender = nullptr;
 	gs_stagesurf_t *stagesurface = nullptr;
 	QPushButton *virtualCamButton;
@@ -391,6 +392,8 @@ private slots:
 	void ConfigButtonClicked();
 	void OnVirtualCamStart();
 	void OnVirtualCamStop();
+	void ClearMultiCanvas();
+	video_t *EnsureMultiCanvasVideo(bool *created_video = nullptr);
 	void OnRecordStart();
 	void OnRecordStop(int code, QString last_error);
 	void OnReplaySaved();

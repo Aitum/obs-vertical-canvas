@@ -955,7 +955,8 @@ void CanvasDock::CheckReplayBuffer(bool start)
 		return;
 	}
 	bool active = obs_frontend_streaming_active() || obs_frontend_recording_active() || obs_frontend_replay_buffer_active() ||
-		      (recordOutput && obs_output_active(recordOutput));
+		      (recordOutput && obs_output_active(recordOutput)) ||
+		      (replayOutput && obs_output_active(replayOutput));
 	for (auto it = streamOutputs.begin(); !active && it != streamOutputs.end(); ++it) {
 		active = it->enabled && it->output && !it->stopping && obs_output_active(it->output);
 	}
@@ -5267,6 +5268,11 @@ void CanvasDock::OnVirtualCamStop()
 	virtualCamButton->setIcon(virtualCamInactiveIcon);
 	virtualCamButton->setChecked(false);
 	CheckReplayBuffer();
+	ClearMultiCanvas();
+}
+
+void CanvasDock::ClearMultiCanvas()
+{
 	if (multiCanvasSource) {
 		multi_canvas_source_remove_canvas(obs_obj_get_data(multiCanvasSource), canvas);
 		obs_source_release(multiCanvasSource);
@@ -5275,12 +5281,86 @@ void CanvasDock::OnVirtualCamStop()
 
 	if (multiCanvasVideo) {
 		multiCanvasVideo = nullptr;
-		obs_canvas_set_channel(multiCanvas, 0, nullptr);
+		if (multiCanvas && !obs_canvas_removed(multiCanvas)) {
+			obs_canvas_set_channel(multiCanvas, 0, nullptr);
+		}
 	}
-	if (multiCanvas) {
+
+	// The canvas is intentionally kept alive. Releasing it destroys the canvas, and
+	// the next start then has to rebuild its video with obs_canvas_reset_video(),
+	// which fails (obs_create_video_mix() returns NULL) and leaves the virtual
+	// camera unable to start in BOTH mode. Detaching the source is enough.
+}
+
+video_t *CanvasDock::EnsureMultiCanvasVideo(bool *created_video)
+{
+	if (created_video) {
+		*created_video = false;
+	}
+
+	if (multiCanvas && obs_canvas_removed(multiCanvas)) {
 		obs_canvas_release(multiCanvas);
 		multiCanvas = nullptr;
 	}
+	if (!multiCanvas) {
+		multiCanvas = obs_get_canvas_by_name("multiCanvas");
+		if (multiCanvas && obs_canvas_removed(multiCanvas)) {
+			obs_canvas_release(multiCanvas);
+			multiCanvas = nullptr;
+		}
+		if (!multiCanvas) {
+			multiCanvas = obs_canvas_create("multiCanvas", nullptr, DEVICE);
+		}
+	}
+	if (!multiCanvas) {
+		return nullptr;
+	}
+
+	if (!multiCanvasSource) {
+		multiCanvasSource = obs_source_create_private("vertical_multi_canvas_source", "vertical_multi_canvas_source",
+								nullptr);
+		if (!multiCanvasSource) {
+			return nullptr;
+		}
+		multi_canvas_source_add_canvas(obs_obj_get_data(multiCanvasSource), canvas, canvas_width, canvas_height);
+	}
+
+	// obs_canvas_reset_video() bails out while obs_video_active() is true, and that
+	// is the case as soon as any output (recording, streaming, replay buffer or the
+	// virtual camera itself) starts capturing frames. The mix therefore has to be
+	// built while nothing is running, which is what LoadScenes() does at startup;
+	// a later virtual camera start can only ever reuse it.
+	if (!obs_canvas_has_video(multiCanvas)) {
+		const auto w = obs_source_get_width(multiCanvasSource);
+		const auto h = obs_source_get_height(multiCanvasSource);
+		if (w == 0 || h == 0) {
+			blog(LOG_ERROR, "[Vertical Canvas] multi-canvas source has no size");
+			return nullptr;
+		}
+
+		obs_video_info ovi;
+		obs_get_video_info(&ovi);
+		ovi.base_width = w;
+		ovi.base_height = h;
+		ovi.output_width = w;
+		ovi.output_height = h;
+		if (!obs_canvas_reset_video(multiCanvas, &ovi)) {
+			if (obs_video_active()) {
+				blog(LOG_ERROR,
+				     "[Vertical Canvas] could not create the BOTH canvas because an output is already "
+				     "running; stop every output (or restart OBS) and start the virtual camera again");
+			} else {
+				blog(LOG_ERROR, "[Vertical Canvas] obs_canvas_reset_video failed");
+			}
+			return nullptr;
+		}
+
+		if (created_video) {
+			*created_video = true;
+		}
+	}
+
+	return obs_canvas_get_video(multiCanvas);
 }
 
 void CanvasDock::VirtualCamButtonClicked()
@@ -5294,6 +5374,14 @@ void CanvasDock::VirtualCamButtonClicked()
 
 void CanvasDock::StartVirtualCam()
 {
+	// Starting the virtual camera can be re-entered while a modal dialog is up
+	// (a nested Qt event loop keeps pumping events), which used to reset the
+	// multi-canvas state while it was still being set up and crash the process.
+	if (starting_virtual_cam) {
+		return;
+	}
+	starting_virtual_cam = true;
+
 	CheckReplayBuffer(true);
 	const auto output = obs_frontend_get_virtualcam_output();
 	if (obs_output_active(output)) {
@@ -5301,6 +5389,7 @@ void CanvasDock::StartVirtualCam()
 			virtualCamButton->setChecked(false);
 		}
 		obs_output_release(output);
+		starting_virtual_cam = false;
 		return;
 	}
 
@@ -5310,52 +5399,30 @@ void CanvasDock::StartVirtualCam()
 		virtual_cam_warned = true;
 	}
 
+	// A previous attempt that failed after taking the reference leaves the pointer
+	// behind; release it here so retrying does not leak one reference per try.
+	if (virtualCamOutput) {
+		obs_output_release(virtualCamOutput);
+		virtualCamOutput = nullptr;
+	}
 	virtualCamOutput = output;
 
-	obs_canvas_t *started_canvas = nullptr;
 	bool started_video = false;
 	video_t *virtual_video = nullptr;
 	if (virtual_cam_mode == VIRTUAL_CAMERA_VERTICAL) {
 		started_video = StartVideo();
-		started_canvas = canvas;
 		virtual_video = obs_canvas_get_video(canvas);
 	} else if (virtual_cam_mode == VIRTUAL_CAMERA_BOTH) {
-		if (multiCanvas && obs_canvas_removed(multiCanvas)) {
-			obs_canvas_release(multiCanvas);
-			multiCanvas = nullptr;
-		}
-		if (!multiCanvas) {
-			multiCanvas = obs_get_canvas_by_name("multiCanvas");
-			if (multiCanvas && obs_canvas_removed(multiCanvas)) {
-				obs_canvas_release(multiCanvas);
-				multiCanvas = nullptr;
-			}
-			if (!multiCanvas) {
-				multiCanvas = obs_canvas_create("multiCanvas", nullptr, DEVICE);
-			}
-		}
-		started_canvas = multiCanvas;
-		if (!multiCanvasSource) {
-			multiCanvasSource =
-				obs_source_create_private("vertical_multi_canvas_source", "vertical_multi_canvas_source", nullptr);
-			void *view_data = obs_obj_get_data(multiCanvasSource);
-			multi_canvas_source_add_canvas(view_data, canvas, canvas_width, canvas_height);
-		}
+		started_video = false;
+		multiCanvasVideo = EnsureMultiCanvasVideo(&started_video);
 		if (!multiCanvasVideo) {
-			auto w = obs_source_get_width(multiCanvasSource);
-			auto h = obs_source_get_height(multiCanvasSource);
-			obs_video_info ovi;
-			if (!obs_canvas_get_video_info(multiCanvas, &ovi) || ovi.base_width != w || ovi.base_height != h ||
-			    ovi.output_width != w || ovi.output_height != h) {
-				obs_get_video_info(&ovi);
-				ovi.base_width = w;
-				ovi.base_height = h;
-				ovi.output_width = w;
-				ovi.output_height = h;
-				obs_canvas_reset_video(multiCanvas, &ovi);
-			}
-			multiCanvasVideo = obs_canvas_get_video(multiCanvas);
-			started_video = true;
+			blog(LOG_ERROR, "[Vertical Canvas] Virtual camera not started: no BOTH canvas video");
+			ClearMultiCanvas();
+			starting_virtual_cam = false;
+			virtualCamButton->setChecked(false);
+			obs_output_release(virtualCamOutput);
+			virtualCamOutput = nullptr;
+			return;
 		}
 		virtual_video = multiCanvasVideo;
 		if (obs_canvas_get_channel(multiCanvas, 0) != multiCanvasSource) {
@@ -5370,37 +5437,62 @@ void CanvasDock::StartVirtualCam()
 	signal_handler_connect(signal, "start", virtual_cam_output_start, this);
 	signal_handler_connect(signal, "stop", virtual_cam_output_stop, this);
 
+	// Without a valid video the OBS virtual camera output creates the shared
+	// mapping but then fails inside obs_output_begin_data_capture(), leaving an
+	// orphaned output: active stays false while the mapping is still held.
+	// That orphan freezes the device and makes every later start fail with
+	// "starting virtual-output failed", so never start the output without video.
+	if (!virtual_video || !obs_output_can_begin_data_capture(output, 0)) {
+		blog(LOG_ERROR, "[Vertical Canvas] Virtual camera not started: no valid video to capture");
+		if (started_video && canvas && obs_canvas_get_video(canvas) == virtual_video) {
+			DestroyVideo();
+		}
+		ClearMultiCanvas();
+		starting_virtual_cam = false;
+		virtualCamButton->setChecked(false);
+		obs_output_release(virtualCamOutput);
+		virtualCamOutput = nullptr;
+		return;
+	}
+
 	obs_output_set_media(output, virtual_video, obs_get_audio());
 	SendVendorEvent("virtual_camera_starting");
 	const bool success = obs_output_start(output);
 	if (!success) {
-		QMetaObject::invokeMethod(this, "OnVirtualCamStop");
-		if (started_video) {
-			if (obs_canvas_get_video(canvas) == virtual_video) {
-				DestroyVideo();
-			} else if (multiCanvasVideo == virtual_video) {
-				multiCanvasVideo = nullptr;
-
-				obs_canvas_set_channel(started_canvas, 0, nullptr);
-				obs_canvas_release(started_canvas);
-				multiCanvas = nullptr;
-			} else {
-				obs_canvas_set_channel(started_canvas, 0, nullptr);
-			}
+		const char *error = obs_output_get_last_error(output);
+		blog(LOG_WARNING, "[Vertical Canvas] Virtual camera failed to start: %s", error ? error : "unknown error");
+		if (started_video && canvas && obs_canvas_get_video(canvas) == virtual_video) {
+			DestroyVideo();
 		}
+		// A failed start must not stop other outputs nor tear down the canvas,
+		// so OnVirtualCamStop() is not called here. Only the virtual camera
+		// state is cleaned up.
+		signal_handler_disconnect(signal, "start", virtual_cam_output_start, this);
+		signal_handler_disconnect(signal, "stop", virtual_cam_output_stop, this);
+		obs_output_set_media(output, nullptr, nullptr);
+		obs_output_release(virtualCamOutput);
+		virtualCamOutput = nullptr;
+		virtualCamButton->setChecked(false);
+		virtualCamButton->setIcon(virtualCamInactiveIcon);
+		ClearMultiCanvas();
 	}
+
+	starting_virtual_cam = false;
 }
 
 void CanvasDock::StopVirtualCam()
 {
 	if (!obs_output_active(virtualCamOutput)) {
-		virtualCamButton->setChecked(false);
+		// Orphaned output: OBS already created the mapping but the output never
+		// became active, so obs_output_stop() is a no-op. Force the stop so the
+		// mapping has a chance to be released, then clear the local state.
+		if (virtualCamOutput) {
+			obs_output_force_stop(virtualCamOutput);
+		}
+		OnVirtualCamStop();
 		return;
 	}
 	SendVendorEvent("virtual_camera_stopping");
-	if (obs_output_video(virtualCamOutput) != obs_get_video()) {
-		obs_output_set_media(virtualCamOutput, nullptr, nullptr);
-	}
 	obs_output_stop(virtualCamOutput);
 }
 
@@ -7044,9 +7136,10 @@ void CanvasDock::DestroyVideo()
 	if (recordOutput && obs_output_get_video_encoder(recordOutput)) {
 		obs_encoder_set_video(obs_output_get_video_encoder(recordOutput), nullptr);
 	}
-	if (virtualCamOutput) {
-		obs_output_set_media(virtualCamOutput, nullptr, obs_get_audio());
-	}
+	// The virtual camera media is deliberately not cleared here. Setting it to
+	// NULL left the output without video, and a later start without video creates
+	// an orphaned output that keeps the OBSVirtualCamVideo mapping held.
+	// It is managed by StartVirtualCam() / OnVirtualCamStop() instead.
 	for (auto it = streamOutputs.begin(); it != streamOutputs.end(); ++it) {
 		if (it->output && obs_output_get_video_encoder(it->output)) {
 			obs_encoder_set_video(obs_output_get_video_encoder(it->output), nullptr);
@@ -7272,6 +7365,14 @@ void CanvasDock::LoadScenes()
 	}
 
 	StartVideo();
+
+	// obs_canvas_reset_video() only works while no output is running, so the BOTH
+	// canvas mix has to be built here, at load time, instead of on the first
+	// virtual camera start: by then a recording, stream or replay buffer may
+	// already be capturing and the reset would be refused.
+	if (virtual_cam_mode == VIRTUAL_CAMERA_BOTH) {
+		EnsureMultiCanvasVideo();
+	}
 
 	obs_canvas_enum_scenes(
 		canvas,
