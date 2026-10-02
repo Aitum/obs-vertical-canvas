@@ -7417,17 +7417,20 @@ void CanvasDock::LoadScenes()
 	if (scenesDock && scenesDock->sceneList->count() > 0) {
 		QListWidgetItem *selectedItem = nullptr;
 		scenesDock->sceneList->blockSignals(true);
-		for (int idx = 0; idx < scenesDock->sceneList->count(); idx++) {
+		for (int idx = 0; idx < scenesDock->sceneList->count();) {
 			auto item = scenesDock->sceneList->takeItem(idx);
-			auto scene = obs_canvas_get_source_by_name(canvas, item->text().toUtf8().constData());
-			auto settings = obs_source_get_settings(scene);
+			auto s = obs_canvas_get_source_by_name(canvas, item->text().toUtf8().constData());
+			auto settings = obs_source_get_settings(s);
 			const int order = (int)obs_data_get_int(settings, "order");
+			if (order <= idx) {
+				idx++;
+			}
 			scenesDock->sceneList->insertItem(order, item);
 			if (obs_data_get_bool(settings, "canvas_active")) {
 				selectedItem = item;
 			}
 			obs_data_release(settings);
-			obs_source_release(scene);
+			obs_source_release(s);
 		}
 		scenesDock->sceneList->blockSignals(false);
 		if (selectedItem) {
@@ -9086,13 +9089,13 @@ void CanvasDock::save_load(obs_data_t *save_data, bool saving, void *param)
 			auto c = window->scenesDock->sceneList->count();
 			for (int row = 0; row < c; row++) {
 				auto scene_name = window->scenesDock->sceneList->item(row)->text();
-				auto scene = obs_canvas_get_source_by_name(window->canvas, scene_name.toUtf8().constData());
-				if (scene) {
-					auto settings = obs_source_get_settings(scene);
+				auto s = obs_canvas_get_source_by_name(window->canvas, scene_name.toUtf8().constData());
+				if (s) {
+					auto settings = obs_source_get_settings(s);
 					obs_data_set_int(settings, "order", row);
 					obs_data_set_bool(settings, "canvas_active", scene_name == window->currentSceneName);
 					obs_data_release(settings);
-					obs_source_release(scene);
+					obs_source_release(s);
 				}
 			}
 		}
@@ -9100,13 +9103,13 @@ void CanvasDock::save_load(obs_data_t *save_data, bool saving, void *param)
 			auto c = window->scenesCombo->count();
 			for (int row = 0; row < c; row++) {
 				auto scene_name = window->scenesCombo->itemText(row);
-				auto scene = obs_canvas_get_source_by_name(window->canvas, scene_name.toUtf8().constData());
-				if (scene) {
-					auto settings = obs_source_get_settings(scene);
+				auto s = obs_canvas_get_source_by_name(window->canvas, scene_name.toUtf8().constData());
+				if (s) {
+					auto settings = obs_source_get_settings(s);
 					obs_data_set_int(settings, "order", row);
 					obs_data_set_bool(settings, "canvas_active", scene_name == window->currentSceneName);
 					obs_data_release(settings);
-					obs_source_release(scene);
+					obs_source_release(s);
 				}
 			}
 		}
