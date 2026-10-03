@@ -1695,6 +1695,7 @@ CanvasDock::~CanvasDock()
 		outputsToStop.push_back(replayOutput);
 	} else {
 		auto old_enc = obs_output_get_video_encoder(replayOutput);
+		obs_encoder_release(old_enc);
 		for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
 			auto old_audio_enc = obs_output_get_audio_encoder(replayOutput, i);
 			if (old_audio_enc) {
@@ -1702,7 +1703,6 @@ CanvasDock::~CanvasDock()
 			}
 		}
 		obs_output_release(replayOutput);
-		obs_encoder_release(old_enc);
 	}
 	replayOutput = nullptr;
 
@@ -1770,6 +1770,7 @@ CanvasDock::~CanvasDock()
 				continue;
 			}
 			auto old_enc = obs_output_get_video_encoder(output);
+			obs_encoder_release(old_enc);
 			for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
 				auto old_audio_enc = obs_output_get_audio_encoder(output, i);
 				if (old_audio_enc) {
@@ -1777,7 +1778,6 @@ CanvasDock::~CanvasDock()
 				}
 			}
 			obs_output_release(output);
-			obs_encoder_release(old_enc);
 			outputsToStop.remove(output);
 			break;
 		}
@@ -5352,9 +5352,18 @@ void CanvasDock::StartVirtualCam()
 				ovi.base_height = h;
 				ovi.output_width = w;
 				ovi.output_height = h;
-				obs_canvas_reset_video(multiCanvas, &ovi);
+				if (!obs_canvas_reset_video(multiCanvas, &ovi)) {
+					obs_output_release(output);
+					QMetaObject::invokeMethod(this, "OnVirtualCamStop");
+					return;
+				}
 			}
 			multiCanvasVideo = obs_canvas_get_video(multiCanvas);
+			if (!multiCanvasVideo) {
+				obs_output_release(output);
+				QMetaObject::invokeMethod(this, "OnVirtualCamStop");
+				return;
+			}
 			started_video = true;
 		}
 		virtual_video = multiCanvasVideo;
