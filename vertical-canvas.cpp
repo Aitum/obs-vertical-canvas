@@ -9268,7 +9268,7 @@ void CanvasDock::AskUpdate()
 	mb.setDefaultButton(remind);
 	mb.exec();
 	if (mb.clickedButton() == update) {
-		QDesktopServices::openUrl(QUrl(QString::fromUtf8("https://aitum.tv/download/stream-suite")));
+		QDesktopServices::openUrl(QUrl(QString::fromUtf8("https://aitum.tv/download/vertical")));
 	} else if (mb.clickedButton() == skip) {
 		if (!config) {
 			config = obs_data_create();
