@@ -219,6 +219,9 @@ private:
 	obs_data_t *stream_encoder_settings;
 
 	std::string recordPath;
+	// Last file written by recordOutput: set at start, moved on each split.
+	std::string lastRecordFile;
+	std::mutex lastRecordFileMutex;
 
 	bool record_advanced_settings;
 	std::string filename_formatting;
@@ -325,6 +328,8 @@ private:
 	bool HasScene(QString scene) const;
 	void CheckReplayBuffer(bool start = false);
 	void SendVendorEvent(const char *e, obs_data_t* data = nullptr);
+	void SetLastRecordFile(const char *path);
+	std::string StreamOutputName(obs_output_t *output);
 	void DeleteProjector(OBSProjector *projector);
 	OBSProjector *OpenProjector(int monitor);
 	void AddProjectorMenuMonitors(QMenu *parent, QObject *target, const char *slot);
@@ -349,6 +354,7 @@ private:
 	static void record_output_start(void *p, calldata_t *calldata);
 	static void record_output_stop(void *p, calldata_t *calldata);
 	static void record_output_stopping(void *p, calldata_t *calldata);
+	static void record_output_file_changed(void *p, calldata_t *calldata);
 	static void replay_output_start(void *p, calldata_t *calldata);
 	static void replay_output_stop(void *p, calldata_t *calldata);
 	static void replay_saved(void *p, calldata_t *calldata);
@@ -470,6 +476,9 @@ public:
 	bool RecordingActive();
 	bool BacktrackActive();
 	bool VirtualCameraActive();
+	std::string LastRecordFile();
+	void FillSettings(obs_data_t *response_data);
+	bool ApplySettings(obs_data_t *request_data, std::string &error);
 	void AskUpdate();
 };
 
