@@ -710,10 +710,10 @@ void obs_module_post_load(void)
 	}
 	obs_data_array_release(canvas);
 
-	std::string url = "https://api.aitum.tv/plugin/vertical";
+	std::string url = "https://api.aitum.tv/plugin/vertical?version=" PROJECT_VERSION;
 	const char *pguid = config_get_string(obs_frontend_get_app_config(), "General", "InstallGUID");
 	if (pguid) {
-		url += "?uuid=";
+		url += "&uuid=";
 		url += pguid;
 	}
 
@@ -1606,6 +1606,24 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	obs_hotkey_load(split_hotkey, start_hotkey);
 	obs_data_array_release(start_hotkey);
 
+	save_backtrack_hotkey = obs_hotkey_register_frontend(
+		"VerticalCanvasDockSaveBacktrack",
+		(title + " " + QString::fromUtf8(obs_module_text("BacktrackSave"))).toUtf8().constData(),
+		[](void *param, obs_hotkey_id id, obs_hotkey_t *hotkey, bool pressed) {
+			UNUSED_PARAMETER(id);
+			UNUSED_PARAMETER(hotkey);
+			if (!pressed) {
+				return;
+			}
+			auto cd = (CanvasDock *)param;
+			QMetaObject::invokeMethod(cd, [cd]() { cd->ReplayButtonClicked(); }, Qt::QueuedConnection);
+		},
+		this);
+
+	start_hotkey = obs_data_get_array(settings, "save_backtrack_hotkey");
+	obs_hotkey_load(save_backtrack_hotkey, start_hotkey);
+	obs_data_array_release(start_hotkey);
+
 	if (first_time) {
 		obs_data_release(settings);
 	}
@@ -1644,6 +1662,7 @@ CanvasDock::~CanvasDock()
 	obs_hotkey_pair_unregister(preview_hotkey);
 	obs_hotkey_unregister(chapter_hotkey);
 	obs_hotkey_unregister(split_hotkey);
+	obs_hotkey_unregister(save_backtrack_hotkey);
 	obs_display_remove_draw_callback(preview->GetDisplay(), DrawPreview, this);
 	for (uint32_t i = MAX_CHANNELS - 1; i > 0; i--) {
 		auto s = obs_get_output_source(i);
@@ -7211,6 +7230,9 @@ obs_data_t *CanvasDock::SaveSettings()
 	start_hotkey = obs_hotkey_save(split_hotkey);
 	obs_data_set_array(save_data, "split_hotkey", start_hotkey);
 	obs_data_array_release(start_hotkey);
+	start_hotkey = obs_hotkey_save(save_backtrack_hotkey);
+	obs_data_set_array(save_data, "save_backtrack_hotkey", start_hotkey);
+	obs_data_array_release(start_hotkey);
 
 	obs_data_array_t *transition_array = obs_data_array_create();
 	for (auto transition : transitions) {
@@ -7779,9 +7801,13 @@ void CanvasDock::FinishLoading()
 		action->trigger();
 	}
 	auto canvasDock = (QDockWidget *)this->parentWidget();
+	if (!canvasDock) {
+		return;
+	}
 	auto main = ((QMainWindow *)canvasDock->parentWidget());
-
-	main->addDockWidget(Qt::RightDockWidgetArea, canvasDock);
+	if (main) {
+		main->addDockWidget(Qt::RightDockWidgetArea, canvasDock);
+	}
 	canvasDock->setFloating(false);
 	canvasDock->show();
 
@@ -7789,6 +7815,9 @@ void CanvasDock::FinishLoading()
 		scenesDockAction->trigger();
 	}
 	auto dock = (QDockWidget *)(scenesDock->parentWidget());
+	if (!dock || !main) {
+		return;
+	}
 	auto sd = main->findChild<QDockWidget *>(QStringLiteral("scenesDock"));
 	if (sd) {
 		auto area = main->dockWidgetArea(sd);

@@ -183,6 +183,7 @@ private:
 	obs_hotkey_pair_id stream_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
 	obs_hotkey_pair_id record_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
 	obs_hotkey_pair_id virtual_cam_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
+	obs_hotkey_id save_backtrack_hotkey = OBS_INVALID_HOTKEY_ID;
 	obs_hotkey_pair_id backtrack_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
 	obs_hotkey_pair_id pause_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
 	obs_hotkey_pair_id preview_hotkey = OBS_INVALID_HOTKEY_PAIR_ID;
