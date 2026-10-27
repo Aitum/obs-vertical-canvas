@@ -1,0 +1,16 @@
+{
+    "display_name": "Aitum Vertical",
+    "id": "a532a044-39bd-438f-885a-960bfdfc5475",
+    "version": "1.6.7",
+    "authors": ["Aitum", "Exeldro"],
+    "name": "vertical-canvas",
+    "description": "A vertical canvas plugin for OBS.",
+    "long_description": "Plugin for OBS Studio to add vertical canvas by Aitum",
+    "urls": {
+        "repository": "https://github.com/Aitum/obs-vertical-canvas",
+        "website": "https://aitum.tv/products/vertical",
+        "support": "https://aitum.tv/support"
+    },
+    "has_banner": false,
+    "has_icon": false
+}
