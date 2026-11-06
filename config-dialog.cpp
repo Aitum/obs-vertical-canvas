@@ -225,21 +225,6 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 
 	backtrackLayout->addRow(QString::fromUtf8(obs_module_text("BacktrackPath")), backtrackPathLayout);
 
-	auto replayHotkeys = GetHotKeysFromOutput(canvasDock->replayOutput);
-
-	for (auto &hotkey : replayHotkeys) {
-		auto id = obs_hotkey_get_id(hotkey);
-		std::vector<obs_key_combination_t> combos = GetCombosForHotkey(id);
-		auto hn = obs_hotkey_get_name(hotkey);
-		auto hw = new OBSHotkeyWidget(this, id, hn, combos);
-		if (strcmp(hn, "ReplayBuffer.Save") == 0) {
-			backtrackLayout->addRow(QString::fromUtf8(obs_module_text("SaveBacktrackHotkey")), hw);
-		} else {
-			backtrackLayout->addRow(QString::fromUtf8(obs_hotkey_get_description(hotkey)), hw);
-		}
-		hotkeys.push_back(hw);
-	}
-
 	OBSHotkeyWidget *otherHotkey = nullptr;
 	auto hotkey = GetHotkeyByName("VerticalCanvasDockStartBacktrack");
 	if (hotkey) {
@@ -270,6 +255,19 @@ OBSBasicSettings::OBSBasicSettings(CanvasDock *canvas_dock, QMainWindow *parent)
 			hw->label->pairPartner = otherHotkey->label;
 			otherHotkey->label->pairPartner = hw->label;
 		}
+	}
+
+	hotkey = GetHotkeyByName("VerticalCanvasDockSaveBacktrack");
+	if (hotkey) {
+		auto id = obs_hotkey_get_id(hotkey);
+		std::vector<obs_key_combination_t> combos = GetCombosForHotkey(id);
+		auto hn = obs_hotkey_get_name(hotkey);
+		auto hw = new OBSHotkeyWidget(this, id, hn, combos);
+		auto label = new OBSHotkeyLabel;
+		label->setText(QString::fromUtf8(obs_module_text("SaveBacktrackHotkey")));
+		hw->label = label;
+		backtrackLayout->addRow(label, hw);
+		hotkeys.push_back(hw);
 	}
 
 	auto maxWidth = 180;
