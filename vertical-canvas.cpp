@@ -1,6 +1,8 @@
 #include "vertical-canvas.hpp"
 
+#include <algorithm>
 #include <list>
+#include <vector>
 
 #include "version.h"
 
@@ -7448,20 +7450,24 @@ void CanvasDock::LoadScenes()
 	if (scenesDock && scenesDock->sceneList->count() > 0) {
 		QListWidgetItem *selectedItem = nullptr;
 		scenesDock->sceneList->blockSignals(true);
-		for (int idx = 0; idx < scenesDock->sceneList->count();) {
-			auto item = scenesDock->sceneList->takeItem(idx);
+		// Sort by the saved "order" value. The saved values can have gaps or
+		// duplicates (for example after a scene is removed from the collection
+		// outside OBS), so sort instead of inserting each item at its saved row.
+		std::vector<std::pair<int, QListWidgetItem *>> items;
+		while (scenesDock->sceneList->count() > 0) {
+			auto item = scenesDock->sceneList->takeItem(0);
 			auto s = obs_canvas_get_source_by_name(canvas, item->text().toUtf8().constData());
 			auto settings = obs_source_get_settings(s);
-			const int order = (int)obs_data_get_int(settings, "order");
-			if (order <= idx) {
-				idx++;
-			}
-			scenesDock->sceneList->insertItem(order, item);
+			items.emplace_back((int)obs_data_get_int(settings, "order"), item);
 			if (obs_data_get_bool(settings, "canvas_active")) {
 				selectedItem = item;
 			}
 			obs_data_release(settings);
 			obs_source_release(s);
+		}
+		std::stable_sort(items.begin(), items.end(), [](const auto &a, const auto &b) { return a.first < b.first; });
+		for (const auto &it : items) {
+			scenesDock->sceneList->addItem(it.second);
 		}
 		scenesDock->sceneList->blockSignals(false);
 		if (selectedItem) {
