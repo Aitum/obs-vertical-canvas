@@ -7423,7 +7423,7 @@ void CanvasDock::LoadScenes()
 				scenesCombo->insertItem(order, name);
 			}
 			if (scenesDock) {
-				scenesDock->sceneList->insertItem(order, name);
+				scenesDock->sceneList->insertItem(order, new SceneListWidgetItem(name, scenesDock->sceneList, order));
 			}
 
 			if ((currentSceneName.isEmpty() && obs_data_get_bool(settings, "canvas_active")) ||
@@ -7446,27 +7446,7 @@ void CanvasDock::LoadScenes()
 	}
 	obs_frontend_source_list_free(&scenes);
 	if (scenesDock && scenesDock->sceneList->count() > 0) {
-		QListWidgetItem *selectedItem = nullptr;
-		scenesDock->sceneList->blockSignals(true);
-		for (int idx = 0; idx < scenesDock->sceneList->count();) {
-			auto item = scenesDock->sceneList->takeItem(idx);
-			auto s = obs_canvas_get_source_by_name(canvas, item->text().toUtf8().constData());
-			auto settings = obs_source_get_settings(s);
-			const int order = (int)obs_data_get_int(settings, "order");
-			if (order <= idx) {
-				idx++;
-			}
-			scenesDock->sceneList->insertItem(order, item);
-			if (obs_data_get_bool(settings, "canvas_active")) {
-				selectedItem = item;
-			}
-			obs_data_release(settings);
-			obs_source_release(s);
-		}
-		scenesDock->sceneList->blockSignals(false);
-		if (selectedItem) {
-			scenesDock->sceneList->setCurrentItem(selectedItem);
-		}
+		scenesDock->sceneList->sortItems(Qt::AscendingOrder);
 	}
 	if ((scenesDock && scenesDock->sceneList->count() == 0) || (scenesCombo && scenesCombo->count() == 0)) {
 		AddScene("", false);
@@ -9404,4 +9384,19 @@ void AspectRatioPixmapLabel::resizeEvent(QResizeEvent *e)
 	if (!pix.isNull()) {
 		QLabel::setPixmap(scaledPixmap());
 	}
+}
+
+SceneListWidgetItem::SceneListWidgetItem(const QString &text, QListWidget *listview, int order)
+	: QListWidgetItem(text, listview),
+	  order(order)
+{
+}
+
+bool SceneListWidgetItem::operator<(const QListWidgetItem &other) const
+{
+	const SceneListWidgetItem *otherItem = dynamic_cast<const SceneListWidgetItem *>(&other);
+	if (otherItem) {
+		return order < otherItem->order;
+	}
+	return QListWidgetItem::operator<(other);
 }
