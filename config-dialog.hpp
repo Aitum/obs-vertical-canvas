@@ -38,6 +38,7 @@ private:
 	QCheckBox *recordingMatchMain;
 	QComboBox *audioBitrate;
 	QComboBox *virtualCameraMode;
+	QCheckBox *drawSafeAreas;
 	QCheckBox *backtrackClip;
 	QSpinBox *backtrackDuration;
 	QLineEdit *backtrackPath;

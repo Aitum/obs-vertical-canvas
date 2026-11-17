@@ -1055,6 +1055,7 @@ CanvasDock::CanvasDock(obs_data_t *settings, QWidget *parent)
 	replayPath = obs_data_get_string(settings, "backtrack_path");
 
 	virtual_cam_mode = (uint32_t)obs_data_get_int(settings, "virtual_camera_mode");
+	drawSafeAreas = obs_data_get_bool(settings, "draw_safe_areas");
 
 	auto so = obs_data_get_array(settings, "stream_outputs");
 	multi_rtmp = LoadStreamOutputs(so);
@@ -1827,6 +1828,25 @@ CanvasDock::~CanvasDock()
 		gs_vertexbuffer_destroy(circleFill);
 	}
 
+	if (actionSafeMargin) {
+		gs_vertexbuffer_destroy(actionSafeMargin);
+	}
+	if (graphicsSafeMargin) {
+		gs_vertexbuffer_destroy(graphicsSafeMargin);
+	}
+	if (fourByThreeSafeMargin) {
+		gs_vertexbuffer_destroy(fourByThreeSafeMargin);
+	}
+	if (leftLine) {
+		gs_vertexbuffer_destroy(leftLine);
+	}
+	if (topLine) {
+		gs_vertexbuffer_destroy(topLine);
+	}
+	if (rightLine) {
+		gs_vertexbuffer_destroy(rightLine);
+	}
+
 	gs_vertexbuffer_destroy(box);
 	obs_leave_graphics();
 
@@ -2080,6 +2100,21 @@ void CanvasDock::DrawPreview(void *data, uint32_t cx, uint32_t cy)
 
 	gs_ortho(float(-x), newCX + float(x), float(-y), newCY + float(y), -100.0f, 100.0f);
 	gs_reset_viewport();
+
+
+	if (window->drawSafeAreas) {
+		if (!window->actionSafeMargin || !window->graphicsSafeMargin || !window->fourByThreeSafeMargin || !window->leftLine || !window->topLine || !window->rightLine) {
+			InitSafeAreas(&window->actionSafeMargin, &window->graphicsSafeMargin, &window->fourByThreeSafeMargin, &window->leftLine, &window->topLine,
+				      &window->rightLine);
+		}
+
+		RenderSafeAreas(window->actionSafeMargin, newCX, newCY);
+		RenderSafeAreas(window->graphicsSafeMargin, newCX, newCY);
+		RenderSafeAreas(window->fourByThreeSafeMargin, newCX, newCY);
+		RenderSafeAreas(window->leftLine, newCX, newCY);
+		RenderSafeAreas(window->topLine, newCX, newCY);
+		RenderSafeAreas(window->rightLine, newCX, newCY);
+	}
 
 	gs_effect_t *solid = obs_get_base_effect(OBS_EFFECT_SOLID);
 	gs_technique_t *tech = gs_effect_get_technique(solid, "Solid");
@@ -7160,6 +7195,7 @@ obs_data_t *CanvasDock::SaveSettings()
 	}
 
 	obs_data_set_int(save_data, "virtual_camera_mode", virtual_cam_mode);
+	obs_data_set_bool(save_data, "draw_safe_areas", drawSafeAreas);
 
 	obs_data_array_t *stream_servers = SaveStreamOutputs();
 	obs_data_set_array(save_data, "stream_outputs", stream_servers);
